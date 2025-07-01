@@ -30,9 +30,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
         <button
           className={`toolbar-btn btn-circular speed-btn ${currentPlaybackRate === CONFIG.video.playbackRates.slow ? 'active' : ''}`}
           onClick={() => onPlaybackRateChange(CONFIG.video.playbackRates.slow)}
-          title="½x Speed"
+          title="0.5x Speed"
         >
-          ½x
+          0.5x
         </button>
         <button
           className={`toolbar-btn btn-circular speed-btn ${currentPlaybackRate === CONFIG.video.playbackRates.normal ? 'active' : ''}`}

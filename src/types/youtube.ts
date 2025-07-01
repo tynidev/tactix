@@ -24,7 +24,6 @@ export interface PlayerConfig {
     modestbranding: number;
     playsinline: number;
     rel: number;
-    showinfo: number;
     mute: number;
   };
   events: {
