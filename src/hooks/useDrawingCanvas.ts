@@ -12,7 +12,6 @@ interface DrawingCommand
   type: 'stroke' | 'rectangle' | 'ellipse';
   points: { x: number; y: number; }[]; // Stored as percentages (0-1)
   color: DrawingColor;
-  lineWidth: number;
   hasArrowHead: boolean;
 }
 
@@ -43,6 +42,19 @@ const denormalizePoint = (point: { x: number; y: number; }, canvas: HTMLCanvasEl
 });
 
 /**
+ * Calculates the scaled line width based on canvas dimensions.
+ * Uses the smaller dimension to ensure proportional scaling regardless of aspect ratio.
+ *
+ * @param canvas - The canvas element to calculate line width for
+ * @returns The calculated pixel line width
+ */
+const getScaledLineWidth = (canvas: HTMLCanvasElement): number =>
+{
+  const minDimension = Math.min(canvas.width, canvas.height);
+  return minDimension * CONFIG.drawing.lineWidth;
+};
+
+/**
  * Draws an arrow head at the end of a line.
  *
  * @param ctx - The canvas 2D rendering context
@@ -50,6 +62,7 @@ const denormalizePoint = (point: { x: number; y: number; }, canvas: HTMLCanvasEl
  * @param to - The point where the arrow head should be drawn
  * @param color - The color of the arrow head
  * @param lineWidth - The width of the line (used to size the arrow head)
+ * @param canvas - The canvas element to calculate scaled arrow length
  */
 const drawArrowHead = (
   ctx: CanvasRenderingContext2D,
@@ -57,9 +70,13 @@ const drawArrowHead = (
   to: { x: number; y: number; },
   color: string,
   lineWidth: number,
+  canvas: HTMLCanvasElement,
 ) =>
 {
-  const arrowLength = Math.max(lineWidth * 3, 25);
+  // Scale arrow length based on canvas dimensions, similar to line width scaling
+  const minDimension = Math.min(canvas.width, canvas.height);
+  const scaledArrowLength = minDimension * CONFIG.drawing.lineWidth * 5; // 5x the line width percentage
+  const arrowLength = Math.max(scaledArrowLength, lineWidth * 3); // Fallback to lineWidth-based sizing
 
   // Calculate the angle of the line from start to end point for arrow orientation
   const dx = to.x - from.x;
@@ -207,10 +224,12 @@ export const useDrawingCanvas = () =>
     // Redraw all stored commands using denormalized coordinates
     drawingCommandsRef.current.forEach((command, index) =>
     {
+      const scaledLineWidth = getScaledLineWidth(canvas);
+      
       if (command.type === 'stroke' && command.points.length > 1)
       {
         ctx.strokeStyle = CONFIG.drawing.colors[command.color];
-        ctx.lineWidth = command.lineWidth;
+        ctx.lineWidth = scaledLineWidth;
 
         ctx.beginPath();
         const firstPoint = denormalizePoint(command.points[0], canvas);
@@ -232,7 +251,7 @@ export const useDrawingCanvas = () =>
           const startIndex = Math.max(0, Math.floor(totalPoints * 0.9));
           const startPoint = denormalizePoint(command.points[startIndex], canvas);
           const lastPoint = denormalizePoint(command.points[command.points.length - 1], canvas);
-          drawArrowHead(ctx, startPoint, lastPoint, CONFIG.drawing.colors[command.color], command.lineWidth);
+          drawArrowHead(ctx, startPoint, lastPoint, CONFIG.drawing.colors[command.color], scaledLineWidth, canvas);
         }
       }
       else if (command.type === 'rectangle' && command.points.length === 2)
@@ -240,14 +259,14 @@ export const useDrawingCanvas = () =>
         console.log('Redrawing rectangle', index, ':', command);
         const startPoint = denormalizePoint(command.points[0], canvas);
         const endPoint = denormalizePoint(command.points[1], canvas);
-        drawRectangle(ctx, startPoint, endPoint, CONFIG.drawing.colors[command.color], command.lineWidth);
+        drawRectangle(ctx, startPoint, endPoint, CONFIG.drawing.colors[command.color], scaledLineWidth);
       }
       else if (command.type === 'ellipse' && command.points.length === 2)
       {
         console.log('Redrawing ellipse', index, ':', command);
         const startPoint = denormalizePoint(command.points[0], canvas);
         const endPoint = denormalizePoint(command.points[1], canvas);
-        drawEllipse(ctx, startPoint, endPoint, CONFIG.drawing.colors[command.color], command.lineWidth);
+        drawEllipse(ctx, startPoint, endPoint, CONFIG.drawing.colors[command.color], scaledLineWidth);
       }
     });
   }, []);
@@ -280,7 +299,7 @@ export const useDrawingCanvas = () =>
 
     // Set initial drawing properties
     ctx.strokeStyle = CONFIG.drawing.colors[currentColorRef.current];
-    ctx.lineWidth = CONFIG.drawing.lineWidth;
+    ctx.lineWidth = getScaledLineWidth(canvas);
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
   }, [redrawCanvas]);
@@ -299,7 +318,7 @@ export const useDrawingCanvas = () =>
 
     // Set drawing properties without clearing the canvas
     ctx.strokeStyle = CONFIG.drawing.colors[currentColor];
-    ctx.lineWidth = CONFIG.drawing.lineWidth;
+    ctx.lineWidth = getScaledLineWidth(canvas);
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     console.log('Canvas properties updated. Current color:', currentColor, 'Stroke style:', ctx.strokeStyle);
@@ -472,7 +491,7 @@ export const useDrawingCanvas = () =>
           rectangleStartPoint,
           { x: currentX, y: currentY },
           CONFIG.drawing.colors[currentColor],
-          CONFIG.drawing.lineWidth,
+          getScaledLineWidth(canvas),
         );
 
         // Update last position for the rectangle end point
@@ -489,7 +508,7 @@ export const useDrawingCanvas = () =>
           ellipseStartPoint,
           { x: currentX, y: currentY },
           CONFIG.drawing.colors[currentColor],
-          CONFIG.drawing.lineWidth,
+          getScaledLineWidth(canvas),
         );
 
         // Update last position for the ellipse end point
@@ -521,7 +540,7 @@ export const useDrawingCanvas = () =>
 
         // Always draw the line segment for smooth visual feedback
         ctx.strokeStyle = CONFIG.drawing.colors[currentColor];
-        ctx.lineWidth = CONFIG.drawing.lineWidth;
+        ctx.lineWidth = getScaledLineWidth(canvas);
         ctx.beginPath();
         ctx.moveTo(lastPosition.x, lastPosition.y);
         ctx.lineTo(currentX, currentY);
@@ -563,7 +582,6 @@ export const useDrawingCanvas = () =>
         type: 'rectangle',
         points: [normalizedStartPoint, normalizedEndPoint],
         color: currentColor,
-        lineWidth: CONFIG.drawing.lineWidth,
         hasArrowHead: false,
       };
 
@@ -582,7 +600,6 @@ export const useDrawingCanvas = () =>
         type: 'ellipse',
         points: [normalizedStartPoint, normalizedEndPoint],
         color: currentColor,
-        lineWidth: CONFIG.drawing.lineWidth,
         hasArrowHead: false,
       };
 
@@ -618,7 +635,7 @@ export const useDrawingCanvas = () =>
         const startIndex = Math.max(0, Math.floor(totalPoints * 0.9));
         const startPoint = pointsForStorage[startIndex];
         // Always use lastPosition as the true end point for arrow head placement
-        drawArrowHead(ctx, startPoint, lastPosition, CONFIG.drawing.colors[currentColor], CONFIG.drawing.lineWidth);
+        drawArrowHead(ctx, startPoint, lastPosition, CONFIG.drawing.colors[currentColor], getScaledLineWidth(canvas), canvas);
       }
 
       // Save the completed stroke as a command with normalized coordinates
@@ -626,7 +643,6 @@ export const useDrawingCanvas = () =>
         type: 'stroke',
         points: normalizedPoints,
         color: currentColor,
-        lineWidth: CONFIG.drawing.lineWidth,
         hasArrowHead: currentModeRef.current === 'arrow',
       };
 

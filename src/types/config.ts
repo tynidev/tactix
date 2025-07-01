@@ -2,7 +2,7 @@ export interface Config
 {
   drawing: {
     defaultColor: string;
-    lineWidth: number;
+    lineWidth: number; // Percentage of the smaller canvas dimension (0-1)
     colors: {
       color1: string;
       color2: string;
@@ -33,7 +33,7 @@ export interface Config
 export const CONFIG: Config = {
   drawing: {
     defaultColor: '#EF4444',
-    lineWidth: 8,
+    lineWidth: 0.006, // 0.6% of the smaller canvas dimension
     colors: {
       color1: '#EF4444',
       color2: '#faf615',
