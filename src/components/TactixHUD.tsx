@@ -33,6 +33,7 @@ const TactixHUD: React.FC = () =>
     clearCanvas,
     changeColor,
     changeMode,
+    undoLastDrawing,
   } = useDrawingCanvas();
 
   // Handle playback rate changes
@@ -50,6 +51,7 @@ const TactixHUD: React.FC = () =>
     changeColor,
     changeMode,
     clearCanvas,
+    undoLastDrawing,
     currentPlaybackRate,
   });
 

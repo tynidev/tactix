@@ -665,6 +665,26 @@ export const useDrawingCanvas = () =>
     setCurrentMode(mode);
   }, []);
 
+  /**
+   * Undoes the last drawing command by removing it from the command history
+   * and redrawing the canvas without it.
+   */
+  const undoLastDrawing = useCallback(() =>
+  {
+    if (drawingCommandsRef.current.length === 0)
+    {
+      console.log('No drawings to undo');
+      return;
+    }
+
+    // Remove the last drawing command
+    const removedCommand = drawingCommandsRef.current.pop();
+    console.log('Undoing last drawing:', removedCommand, 'Remaining commands:', drawingCommandsRef.current.length);
+
+    // Redraw the canvas without the removed command
+    redrawCanvas();
+  }, [redrawCanvas]);
+
   return {
     canvasRef,
     currentColor,
@@ -676,5 +696,6 @@ export const useDrawingCanvas = () =>
     clearCanvas,
     changeColor,
     changeMode,
+    undoLastDrawing,
   };
 };

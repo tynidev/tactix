@@ -9,6 +9,7 @@ interface UseKeyboardShortcutsProps
   changeColor: (color: DrawingColor) => void;
   changeMode: (mode: DrawingMode) => void;
   clearCanvas: () => void;
+  undoLastDrawing: () => void;
   currentPlaybackRate?: number;
 }
 
@@ -19,6 +20,7 @@ export const useKeyboardShortcuts = ({
   changeColor,
   changeMode,
   clearCanvas,
+  undoLastDrawing,
   currentPlaybackRate = 1,
 }: UseKeyboardShortcutsProps) =>
 {
@@ -68,6 +70,10 @@ export const useKeyboardShortcuts = ({
         console.log('Clearing canvas via keyboard');
         clearCanvas();
         break;
+      case 'z':
+        console.log('Undoing last drawing via keyboard');
+        undoLastDrawing();
+        break;
       case ' ':
         togglePlayPause();
         break;
@@ -110,7 +116,7 @@ export const useKeyboardShortcuts = ({
         }
         break;
     }
-  }, [togglePlayPause, seekVideo, setPlaybackRate, changeColor, changeMode, clearCanvas, currentPlaybackRate]);
+  }, [togglePlayPause, seekVideo, setPlaybackRate, changeColor, changeMode, clearCanvas, undoLastDrawing, currentPlaybackRate]);
 
   useEffect(() =>
   {
