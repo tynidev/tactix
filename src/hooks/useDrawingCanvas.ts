@@ -14,17 +14,46 @@ interface DrawingCommand {
   lineWidth: number;
 }
 
-// Normalize coordinates to percentages for scaling
+/**
+ * Converts pixel coordinates to normalized percentages (0-1) relative to canvas dimensions.
+ * This allows drawing commands to be resolution-independent and scale properly when canvas size changes.
+ * 
+ * @param point - The pixel coordinates to normalize
+ * @param canvas - The canvas element to normalize coordinates relative to
+ * @returns Normalized coordinates as percentages (0-1)
+ */
 const normalizePoint = (point: { x: number; y: number }, canvas: HTMLCanvasElement) => ({
   x: point.x / canvas.width,
   y: point.y / canvas.height
 });
 
+/**
+ * Converts normalized percentage coordinates (0-1) back to pixel coordinates.
+ * Used when redrawing stored commands at the current canvas size.
+ * 
+ * @param point - The normalized coordinates (0-1) to convert
+ * @param canvas - The canvas element to convert coordinates relative to
+ * @returns Pixel coordinates scaled to current canvas size
+ */
 const denormalizePoint = (point: { x: number; y: number }, canvas: HTMLCanvasElement) => ({
   x: point.x * canvas.width,
   y: point.y * canvas.height
 });
 
+/**
+ * Custom hook for managing drawing functionality on a canvas element.
+ * Provides drawing capabilities including color selection, stroke management,
+ * canvas clearing, and automatic scaling when canvas dimensions change.
+ * 
+ * Features:
+ * - Resolution-independent drawing using normalized coordinates
+ * - Automatic canvas setup and resizing
+ * - Touch and mouse event support
+ * - Drawing command history for redrawing after resize
+ * - Color switching with immediate visual feedback
+ * 
+ * @returns Object containing canvas ref, drawing state, and drawing functions
+ */
 export const useDrawingCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const currentColorRef = useRef<DrawingColor>('red');
@@ -35,7 +64,11 @@ export const useDrawingCanvas = () => {
   const [currentColor, setCurrentColor] = useState<DrawingColor>('red');
   const [lastPosition, setLastPosition] = useState({ x: 0, y: 0 });
 
-  // Redraw all commands at current canvas size
+  /**
+   * Redraws all stored drawing commands on the canvas at the current canvas size.
+   * Uses denormalized coordinates to scale drawings appropriately when canvas dimensions change.
+   * This function is called after canvas resizes to maintain drawing fidelity.
+   */
   const redrawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -70,6 +103,11 @@ export const useDrawingCanvas = () => {
     });
   }, []);
 
+  /**
+   * Sets up the canvas with proper dimensions and drawing properties.
+   * Ensures canvas internal dimensions match display size for crisp rendering.
+   * Only updates dimensions when they differ from current size to avoid unnecessary redraws.
+   */
   const setupCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -96,6 +134,10 @@ export const useDrawingCanvas = () => {
     ctx.lineJoin = 'round';
   }, [redrawCanvas]);
 
+  /**
+   * Updates canvas drawing properties (color, line width, etc.) without clearing the canvas.
+   * Called when drawing settings change to ensure new strokes use updated properties.
+   */
   const updateCanvasProperties = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -111,6 +153,10 @@ export const useDrawingCanvas = () => {
     console.log('Canvas properties updated. Current color:', currentColor, 'Stroke style:', ctx.strokeStyle);
   }, [currentColor]);
 
+  /**
+   * Debounced canvas resize handler to prevent excessive resize operations.
+   * Delays canvas setup by 100ms after the last resize event to improve performance.
+   */
   const debouncedResize = useCallback(() => {
     if (resizeTimeoutRef.current) {
       clearTimeout(resizeTimeoutRef.current);
@@ -166,6 +212,12 @@ export const useDrawingCanvas = () => {
     };
   }, []);
 
+  /**
+   * Initiates a drawing stroke when mouse/touch input begins.
+   * Records the starting position and prepares for continuous drawing.
+   * 
+   * @param e - Mouse or touch event containing position information
+   */
   const startDrawing = useCallback((e: DrawingEvent ) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -191,6 +243,13 @@ export const useDrawingCanvas = () => {
     setLastPosition({ x, y });
   }, []);
 
+  /**
+   * Continues drawing by adding points to the current stroke and rendering on canvas.
+   * Called during mouse/touch move events while drawing is active.
+   * Draws line segments between the last position and current position.
+   * 
+   * @param e - Mouse or touch event containing current position information
+   */
   const draw = useCallback((e: DrawingEvent ) => {
     if (!isDrawing) return;
 
@@ -232,6 +291,11 @@ export const useDrawingCanvas = () => {
     }
   }, [isDrawing, lastPosition, currentColor]);
 
+  /**
+   * Completes the current drawing stroke and saves it to the command history.
+   * Normalizes coordinates to percentages for resolution independence.
+   * Only saves strokes with more than one point (actual drawing occurred).
+   */
   const stopDrawing = useCallback(() => {
     if (isDrawing && currentStrokeRef.current.length > 1) {
       const canvas = canvasRef.current;
@@ -257,6 +321,11 @@ export const useDrawingCanvas = () => {
     setIsDrawing(false);
   }, [isDrawing, currentColor]);
 
+  /**
+   * Clears all drawings from the canvas and resets the command history.
+   * Removes both the visual representation and stored drawing commands.
+   * Provides a clean slate for new drawings.
+   */
   const clearCanvas = useCallback(() => {
     console.log('Clearing canvas');
     const canvas = canvasRef.current;
@@ -275,6 +344,13 @@ export const useDrawingCanvas = () => {
     console.log('Canvas cleared');
   }, []);
 
+  /**
+   * Changes the current drawing color for new strokes.
+   * Updates both the ref (for immediate use) and state (for UI updates).
+   * Canvas properties are automatically updated via useEffect.
+   * 
+   * @param color - The new color to use for drawing strokes
+   */
   const changeColor = useCallback((color: DrawingColor) => {
     console.log('Changing color to:', color);
     currentColorRef.current = color; // Update ref immediately
