@@ -1,0 +1,38 @@
+{
+  "name": "tactix-hud",
+  "version": "1.0.0",
+  "description": "Interactive YouTube video analysis tool with real-time drawing capabilities",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.20.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.37",
+    "@types/react-dom": "^18.2.15",
+    "@types/youtube": "^0.0.50",
+    "@vitejs/plugin-react": "^4.1.1",
+    "typescript": "^5.2.2",
+    "vite": "^5.0.0",
+    "vite-plugin-pwa": "^0.17.4",
+    "workbox-window": "^7.0.0"
+  },
+  "keywords": [
+    "sports",
+    "analysis",
+    "video",
+    "drawing",
+    "annotation",
+    "coaching"
+  ],
+  "author": "Tyler",
+  "license": "MIT"
+}

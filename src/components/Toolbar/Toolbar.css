@@ -1,0 +1,172 @@
+/* Toolbar layout */
+#toolbar {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: flex;
+  gap: 15px;
+  padding: 10px 15px;
+  background: var(--black-overlay);
+  border-radius: 15px;
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--white-more);
+  align-items: center;
+}
+
+.toolbar-separator {
+  width: 1px;
+  height: 30px;
+  background: var(--white-more);
+  margin: 0 5px;
+}
+
+.toolbar-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.group-label {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-right: 8px;
+  font-weight: 600;
+}
+
+/* Base button styles */
+.toolbar-btn {
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toolbar-btn:hover {
+  transform: scale(1.1);
+}
+
+/* Circular button base */
+.btn-circular {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px var(--black-shadow);
+}
+
+.btn-circular:hover {
+  box-shadow: 0 4px 8px var(--black-shadow-strong);
+}
+
+/* Color buttons */
+.color-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.color-btn::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.color-btn.active::after {
+  border-color: white;
+  box-shadow: 0 0 10px var(--white-glow);
+}
+
+.red-btn {
+  background-color: var(--red-color);
+}
+
+.green-btn {
+  background-color: var(--green-color);
+}
+
+.blue-btn {
+  background-color: var(--blue-color);
+}
+
+/* Control buttons */
+.control-btn {
+  width: 40px;
+  height: 40px;
+  background-color: var(--white-transparent);
+  color: white;
+  font-size: 34px;
+  box-shadow: 0 2px 4px var(--black-shadow);
+  position: relative;
+  top: -2px;
+}
+
+.control-btn:hover {
+  background-color: var(--white-transparent);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0);
+}
+
+/* Speed control buttons */
+.speed-btn {
+  background-color: var(--white-semi);
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.speed-btn:hover {
+  background-color: var(--white-opaque);
+}
+
+.speed-btn.active {
+  background-color: var(--green-active);
+  box-shadow: 0 0 10px var(--green-glow);
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  #toolbar {
+    gap: 10px;
+    padding: 8px 12px;
+  }
+  
+  .btn-circular {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .toolbar-group {
+    gap: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  #toolbar {
+    gap: 8px;
+    padding: 6px 10px;
+  }
+  
+  .btn-circular {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .control-btn {
+    font-size: 28px;
+  }
+  
+  .speed-btn {
+    font-size: 14px;
+  }
+}

@@ -1,0 +1,5 @@
+.drawing-canvas {
+  cursor: crosshair;
+  pointer-events: auto;
+  touch-action: none;
+}

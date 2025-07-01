@@ -1,0 +1,56 @@
+:root {
+  --red-color: #EF4444;
+  --green-color: #faf615;
+  --blue-color: #3B82F6;
+  --white-transparent: rgba(255, 255, 255, 0);
+  --white-semi: rgba(255, 255, 255, 0.1);
+  --white-more: rgba(255, 255, 255, 0.2);
+  --white-opaque: rgba(255, 255, 255, 0.3);
+  --black-overlay: rgba(0, 0, 0, 0.7);
+  --black-shadow: rgba(0, 0, 0, 0.3);
+  --black-shadow-strong: rgba(0, 0, 0, 0.4);
+  --green-active: rgba(76, 175, 80, 0.8);
+  --green-glow: rgba(76, 175, 80, 0.5);
+  --white-glow: rgba(255, 255, 255, 0.5);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  background: #000;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+}
+
+/* Utility classes */
+.video-foreground {
+  pointer-events: none;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  :root {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    font-size: 12px;
+  }
+}
