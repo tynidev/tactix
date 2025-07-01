@@ -1,12 +1,14 @@
 import React from 'react';
-import { CONFIG, type DrawingColor } from '../../types/config';
+import { CONFIG, type DrawingColor, type DrawingMode } from '../../types/config';
 import './Toolbar.css';
 
 interface ToolbarProps {
   currentColor: DrawingColor;
+  currentMode: DrawingMode;
   isPlaying: boolean;
   currentPlaybackRate: number;
   onColorChange: (color: DrawingColor) => void;
+  onModeChange: (mode: DrawingMode) => void;
   onClearCanvas: () => void;
   onTogglePlayPause: () => void;
   onSeek: (seconds: number) => void;
@@ -15,9 +17,11 @@ interface ToolbarProps {
 
 const Toolbar: React.FC<ToolbarProps> = ({
   currentColor,
+  currentMode,
   isPlaying,
   currentPlaybackRate,
   onColorChange,
+  onModeChange,
   onClearCanvas,
   onTogglePlayPause,
   onSeek,
@@ -105,6 +109,26 @@ const Toolbar: React.FC<ToolbarProps> = ({
           }}
           title="Blue (3)"
         />
+        <button
+          className={`toolbar-btn btn-circular mode-btn ${currentMode === 'arrow' ? 'active' : ''}`}
+          onClick={() => {
+            console.log('Arrow mode button clicked');
+            onModeChange('arrow');
+          }}
+          title="Arrow Line (4)"
+        >
+          ↗️
+        </button>
+        <button
+          className={`toolbar-btn btn-circular mode-btn ${currentMode === 'line' ? 'active' : ''}`}
+          onClick={() => {
+            console.log('Line mode button clicked');
+            onModeChange('line');
+          }}
+          title="Simple Line (5)"
+        >
+          📏
+        </button>
         <button
           className="toolbar-btn btn-circular control-btn"
           onClick={() => {

@@ -19,6 +19,7 @@ export interface Config {
   };
   keyboard: {
     colorKeys: string[];
+    modeKeys: string[];
     eraseKeys: string[];
     playPauseKeys: string[];
     rewindKeys: string[];
@@ -49,6 +50,7 @@ export const CONFIG: Config = {
   },
   keyboard: {
     colorKeys: ['1', '2', '3'],
+    modeKeys: ['4', '5'],
     eraseKeys: ['e', 'c'],
     playPauseKeys: [' '],
     rewindKeys: ['a', 'ArrowLeft'],
@@ -59,3 +61,4 @@ export const CONFIG: Config = {
 };
 
 export type DrawingColor = 'red' | 'yellow' | 'blue';
+export type DrawingMode = 'arrow' | 'line';

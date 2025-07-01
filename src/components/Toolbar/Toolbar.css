@@ -134,6 +134,22 @@
   box-shadow: 0 0 10px var(--green-glow);
 }
 
+/* Mode buttons */
+.mode-btn {
+  background-color: var(--white-semi);
+  font-size: 34px;
+  position: relative;
+}
+
+.mode-btn:hover {
+  background-color: var(--white-opaque);
+}
+
+.mode-btn.active {
+  background-color: var(--green-active);
+  box-shadow: 0 0 10px var(--green-glow);
+}
+
 /* Mobile responsive adjustments */
 @media (max-width: 768px) {
   #toolbar {

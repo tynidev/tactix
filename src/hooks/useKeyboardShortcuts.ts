@@ -1,11 +1,12 @@
 import { useEffect, useCallback } from 'react';
-import { CONFIG, type DrawingColor } from '../types/config';
+import { CONFIG, type DrawingColor, type DrawingMode } from '../types/config';
 
 interface UseKeyboardShortcutsProps {
   togglePlayPause: () => void;
   seekVideo: (seconds: number) => void;
   setPlaybackRate: (rate: number) => void;
   changeColor: (color: DrawingColor) => void;
+  changeMode: (mode: DrawingMode) => void;
   clearCanvas: () => void;
   currentPlaybackRate?: number;
 }
@@ -15,6 +16,7 @@ export const useKeyboardShortcuts = ({
   seekVideo,
   setPlaybackRate,
   changeColor,
+  changeMode,
   clearCanvas,
   currentPlaybackRate = 1
 }: UseKeyboardShortcutsProps) => {
@@ -40,6 +42,14 @@ export const useKeyboardShortcuts = ({
       case '3':
         console.log('Changing to blue color');
         changeColor('blue');
+        break;
+      case '4':
+        console.log('Changing to arrow mode');
+        changeMode('arrow');
+        break;
+      case '5':
+        console.log('Changing to line mode');
+        changeMode('line');
         break;
       case 'e':
       case 'c':
@@ -80,7 +90,7 @@ export const useKeyboardShortcuts = ({
         }
         break;
     }
-  }, [togglePlayPause, seekVideo, setPlaybackRate, changeColor, clearCanvas, currentPlaybackRate]);
+  }, [togglePlayPause, seekVideo, setPlaybackRate, changeColor, changeMode, clearCanvas, currentPlaybackRate]);
 
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);

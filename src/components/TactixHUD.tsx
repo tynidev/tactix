@@ -25,11 +25,13 @@ const TactixHUD: React.FC = () => {
   const {
     canvasRef,
     currentColor,
+    currentMode,
     startDrawing,
     draw,
     stopDrawing,
     clearCanvas,
-    changeColor
+    changeColor,
+    changeMode
   } = useDrawingCanvas();
 
   // Handle playback rate changes
@@ -44,6 +46,7 @@ const TactixHUD: React.FC = () => {
     seekVideo,
     setPlaybackRate: handlePlaybackRateChange,
     changeColor,
+    changeMode,
     clearCanvas,
     currentPlaybackRate
   });
@@ -61,9 +64,11 @@ const TactixHUD: React.FC = () => {
       />
       <Toolbar
         currentColor={currentColor}
+        currentMode={currentMode}
         isPlaying={isPlaying}
         currentPlaybackRate={currentPlaybackRate}
         onColorChange={changeColor}
+        onModeChange={changeMode}
         onClearCanvas={clearCanvas}
         onTogglePlayPause={togglePlayPause}
         onSeek={seekVideo}

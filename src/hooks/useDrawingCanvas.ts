@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { CONFIG, type DrawingColor } from '../types/config';
+import { CONFIG, type DrawingColor, type DrawingMode } from '../types/config';
 
 // Define event types for drawing
 type DrawingMouseEvent = React.MouseEvent<HTMLCanvasElement>;
@@ -112,11 +112,13 @@ const drawArrowHead = (
 export const useDrawingCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const currentColorRef = useRef<DrawingColor>('red');
+  const currentModeRef = useRef<DrawingMode>('arrow');
   const drawingCommandsRef = useRef<DrawingCommand[]>([]);
   const currentStrokeRef = useRef<{ x: number; y: number }[]>([]);
   const resizeTimeoutRef = useRef<number>();
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentColor, setCurrentColor] = useState<DrawingColor>('red');
+  const [currentMode, setCurrentMode] = useState<DrawingMode>('arrow');
   const [lastPosition, setLastPosition] = useState({ x: 0, y: 0 });
 
   /**
@@ -374,8 +376,8 @@ export const useDrawingCanvas = () => {
         normalizePoint(point, canvas)
       );
 
-      // Draw arrow head at the end of the current stroke
-      if (currentStrokeRef.current.length >= 2) {
+      // Draw arrow head at the end of the current stroke only if in arrow mode
+      if (currentModeRef.current === 'arrow' && currentStrokeRef.current.length >= 2) {
         // Use the last 10% of points to calculate arrow direction
         const totalPoints = currentStrokeRef.current.length;
         const startIndex = Math.max(0, Math.floor(totalPoints * 0.9));
@@ -390,7 +392,7 @@ export const useDrawingCanvas = () => {
         points: normalizedPoints,
         color: currentColor,
         lineWidth: CONFIG.drawing.lineWidth,
-        hasArrowHead: true
+        hasArrowHead: currentModeRef.current === 'arrow'
       };
       
       drawingCommandsRef.current.push(command);
@@ -437,14 +439,28 @@ export const useDrawingCanvas = () => {
     // Canvas properties will be updated automatically by the useEffect
   }, []);
 
+  /**
+   * Changes the current drawing mode (arrow or line) for new strokes.
+   * Updates both the ref (for immediate use) and state (for UI updates).
+   * 
+   * @param mode - The new mode to use for drawing strokes
+   */
+  const changeMode = useCallback((mode: DrawingMode) => {
+    console.log('Changing mode to:', mode);
+    currentModeRef.current = mode; // Update ref immediately
+    setCurrentMode(mode);
+  }, []);
+
   return {
     canvasRef,
     currentColor,
+    currentMode,
     isDrawing,
     startDrawing,
     draw,
     stopDrawing,
     clearCanvas,
-    changeColor
+    changeColor,
+    changeMode
   };
 };
