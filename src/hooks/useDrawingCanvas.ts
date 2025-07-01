@@ -12,6 +12,7 @@ interface DrawingCommand {
   points: { x: number; y: number }[]; // Stored as percentages (0-1)
   color: DrawingColor;
   lineWidth: number;
+  hasArrowHead: boolean;
 }
 
 /**
@@ -39,6 +40,60 @@ const denormalizePoint = (point: { x: number; y: number }, canvas: HTMLCanvasEle
   x: point.x * canvas.width,
   y: point.y * canvas.height
 });
+
+/**
+ * Draws an arrow head at the end of a line.
+ * 
+ * @param ctx - The canvas 2D rendering context
+ * @param from - The point the arrow is coming from
+ * @param to - The point where the arrow head should be drawn
+ * @param color - The color of the arrow head
+ * @param lineWidth - The width of the line (used to size the arrow head)
+ */
+const drawArrowHead = (
+  ctx: CanvasRenderingContext2D,
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+  color: string,
+  lineWidth: number
+) => {
+  const arrowLength = Math.max(lineWidth * 4, 25); // Increased arrow head length
+  
+  // Calculate the angle of the line using only the last 10% for more accurate direction
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  
+  // Calculate the point that's 90% along the line (10% from the end)
+  const startPoint = {
+    x: from.x + dx * 0.9,
+    y: from.y + dy * 0.9
+  };
+  
+  // Use the last 10% of the line to calculate the arrow direction
+  const angle = Math.atan2(to.y - startPoint.y, to.x - startPoint.x);
+  
+  // Calculate arrow head points directly from the end point
+  const arrowPoint1 = {
+    x: to.x - arrowLength * Math.cos(angle - Math.PI / 4),
+    y: to.y - arrowLength * Math.sin(angle - Math.PI / 4)
+  };
+  
+  const arrowPoint2 = {
+    x: to.x - arrowLength * Math.cos(angle + Math.PI / 4),
+    y: to.y - arrowLength * Math.sin(angle + Math.PI / 4)
+  };
+  
+  // Also draw strokes to ensure connection with the line
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lineWidth;
+  
+  // Draw lines from the arrow base to the tip to ensure solid connection
+  ctx.beginPath();
+  ctx.moveTo(arrowPoint1.x, arrowPoint1.y);
+  ctx.lineTo(to.x, to.y);
+  ctx.lineTo(arrowPoint2.x, arrowPoint2.y);
+  ctx.stroke();
+};
 
 /**
  * Custom hook for managing drawing functionality on a canvas element.
@@ -99,6 +154,16 @@ export const useDrawingCanvas = () => {
         }
         
         ctx.stroke();
+
+        // Draw arrow head at the end if the stroke has an arrow head
+        if (command.hasArrowHead && command.points.length >= 2) {
+          // Use the last 10% of points to calculate arrow direction
+          const totalPoints = command.points.length;
+          const startIndex = Math.max(0, Math.floor(totalPoints * 0.9));
+          const startPoint = denormalizePoint(command.points[startIndex], canvas);
+          const lastPoint = denormalizePoint(command.points[command.points.length - 1], canvas);
+          drawArrowHead(ctx, startPoint, lastPoint, CONFIG.drawing.colors[command.color], command.lineWidth);
+        }
       }
     });
   }, []);
@@ -301,17 +366,31 @@ export const useDrawingCanvas = () => {
       const canvas = canvasRef.current;
       if (!canvas) return;
 
+      const ctx = canvas?.getContext('2d');
+      if (!ctx) return;
+
       // Normalize points to percentages before storing
       const normalizedPoints = currentStrokeRef.current.map(point => 
         normalizePoint(point, canvas)
       );
+
+      // Draw arrow head at the end of the current stroke
+      if (currentStrokeRef.current.length >= 2) {
+        // Use the last 10% of points to calculate arrow direction
+        const totalPoints = currentStrokeRef.current.length;
+        const startIndex = Math.max(0, Math.floor(totalPoints * 0.9));
+        const startPoint = currentStrokeRef.current[startIndex];
+        const lastPoint = currentStrokeRef.current[currentStrokeRef.current.length - 1];
+        drawArrowHead(ctx, startPoint, lastPoint, CONFIG.drawing.colors[currentColor], CONFIG.drawing.lineWidth);
+      }
 
       // Save the completed stroke as a command with normalized coordinates
       const command: DrawingCommand = {
         type: 'stroke',
         points: normalizedPoints,
         color: currentColor,
-        lineWidth: CONFIG.drawing.lineWidth
+        lineWidth: CONFIG.drawing.lineWidth,
+        hasArrowHead: true
       };
       
       drawingCommandsRef.current.push(command);
