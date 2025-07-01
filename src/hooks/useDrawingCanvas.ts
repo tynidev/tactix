@@ -59,23 +59,31 @@ const drawArrowHead = (
   lineWidth: number,
 ) =>
 {
-  const arrowLength = Math.max(lineWidth * 3, 25); // Increased arrow head length
+  const arrowLength = Math.max(lineWidth * 3, 25);
 
-  // Use the last 10% of the line to calculate the arrow direction
-  const angle = Math.atan2(to.y - from.y, to.x - from.x);
+  // Calculate the angle of the line from start to end point for arrow orientation
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const angle = Math.atan2(dy, dx);
 
-  // Calculate arrow head points directly from the end point
+  // Pre-calculate sine and cosine values to avoid repeated calculations
+  const cos45 = 0.7071067811865476; // Math.cos(Math.PI / 4)
+  const sin45 = 0.7071067811865476; // Math.sin(Math.PI / 4)
+  
+  const cosAngle = Math.cos(angle);
+  const sinAngle = Math.sin(angle);
+
+  // Calculate arrow head points using rotation matrix
   const arrowPoint1 = {
-    x: to.x - arrowLength * Math.cos(angle - Math.PI / 4),
-    y: to.y - arrowLength * Math.sin(angle - Math.PI / 4),
+    x: to.x - arrowLength * (cosAngle * cos45 + sinAngle * sin45),
+    y: to.y - arrowLength * (sinAngle * cos45 - cosAngle * sin45),
   };
-
   const arrowPoint2 = {
-    x: to.x - arrowLength * Math.cos(angle + Math.PI / 4),
-    y: to.y - arrowLength * Math.sin(angle + Math.PI / 4),
+    x: to.x - arrowLength * (cosAngle * cos45 - sinAngle * sin45),
+    y: to.y - arrowLength * (sinAngle * cos45 + cosAngle * sin45),
   };
 
-  // Also draw strokes to ensure connection with the line
+  // Set line properties
   ctx.strokeStyle = color;
   ctx.lineWidth = lineWidth;
 
