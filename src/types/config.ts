@@ -4,7 +4,7 @@ export interface Config {
     lineWidth: number;
     colors: {
       red: string;
-      green: string;
+      yellow: string;
       blue: string;
     };
   };
@@ -34,7 +34,7 @@ export const CONFIG: Config = {
     lineWidth: 8,
     colors: {
       red: '#EF4444',
-      green: '#faf615',
+      yellow: '#faf615',
       blue: '#3B82F6'
     }
   },
@@ -58,5 +58,4 @@ export const CONFIG: Config = {
   }
 };
 
-export type DrawingColor = 'red' | 'green' | 'blue';
-export type PlaybackSpeed = 'slow' | 'normal' | 'fast';
+export type DrawingColor = 'red' | 'yellow' | 'blue';

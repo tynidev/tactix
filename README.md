@@ -9,7 +9,7 @@ Tactix HUD is a powerful web application designed for coaches, analysts, educato
 ## Key Features
 
 ### 🎨 **Real-Time Drawing Tools**
-- **Multi-color annotation system** with red, yellow (green), and blue drawing pens
+- **Multi-color annotation system** with red, yellow, and blue drawing pens
 - **Smooth, responsive drawing** with 4px line width for clear visibility
 - **Touch and mouse support** for seamless operation across devices
 - **Instant clear function** to erase all annotations with one click

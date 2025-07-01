@@ -7,7 +7,7 @@
     <style>
         :root {
             --red-color: #EF4444;
-            --green-color: #faf615;
+            --yellow-color: #faf615;
             --blue-color: #3B82F6;
             --white-transparent: rgba(255, 255, 255, 0);
             --white-semi: rgba(255, 255, 255, 0.1);
@@ -156,8 +156,8 @@
             background-color: var(--red-color);
         }
 
-        #green-btn {
-            background-color: var(--green-color);
+        #yellow-btn {
+            background-color: var(--yellow-color);
         }
 
         #blue-btn {
@@ -233,7 +233,7 @@
         <!-- Drawing Tools Group -->
         <div class="toolbar-group">
             <button id="red-btn" class="toolbar-btn btn-circular color-btn active" data-color="#EF4444" title="Red (1)"></button>
-            <button id="green-btn" class="toolbar-btn btn-circular color-btn" data-color="#faf615" title="Yellow (2)"></button>
+            <button id="yellow-btn" class="toolbar-btn btn-circular color-btn" data-color="#faf615" title="Yellow (2)"></button>
             <button id="blue-btn" class="toolbar-btn btn-circular color-btn" data-color="#3B82F6" title="Blue (3)"></button>
             <button id="erase-btn" class="toolbar-btn btn-circular control-btn" title="Clear (E/C)">🗑️</button>
         </div>
@@ -249,7 +249,7 @@
                     lineWidth: 4,
                     colors: {
                         red: '#EF4444',
-                        green: '#faf615',
+                        yellow: '#faf615',
                         blue: '#3B82F6'
                     }
                 },
@@ -586,7 +586,7 @@
         // Keyboard shortcuts
         const keyboardActions = {
             '1': () => document.getElementById('red-btn').click(),
-            '2': () => document.getElementById('green-btn').click(),
+            '2': () => document.getElementById('yellow-btn').click(),
             '3': () => document.getElementById('blue-btn').click(),
             'e': () => ctx.clearRect(0, 0, canvas.width, canvas.height),
             'c': () => ctx.clearRect(0, 0, canvas.width, canvas.height),

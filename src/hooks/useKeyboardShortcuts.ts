@@ -1,5 +1,5 @@
 import { useEffect, useCallback } from 'react';
-import { CONFIG, type DrawingColor, type PlaybackSpeed } from '../types/config';
+import { CONFIG, type DrawingColor } from '../types/config';
 
 interface UseKeyboardShortcutsProps {
   togglePlayPause: () => void;
@@ -34,8 +34,8 @@ export const useKeyboardShortcuts = ({
         changeColor('red');
         break;
       case '2':
-        console.log('Changing to green color');
-        changeColor('green');
+        console.log('Changing to yellow color');
+        changeColor('yellow');
         break;
       case '3':
         console.log('Changing to blue color');

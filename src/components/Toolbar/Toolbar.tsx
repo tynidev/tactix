@@ -90,10 +90,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
           title="Red (1)"
         />
         <button
-          className={`toolbar-btn btn-circular color-btn green-btn ${currentColor === 'green' ? 'active' : ''}`}
+          className={`toolbar-btn btn-circular color-btn yellow-btn ${currentColor === 'yellow' ? 'active' : ''}`}
           onClick={() => {
-            console.log('Green button clicked');
-            onColorChange('green');
+            console.log('Yellow button clicked');
+            onColorChange('yellow');
           }}
           title="Yellow (2)"
         />
