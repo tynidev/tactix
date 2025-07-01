@@ -500,10 +500,28 @@ export const useDrawingCanvas = () =>
       else
       {
         // For line/arrow modes, continue with normal drawing
-        // Add point to current stroke
-        currentStrokeRef.current.push({ x: currentX, y: currentY });
+        const DISTANCE_THRESHOLD = 4;
+        
+        // Calculate distance from the last recorded point in the stroke
+        let shouldAddPoint = false;
+        if (currentStrokeRef.current.length === 0) {
+          // Always add the first point
+          shouldAddPoint = true;
+        } else {
+          const lastRecordedPoint = currentStrokeRef.current[currentStrokeRef.current.length - 1];
+          const distance = Math.sqrt(
+            Math.pow(currentX - lastRecordedPoint.x, 2) + 
+            Math.pow(currentY - lastRecordedPoint.y, 2)
+          );
+          shouldAddPoint = distance >= DISTANCE_THRESHOLD;
+        }
 
-        // Draw immediately on canvas
+        // Only add point to stroke if it meets the distance threshold
+        if (shouldAddPoint) {
+          currentStrokeRef.current.push({ x: currentX, y: currentY });
+        }
+
+        // Always draw the line segment for smooth visual feedback
         ctx.strokeStyle = CONFIG.drawing.colors[currentColor];
         ctx.lineWidth = CONFIG.drawing.lineWidth;
         ctx.beginPath();
