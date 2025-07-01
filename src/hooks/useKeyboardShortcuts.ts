@@ -51,6 +51,10 @@ export const useKeyboardShortcuts = ({
         console.log('Changing to line mode');
         changeMode('line');
         break;
+      case '6':
+        console.log('Changing to square mode');
+        changeMode('square');
+        break;
       case 'e':
       case 'c':
         console.log('Clearing canvas via keyboard');
