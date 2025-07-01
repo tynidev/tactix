@@ -130,12 +130,12 @@ const Toolbar: React.FC<ToolbarProps> = ({
           📏
         </button>
         <button
-          className={`toolbar-btn btn-circular mode-btn ${currentMode === 'square' ? 'active' : ''}`}
+          className={`toolbar-btn btn-circular mode-btn ${currentMode === 'rectangle' ? 'active' : ''}`}
           onClick={() => {
-            console.log('Square mode button clicked');
-            onModeChange('square');
+            console.log('Rectangle mode button clicked');
+            onModeChange('rectangle');
           }}
-          title="Square (6)"
+          title="Rectangle (6)"
         >
           ⬜
         </button>

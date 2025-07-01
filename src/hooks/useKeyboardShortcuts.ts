@@ -52,8 +52,8 @@ export const useKeyboardShortcuts = ({
         changeMode('line');
         break;
       case '6':
-        console.log('Changing to square mode');
-        changeMode('square');
+        console.log('Changing to rectangle mode');
+        changeMode('rectangle');
         break;
       case 'e':
       case 'c':

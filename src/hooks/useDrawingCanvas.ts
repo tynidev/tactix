@@ -8,7 +8,7 @@ type DrawingEvent = DrawingMouseEvent | DrawingTouchEvent;
 
 // Define drawing command types with normalized coordinates
 interface DrawingCommand {
-  type: 'stroke' | 'square';
+  type: 'stroke' | 'rectangle';
   points: { x: number; y: number }[]; // Stored as percentages (0-1)
   color: DrawingColor;
   lineWidth: number;
@@ -96,15 +96,15 @@ const drawArrowHead = (
 };
 
 /**
- * Draws a square/rectangle from two corner points.
+ * Draws a rectangle from two corner points.
  * 
  * @param ctx - The canvas 2D rendering context
  * @param startPoint - The starting corner point
  * @param endPoint - The ending corner point
- * @param color - The color of the square
+ * @param color - The color of the rectangle
  * @param lineWidth - The width of the lines
  */
-const drawSquare = (
+const drawRectangle = (
   ctx: CanvasRenderingContext2D,
   startPoint: { x: number; y: number },
   endPoint: { x: number; y: number },
@@ -147,7 +147,7 @@ export const useDrawingCanvas = () => {
   const [currentColor, setCurrentColor] = useState<DrawingColor>('red');
   const [currentMode, setCurrentMode] = useState<DrawingMode>('arrow');
   const [lastPosition, setLastPosition] = useState({ x: 0, y: 0 });
-  const [squareStartPoint, setSquareStartPoint] = useState<{ x: number; y: number } | null>(null);
+  const [rectangleStartPoint, setRectangleStartPoint] = useState<{ x: number; y: number } | null>(null);
 
   /**
    * Redraws all stored drawing commands on the canvas at the current canvas size.
@@ -196,11 +196,11 @@ export const useDrawingCanvas = () => {
           const lastPoint = denormalizePoint(command.points[command.points.length - 1], canvas);
           drawArrowHead(ctx, startPoint, lastPoint, CONFIG.drawing.colors[command.color], command.lineWidth);
         }
-      } else if (command.type === 'square' && command.points.length === 2) {
-        console.log('Redrawing square', index, ':', command);
+      } else if (command.type === 'rectangle' && command.points.length === 2) {
+        console.log('Redrawing rectangle', index, ':', command);
         const startPoint = denormalizePoint(command.points[0], canvas);
         const endPoint = denormalizePoint(command.points[1], canvas);
-        drawSquare(ctx, startPoint, endPoint, CONFIG.drawing.colors[command.color], command.lineWidth);
+        drawRectangle(ctx, startPoint, endPoint, CONFIG.drawing.colors[command.color], command.lineWidth);
       }
     });
   }, []);
@@ -340,9 +340,9 @@ export const useDrawingCanvas = () => {
     const x = clientX - rect.left;
     const y = clientY - rect.top;
     
-    if (currentModeRef.current === 'square') {
-      // For square mode, just store the starting point
-      setSquareStartPoint({ x, y });
+    if (currentModeRef.current === 'rectangle') {
+      // For rectangle mode, just store the starting point
+      setRectangleStartPoint({ x, y });
     } else {
       // For line/arrow modes, start a new stroke
       currentStrokeRef.current = [{ x, y }];
@@ -381,14 +381,14 @@ export const useDrawingCanvas = () => {
     const currentY = clientY - rect.top;
 
     try {
-      if (currentModeRef.current === 'square' && squareStartPoint) {
-        // For square mode, clear and redraw everything including the preview square
+      if (currentModeRef.current === 'rectangle' && rectangleStartPoint) {
+        // For rectangle mode, clear and redraw everything including the preview rectangle
         redrawCanvas();
         
-        // Draw preview square
-        drawSquare(ctx, squareStartPoint, { x: currentX, y: currentY }, CONFIG.drawing.colors[currentColor], CONFIG.drawing.lineWidth);
+        // Draw preview rectangle
+        drawRectangle(ctx, rectangleStartPoint, { x: currentX, y: currentY }, CONFIG.drawing.colors[currentColor], CONFIG.drawing.lineWidth);
         
-        // Update last position for the square end point
+        // Update last position for the rectangle end point
         setLastPosition({ x: currentX, y: currentY });
       } else {
         // For line/arrow modes, continue with normal drawing
@@ -409,7 +409,7 @@ export const useDrawingCanvas = () => {
       console.error('Drawing error:', error);
       setIsDrawing(false);
     }
-  }, [isDrawing, lastPosition, currentColor, squareStartPoint, redrawCanvas]);
+  }, [isDrawing, lastPosition, currentColor, rectangleStartPoint, redrawCanvas]);
 
   /**
    * Completes the current drawing stroke and saves it to the command history.
@@ -425,13 +425,14 @@ export const useDrawingCanvas = () => {
     const ctx = canvas?.getContext('2d');
     if (!ctx) return;
 
-    if (currentModeRef.current === 'square' && squareStartPoint) {
-      // For square mode, save the square as a command
-      const normalizedStartPoint = normalizePoint(squareStartPoint, canvas);
+    // RECTANGLE:
+    if (currentModeRef.current === 'rectangle' && rectangleStartPoint) {
+      // For rectangle mode, save the rectangle as a command
+      const normalizedStartPoint = normalizePoint(rectangleStartPoint, canvas);
       const normalizedEndPoint = normalizePoint(lastPosition, canvas);
 
       const command: DrawingCommand = {
-        type: 'square',
+        type: 'rectangle',
         points: [normalizedStartPoint, normalizedEndPoint],
         color: currentColor,
         lineWidth: CONFIG.drawing.lineWidth,
@@ -439,9 +440,11 @@ export const useDrawingCanvas = () => {
       };
       
       drawingCommandsRef.current.push(command);
-      console.log('Square saved:', command, 'Total commands:', drawingCommandsRef.current.length);
-      setSquareStartPoint(null);
-    } else if (currentStrokeRef.current.length > 1) {
+      console.log('Rectangle saved:', command, 'Total commands:', drawingCommandsRef.current.length);
+      setRectangleStartPoint(null);
+    }
+    // LINE:  
+    else if (currentStrokeRef.current.length > 1) {
       // For line/arrow modes, save the stroke
       // Normalize points to percentages before storing
       const normalizedPoints = currentStrokeRef.current.map(point => 
@@ -472,7 +475,7 @@ export const useDrawingCanvas = () => {
     }
     
     setIsDrawing(false);
-  }, [isDrawing, currentColor, squareStartPoint, lastPosition]);
+  }, [isDrawing, currentColor, rectangleStartPoint, lastPosition]);
 
   /**
    * Clears all drawings from the canvas and resets the command history.
@@ -492,8 +495,8 @@ export const useDrawingCanvas = () => {
     drawingCommandsRef.current = [];
     currentStrokeRef.current = [];
     
-    // Clear square drawing state
-    setSquareStartPoint(null);
+    // Clear rectangle drawing state
+    setRectangleStartPoint(null);
     
     // Clear visual canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);

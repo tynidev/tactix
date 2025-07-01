@@ -61,4 +61,4 @@ export const CONFIG: Config = {
 };
 
 export type DrawingColor = 'red' | 'yellow' | 'blue';
-export type DrawingMode = 'arrow' | 'line' | 'square';
+export type DrawingMode = 'arrow' | 'line' | 'rectangle';
