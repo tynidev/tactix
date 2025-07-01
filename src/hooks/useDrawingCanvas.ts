@@ -59,20 +59,10 @@ const drawArrowHead = (
   lineWidth: number,
 ) =>
 {
-  const arrowLength = Math.max(lineWidth * 4, 25); // Increased arrow head length
-
-  // Calculate the angle of the line using only the last 10% for more accurate direction
-  const dx = to.x - from.x;
-  const dy = to.y - from.y;
-
-  // Calculate the point that's 90% along the line (10% from the end)
-  const startPoint = {
-    x: from.x + dx * 0.9,
-    y: from.y + dy * 0.9,
-  };
+  const arrowLength = Math.max(lineWidth * 3, 25); // Increased arrow head length
 
   // Use the last 10% of the line to calculate the arrow direction
-  const angle = Math.atan2(to.y - startPoint.y, to.x - startPoint.x);
+  const angle = Math.atan2(to.y - from.y, to.x - from.x);
 
   // Calculate arrow head points directly from the end point
   const arrowPoint1 = {
@@ -595,19 +585,32 @@ export const useDrawingCanvas = () =>
     // LINE:
     else if (currentStrokeRef.current.length > 1)
     {
+      // Check if lastPosition is different from the last stored point
+      const lastStoredPoint = currentStrokeRef.current[currentStrokeRef.current.length - 1];
+      const distance = Math.sqrt(
+        Math.pow(lastPosition.x - lastStoredPoint.x, 2) + 
+        Math.pow(lastPosition.y - lastStoredPoint.y, 2)
+      );
+      
+      // If lastPosition is more than 1 pixel away from last stored point, add it
+      let pointsForStorage = [...currentStrokeRef.current];
+      if (distance > 1) {
+        pointsForStorage.push(lastPosition);
+      }
+
       // For line/arrow modes, save the stroke
-      // Normalize points to percentages before storing
-      const normalizedPoints = currentStrokeRef.current.map(point => normalizePoint(point, canvas));
+      // Normalize points to percentages before storing (including the final position)
+      const normalizedPoints = pointsForStorage.map(point => normalizePoint(point, canvas));
 
       // Draw arrow head at the end of the current stroke only if in arrow mode
-      if (currentModeRef.current === 'arrow' && currentStrokeRef.current.length >= 2)
+      if (currentModeRef.current === 'arrow' && pointsForStorage.length >= 2)
       {
         // Use the last 10% of points to calculate arrow direction
-        const totalPoints = currentStrokeRef.current.length;
+        const totalPoints = pointsForStorage.length;
         const startIndex = Math.max(0, Math.floor(totalPoints * 0.9));
-        const startPoint = currentStrokeRef.current[startIndex];
-        const lastPoint = currentStrokeRef.current[currentStrokeRef.current.length - 1];
-        drawArrowHead(ctx, startPoint, lastPoint, CONFIG.drawing.colors[currentColor], CONFIG.drawing.lineWidth);
+        const startPoint = pointsForStorage[startIndex];
+        // Always use lastPosition as the true end point for arrow head placement
+        drawArrowHead(ctx, startPoint, lastPosition, CONFIG.drawing.colors[currentColor], CONFIG.drawing.lineWidth);
       }
 
       // Save the completed stroke as a command with normalized coordinates
