@@ -59,6 +59,10 @@ export const useKeyboardShortcuts = ({
         console.log('Changing to rectangle mode');
         changeMode('rectangle');
         break;
+      case '7':
+        console.log('Changing to ellipse mode');
+        changeMode('ellipse');
+        break;
       case 'e':
       case 'c':
         console.log('Clearing canvas via keyboard');

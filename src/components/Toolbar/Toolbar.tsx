@@ -154,6 +154,17 @@ const Toolbar: React.FC<ToolbarProps> = ({
           ⬜
         </button>
         <button
+          className={`toolbar-btn btn-circular mode-btn ${currentMode === 'ellipse' ? 'active' : ''}`}
+          onClick={() =>
+          {
+            console.log('Ellipse mode button clicked');
+            onModeChange('ellipse');
+          }}
+          title='Ellipse (7)'
+        >
+          ⭕
+        </button>
+        <button
           className='toolbar-btn btn-circular control-btn'
           onClick={() =>
           {

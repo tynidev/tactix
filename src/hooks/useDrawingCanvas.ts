@@ -9,7 +9,7 @@ type DrawingEvent = DrawingMouseEvent | DrawingTouchEvent;
 // Define drawing command types with normalized coordinates
 interface DrawingCommand
 {
-  type: 'stroke' | 'rectangle';
+  type: 'stroke' | 'rectangle' | 'ellipse';
   points: { x: number; y: number; }[]; // Stored as percentages (0-1)
   color: DrawingColor;
   lineWidth: number;
@@ -126,6 +126,36 @@ const drawRectangle = (
 };
 
 /**
+ * Draws an ellipse from two corner points defining the bounding rectangle.
+ *
+ * @param ctx - The canvas 2D rendering context
+ * @param startPoint - The starting corner point
+ * @param endPoint - The ending corner point
+ * @param color - The color of the ellipse
+ * @param lineWidth - The width of the lines
+ */
+const drawEllipse = (
+  ctx: CanvasRenderingContext2D,
+  startPoint: { x: number; y: number; },
+  endPoint: { x: number; y: number; },
+  color: string,
+  lineWidth: number,
+) =>
+{
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lineWidth;
+
+  const centerX = (startPoint.x + endPoint.x) / 2;
+  const centerY = (startPoint.y + endPoint.y) / 2;
+  const radiusX = Math.abs(endPoint.x - startPoint.x) / 2;
+  const radiusY = Math.abs(endPoint.y - startPoint.y) / 2;
+
+  ctx.beginPath();
+  ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
+  ctx.stroke();
+};
+
+/**
  * Custom hook for managing drawing functionality on a canvas element.
  * Provides drawing capabilities including color selection, stroke management,
  * canvas clearing, and automatic scaling when canvas dimensions change.
@@ -152,6 +182,7 @@ export const useDrawingCanvas = () =>
   const [currentMode, setCurrentMode] = useState<DrawingMode>('arrow');
   const [lastPosition, setLastPosition] = useState({ x: 0, y: 0 });
   const [rectangleStartPoint, setRectangleStartPoint] = useState<{ x: number; y: number; } | null>(null);
+  const [ellipseStartPoint, setEllipseStartPoint] = useState<{ x: number; y: number; } | null>(null);
 
   /**
    * Redraws all stored drawing commands on the canvas at the current canvas size.
@@ -212,6 +243,13 @@ export const useDrawingCanvas = () =>
         const startPoint = denormalizePoint(command.points[0], canvas);
         const endPoint = denormalizePoint(command.points[1], canvas);
         drawRectangle(ctx, startPoint, endPoint, CONFIG.drawing.colors[command.color], command.lineWidth);
+      }
+      else if (command.type === 'ellipse' && command.points.length === 2)
+      {
+        console.log('Redrawing ellipse', index, ':', command);
+        const startPoint = denormalizePoint(command.points[0], canvas);
+        const endPoint = denormalizePoint(command.points[1], canvas);
+        drawEllipse(ctx, startPoint, endPoint, CONFIG.drawing.colors[command.color], command.lineWidth);
       }
     });
   }, []);
@@ -376,6 +414,11 @@ export const useDrawingCanvas = () =>
       // For rectangle mode, just store the starting point
       setRectangleStartPoint({ x, y });
     }
+    else if (currentModeRef.current === 'ellipse')
+    {
+      // For ellipse mode, just store the starting point
+      setEllipseStartPoint({ x, y });
+    }
     else
     {
       // For line/arrow modes, start a new stroke
@@ -437,6 +480,23 @@ export const useDrawingCanvas = () =>
         // Update last position for the rectangle end point
         setLastPosition({ x: currentX, y: currentY });
       }
+      else if (currentModeRef.current === 'ellipse' && ellipseStartPoint)
+      {
+        // For ellipse mode, clear and redraw everything including the preview ellipse
+        redrawCanvas();
+
+        // Draw preview ellipse
+        drawEllipse(
+          ctx,
+          ellipseStartPoint,
+          { x: currentX, y: currentY },
+          CONFIG.drawing.colors[currentColor],
+          CONFIG.drawing.lineWidth,
+        );
+
+        // Update last position for the ellipse end point
+        setLastPosition({ x: currentX, y: currentY });
+      }
       else
       {
         // For line/arrow modes, continue with normal drawing
@@ -459,7 +519,7 @@ export const useDrawingCanvas = () =>
       console.error('Drawing error:', error);
       setIsDrawing(false);
     }
-  }, [isDrawing, lastPosition, currentColor, rectangleStartPoint, redrawCanvas]);
+  }, [isDrawing, lastPosition, currentColor, rectangleStartPoint, ellipseStartPoint, redrawCanvas]);
 
   /**
    * Completes the current drawing stroke and saves it to the command history.
@@ -495,6 +555,25 @@ export const useDrawingCanvas = () =>
       console.log('Rectangle saved:', command, 'Total commands:', drawingCommandsRef.current.length);
       setRectangleStartPoint(null);
     }
+    // ELLIPSE:
+    else if (currentModeRef.current === 'ellipse' && ellipseStartPoint)
+    {
+      // For ellipse mode, save the ellipse as a command
+      const normalizedStartPoint = normalizePoint(ellipseStartPoint, canvas);
+      const normalizedEndPoint = normalizePoint(lastPosition, canvas);
+
+      const command: DrawingCommand = {
+        type: 'ellipse',
+        points: [normalizedStartPoint, normalizedEndPoint],
+        color: currentColor,
+        lineWidth: CONFIG.drawing.lineWidth,
+        hasArrowHead: false,
+      };
+
+      drawingCommandsRef.current.push(command);
+      console.log('Ellipse saved:', command, 'Total commands:', drawingCommandsRef.current.length);
+      setEllipseStartPoint(null);
+    }
     // LINE:
     else if (currentStrokeRef.current.length > 1)
     {
@@ -527,7 +606,7 @@ export const useDrawingCanvas = () =>
     }
 
     setIsDrawing(false);
-  }, [isDrawing, currentColor, rectangleStartPoint, lastPosition]);
+  }, [isDrawing, currentColor, rectangleStartPoint, ellipseStartPoint, lastPosition]);
 
   /**
    * Clears all drawings from the canvas and resets the command history.
@@ -549,8 +628,9 @@ export const useDrawingCanvas = () =>
     drawingCommandsRef.current = [];
     currentStrokeRef.current = [];
 
-    // Clear rectangle drawing state
+    // Clear rectangle and ellipse drawing state
     setRectangleStartPoint(null);
+    setEllipseStartPoint(null);
 
     // Clear visual canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
