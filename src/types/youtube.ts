@@ -1,6 +1,7 @@
 // YouTube API types
-export interface YT {
-  Player: new (elementId: string, config: PlayerConfig) => Player;
+export interface YT
+{
+  Player: new(elementId: string, config: PlayerConfig) => Player;
   PlayerState: {
     UNSTARTED: number;
     ENDED: number;
@@ -11,7 +12,8 @@ export interface YT {
   };
 }
 
-export interface PlayerConfig {
+export interface PlayerConfig
+{
   height: string;
   width: string;
   videoId: string;
@@ -32,7 +34,8 @@ export interface PlayerConfig {
   };
 }
 
-export interface Player {
+export interface Player
+{
   playVideo(): void;
   pauseVideo(): void;
   seekTo(seconds: number, allowSeekAhead: boolean): void;
@@ -43,13 +46,16 @@ export interface Player {
   getPlaybackRate(): number;
 }
 
-export interface PlayerEvent {
+export interface PlayerEvent
+{
   target: Player;
   data: number;
 }
 
-declare global {
-  interface Window {
+declare global
+{
+  interface Window
+  {
     YT: YT;
     onYouTubeIframeAPIReady: () => void;
   }

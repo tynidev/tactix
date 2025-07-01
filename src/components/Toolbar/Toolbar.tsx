@@ -2,7 +2,8 @@ import React from 'react';
 import { CONFIG, type DrawingColor, type DrawingMode } from '../../types/config';
 import './Toolbar.css';
 
-interface ToolbarProps {
+interface ToolbarProps
+{
   currentColor: DrawingColor;
   currentMode: DrawingMode;
   isPlaying: boolean;
@@ -25,127 +26,141 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onClearCanvas,
   onTogglePlayPause,
   onSeek,
-  onPlaybackRateChange
-}) => {
+  onPlaybackRateChange,
+}) =>
+{
   return (
-    <div id="toolbar">
+    <div id='toolbar'>
       {/* Speed Controls Group */}
-      <div className="toolbar-group">
+      <div className='toolbar-group'>
         <button
-          className={`toolbar-btn btn-circular speed-btn ${currentPlaybackRate === CONFIG.video.playbackRates.slow ? 'active' : ''}`}
+          className={`toolbar-btn btn-circular speed-btn ${
+            currentPlaybackRate === CONFIG.video.playbackRates.slow ? 'active' : ''
+          }`}
           onClick={() => onPlaybackRateChange(CONFIG.video.playbackRates.slow)}
-          title="0.5x Speed"
+          title='0.5x Speed'
         >
           0.5x
         </button>
         <button
-          className={`toolbar-btn btn-circular speed-btn ${currentPlaybackRate === CONFIG.video.playbackRates.normal ? 'active' : ''}`}
+          className={`toolbar-btn btn-circular speed-btn ${
+            currentPlaybackRate === CONFIG.video.playbackRates.normal ? 'active' : ''
+          }`}
           onClick={() => onPlaybackRateChange(CONFIG.video.playbackRates.normal)}
-          title="Normal Speed"
+          title='Normal Speed'
         >
           1x
         </button>
         <button
-          className={`toolbar-btn btn-circular speed-btn ${currentPlaybackRate === CONFIG.video.playbackRates.fast ? 'active' : ''}`}
+          className={`toolbar-btn btn-circular speed-btn ${
+            currentPlaybackRate === CONFIG.video.playbackRates.fast ? 'active' : ''
+          }`}
           onClick={() => onPlaybackRateChange(CONFIG.video.playbackRates.fast)}
-          title="2x Speed"
+          title='2x Speed'
         >
           2x
         </button>
       </div>
 
-      <div className="toolbar-separator"></div>
+      <div className='toolbar-separator'></div>
 
       {/* Video Controls Group */}
-      <div className="toolbar-group">
+      <div className='toolbar-group'>
         <button
-          className="toolbar-btn btn-circular control-btn"
+          className='toolbar-btn btn-circular control-btn'
           onClick={() => onSeek(-CONFIG.video.seekAmount)}
-          title="Rewind (A/←)"
+          title='Rewind (A/←)'
         >
           ⏪
         </button>
         <button
-          className="toolbar-btn btn-circular control-btn"
+          className='toolbar-btn btn-circular control-btn'
           onClick={onTogglePlayPause}
-          title="Play/Pause (S/Space)"
+          title='Play/Pause (S/Space)'
         >
           {isPlaying ? '⏸️' : '▶️'}
         </button>
         <button
-          className="toolbar-btn btn-circular control-btn"
+          className='toolbar-btn btn-circular control-btn'
           onClick={() => onSeek(CONFIG.video.seekAmount)}
-          title="Forward (D/→)"
+          title='Forward (D/→)'
         >
           ⏩
         </button>
       </div>
 
-      <div className="toolbar-separator"></div>
+      <div className='toolbar-separator'></div>
 
       {/* Drawing Tools Group */}
-      <div className="toolbar-group">
+      <div className='toolbar-group'>
         <button
           className={`toolbar-btn btn-circular color-btn red-btn ${currentColor === 'red' ? 'active' : ''}`}
-          onClick={() => {
+          onClick={() =>
+          {
             console.log('Red button clicked');
             onColorChange('red');
           }}
-          title="Red (1)"
+          title='Red (1)'
         />
         <button
           className={`toolbar-btn btn-circular color-btn yellow-btn ${currentColor === 'yellow' ? 'active' : ''}`}
-          onClick={() => {
+          onClick={() =>
+          {
             console.log('Yellow button clicked');
             onColorChange('yellow');
           }}
-          title="Yellow (2)"
+          title='Yellow (2)'
         />
         <button
           className={`toolbar-btn btn-circular color-btn blue-btn ${currentColor === 'blue' ? 'active' : ''}`}
-          onClick={() => {
+          onClick={() =>
+          {
             console.log('Blue button clicked');
             onColorChange('blue');
           }}
-          title="Blue (3)"
+          title='Blue (3)'
         />
         <button
           className={`toolbar-btn btn-circular mode-btn ${currentMode === 'arrow' ? 'active' : ''}`}
-          onClick={() => {
+          onClick={() =>
+          {
             console.log('Arrow mode button clicked');
             onModeChange('arrow');
           }}
-          title="Arrow Line (4)"
+          title='Arrow Line (4)'
         >
           ↗️
         </button>
         <button
           className={`toolbar-btn btn-circular mode-btn ${currentMode === 'line' ? 'active' : ''}`}
-          onClick={() => {
+          onClick={() =>
+          {
             console.log('Line mode button clicked');
             onModeChange('line');
           }}
-          title="Simple Line (5)"
+          title='Simple Line (5)'
         >
           📏
         </button>
         <button
           className={`toolbar-btn btn-circular mode-btn ${currentMode === 'rectangle' ? 'active' : ''}`}
-          onClick={() => {
+          onClick={() =>
+          {
             console.log('Rectangle mode button clicked');
             onModeChange('rectangle');
           }}
-          title="Rectangle (6)"
+          title='Rectangle (6)'
         >
           ⬜
         </button>
         <button
-          className="toolbar-btn btn-circular control-btn"
-          onClick={() => {
+          className='toolbar-btn btn-circular control-btn'
+          onClick={() =>
+          {
             console.log('Clear button clicked');
             onClearCanvas();
           }}
-          title="Clear (E/C)"
+          title='Clear (E/C)'
         >
           🗑️
         </button>

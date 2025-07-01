@@ -1,14 +1,15 @@
-import React, { useState, useCallback } from 'react';
-import YouTubePlayer from './YouTubePlayer/YouTubePlayer';
-import DrawingCanvas from './DrawingCanvas/DrawingCanvas';
-import Toolbar from './Toolbar/Toolbar';
-import { useYouTubePlayer } from '../hooks/useYouTubePlayer';
+import React, { useCallback, useState } from 'react';
 import { useDrawingCanvas } from '../hooks/useDrawingCanvas';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
+import { useYouTubePlayer } from '../hooks/useYouTubePlayer';
 import { CONFIG } from '../types/config';
+import DrawingCanvas from './DrawingCanvas/DrawingCanvas';
+import Toolbar from './Toolbar/Toolbar';
+import YouTubePlayer from './YouTubePlayer/YouTubePlayer';
 import './TactixHUD.css';
 
-const TactixHUD: React.FC = () => {
+const TactixHUD: React.FC = () =>
+{
   const [currentPlaybackRate, setCurrentPlaybackRate] = useState(CONFIG.video.playbackRates.normal);
 
   // YouTube player functionality
@@ -18,7 +19,7 @@ const TactixHUD: React.FC = () => {
     videoDimensions,
     togglePlayPause,
     seekVideo,
-    setPlaybackRate
+    setPlaybackRate,
   } = useYouTubePlayer();
 
   // Drawing canvas functionality
@@ -31,11 +32,12 @@ const TactixHUD: React.FC = () => {
     stopDrawing,
     clearCanvas,
     changeColor,
-    changeMode
+    changeMode,
   } = useDrawingCanvas();
 
   // Handle playback rate changes
-  const handlePlaybackRateChange = useCallback((rate: number) => {
+  const handlePlaybackRateChange = useCallback((rate: number) =>
+  {
     setCurrentPlaybackRate(rate);
     setPlaybackRate(rate);
   }, [setPlaybackRate]);
@@ -48,13 +50,13 @@ const TactixHUD: React.FC = () => {
     changeColor,
     changeMode,
     clearCanvas,
-    currentPlaybackRate
+    currentPlaybackRate,
   });
 
   return (
-    <div className="tactix-hud">
+    <div className='tactix-hud'>
       <YouTubePlayer className={isReady ? '' : 'loading'} />
-      <DrawingCanvas 
+      <DrawingCanvas
         canvasRef={canvasRef}
         currentColor={currentColor}
         startDrawing={startDrawing}

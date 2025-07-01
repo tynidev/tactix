@@ -1,9 +1,10 @@
 import TactixHUD from './components/TactixHUD';
 import './App.css';
 
-function App() {
+function App()
+{
   return (
-    <div className="App">
+    <div className='App'>
       <TactixHUD />
     </div>
   );

@@ -1,7 +1,8 @@
-import { useEffect, useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { CONFIG, type DrawingColor, type DrawingMode } from '../types/config';
 
-interface UseKeyboardShortcutsProps {
+interface UseKeyboardShortcutsProps
+{
   togglePlayPause: () => void;
   seekVideo: (seconds: number) => void;
   setPlaybackRate: (rate: number) => void;
@@ -18,19 +19,22 @@ export const useKeyboardShortcuts = ({
   changeColor,
   changeMode,
   clearCanvas,
-  currentPlaybackRate = 1
-}: UseKeyboardShortcutsProps) => {
-
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+  currentPlaybackRate = 1,
+}: UseKeyboardShortcutsProps) =>
+{
+  const handleKeyDown = useCallback((e: KeyboardEvent) =>
+  {
     const key = e.key.toLowerCase();
     console.log('Key pressed:', key);
 
     // Prevent default for specific keys
-    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(e.key)) {
+    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(e.key))
+    {
       e.preventDefault();
     }
 
-    switch (key) {
+    switch (key)
+    {
       case '1':
         console.log('Changing to red color');
         changeColor('red');
@@ -74,10 +78,14 @@ export const useKeyboardShortcuts = ({
       case 'w':
       case 'arrowup':
         // Speed up
-        if (currentPlaybackRate < 2) {
-          if (currentPlaybackRate < 1) {
+        if (currentPlaybackRate < 2)
+        {
+          if (currentPlaybackRate < 1)
+          {
             setPlaybackRate(CONFIG.video.playbackRates.normal);
-          } else {
+          }
+          else
+          {
             setPlaybackRate(CONFIG.video.playbackRates.fast);
           }
         }
@@ -85,10 +93,14 @@ export const useKeyboardShortcuts = ({
       case 's':
       case 'arrowdown':
         // Speed down
-        if (currentPlaybackRate > 0.5) {
-          if (currentPlaybackRate > 1) {
+        if (currentPlaybackRate > 0.5)
+        {
+          if (currentPlaybackRate > 1)
+          {
             setPlaybackRate(CONFIG.video.playbackRates.normal);
-          } else {
+          }
+          else
+          {
             setPlaybackRate(CONFIG.video.playbackRates.slow);
           }
         }
@@ -96,10 +108,12 @@ export const useKeyboardShortcuts = ({
     }
   }, [togglePlayPause, seekVideo, setPlaybackRate, changeColor, changeMode, clearCanvas, currentPlaybackRate]);
 
-  useEffect(() => {
+  useEffect(() =>
+  {
     document.addEventListener('keydown', handleKeyDown);
-    
-    return () => {
+
+    return () =>
+    {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [handleKeyDown]);

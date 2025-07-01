@@ -1,4 +1,5 @@
-export interface Config {
+export interface Config
+{
   drawing: {
     defaultColor: string;
     lineWidth: number;
@@ -36,8 +37,8 @@ export const CONFIG: Config = {
     colors: {
       red: '#EF4444',
       yellow: '#faf615',
-      blue: '#3B82F6'
-    }
+      blue: '#3B82F6',
+    },
   },
   video: {
     defaultVideoId: 'CoFBQyle37A',
@@ -45,8 +46,8 @@ export const CONFIG: Config = {
     playbackRates: {
       slow: 0.5,
       normal: 1,
-      fast: 2
-    }
+      fast: 2,
+    },
   },
   keyboard: {
     colorKeys: ['1', '2', '3'],
@@ -56,8 +57,8 @@ export const CONFIG: Config = {
     rewindKeys: ['a', 'ArrowLeft'],
     forwardKeys: ['d', 'ArrowRight'],
     speedUpKeys: ['w', 'ArrowUp'],
-    speedDownKeys: ['s', 'ArrowDown']
-  }
+    speedDownKeys: ['s', 'ArrowDown'],
+  },
 };
 
 export type DrawingColor = 'red' | 'yellow' | 'blue';

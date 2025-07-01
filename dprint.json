@@ -1,0 +1,25 @@
+{
+  "includes": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.js", "src/**/*.jsx", "*.ts", "*.js"],
+  "excludes": ["**/node_modules", "**/dist", "**/build", "**/coverage", "**/lcov-report", "**/*.db", "**/*.json", "**/*.md"],
+  "plugins": [
+    "https://plugins.dprint.dev/typescript-0.91.1.wasm",
+    "https://plugins.dprint.dev/json-0.19.2.wasm",
+    "https://plugins.dprint.dev/markdown-0.17.4.wasm"
+  ],
+  "typescript": {
+    "bracePosition": "nextLine",
+    "semiColons": "always",
+    "quoteStyle": "preferSingle",
+    "useTabs": false,
+    "newLineKind": "lf",
+    "nextControlFlowPosition": "nextLine",
+    "operatorPosition": "sameLine",
+    "indentWidth": 2
+  },
+  "json": {
+    "indentWidth": 2
+  },
+  "markdown": {
+    "textWrap": 80
+  }
+}
