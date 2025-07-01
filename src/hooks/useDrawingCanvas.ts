@@ -86,7 +86,7 @@ const drawArrowHead = (
   // Pre-calculate sine and cosine values to avoid repeated calculations
   const cos45 = 0.7071067811865476; // Math.cos(Math.PI / 4)
   const sin45 = 0.7071067811865476; // Math.sin(Math.PI / 4)
-  
+
   const cosAngle = Math.cos(angle);
   const sinAngle = Math.sin(angle);
 
@@ -225,7 +225,7 @@ export const useDrawingCanvas = () =>
     drawingCommandsRef.current.forEach((command, index) =>
     {
       const scaledLineWidth = getScaledLineWidth(canvas);
-      
+
       if (command.type === 'stroke' && command.points.length > 1)
       {
         ctx.strokeStyle = CONFIG.drawing.colors[command.color];
@@ -518,23 +518,27 @@ export const useDrawingCanvas = () =>
       {
         // For line/arrow modes, continue with normal drawing
         const DISTANCE_THRESHOLD = 4;
-        
+
         // Calculate distance from the last recorded point in the stroke
         let shouldAddPoint = false;
-        if (currentStrokeRef.current.length === 0) {
+        if (currentStrokeRef.current.length === 0)
+        {
           // Always add the first point
           shouldAddPoint = true;
-        } else {
+        }
+        else
+        {
           const lastRecordedPoint = currentStrokeRef.current[currentStrokeRef.current.length - 1];
           const distance = Math.sqrt(
-            Math.pow(currentX - lastRecordedPoint.x, 2) + 
-            Math.pow(currentY - lastRecordedPoint.y, 2)
+            Math.pow(currentX - lastRecordedPoint.x, 2) +
+              Math.pow(currentY - lastRecordedPoint.y, 2),
           );
           shouldAddPoint = distance >= DISTANCE_THRESHOLD;
         }
 
         // Only add point to stroke if it meets the distance threshold
-        if (shouldAddPoint) {
+        if (shouldAddPoint)
+        {
           currentStrokeRef.current.push({ x: currentX, y: currentY });
         }
 
@@ -613,13 +617,14 @@ export const useDrawingCanvas = () =>
       // Check if lastPosition is different from the last stored point
       const lastStoredPoint = currentStrokeRef.current[currentStrokeRef.current.length - 1];
       const distance = Math.sqrt(
-        Math.pow(lastPosition.x - lastStoredPoint.x, 2) + 
-        Math.pow(lastPosition.y - lastStoredPoint.y, 2)
+        Math.pow(lastPosition.x - lastStoredPoint.x, 2) +
+          Math.pow(lastPosition.y - lastStoredPoint.y, 2),
       );
-      
+
       // If lastPosition is more than 1 pixel away from last stored point, add it
       let pointsForStorage = [...currentStrokeRef.current];
-      if (distance > 1) {
+      if (distance > 1)
+      {
         pointsForStorage.push(lastPosition);
       }
 
@@ -635,7 +640,14 @@ export const useDrawingCanvas = () =>
         const startIndex = Math.max(0, Math.floor(totalPoints * 0.9));
         const startPoint = pointsForStorage[startIndex];
         // Always use lastPosition as the true end point for arrow head placement
-        drawArrowHead(ctx, startPoint, lastPosition, CONFIG.drawing.colors[currentColor], getScaledLineWidth(canvas), canvas);
+        drawArrowHead(
+          ctx,
+          startPoint,
+          lastPosition,
+          CONFIG.drawing.colors[currentColor],
+          getScaledLineWidth(canvas),
+          canvas,
+        );
       }
 
       // Save the completed stroke as a command with normalized coordinates

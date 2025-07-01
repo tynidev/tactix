@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { CONFIG } from '../types/config';
 import type { Player, PlayerEvent } from '../types/youtube';
 
@@ -12,7 +12,7 @@ import type { Player, PlayerEvent } from '../types/youtube';
  */
 export const useYouTubePlayer = (videoId?: string) =>
 {
-  const [player, setPlayer] = useState<Player | null>(null);
+  const playerRef = useRef<Player | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [videoDimensions, setVideoDimensions] = useState<
@@ -90,8 +90,8 @@ export const useYouTubePlayer = (videoId?: string) =>
         },
       });
 
-      // Store the player reference (this fixes the unused variable warning)
-      setPlayer(newPlayer);
+      // Store the player reference
+      playerRef.current = newPlayer;
     }
     catch (error)
     {
@@ -106,7 +106,7 @@ export const useYouTubePlayer = (videoId?: string) =>
    */
   const updateVideoDimensions = useCallback(() =>
   {
-    if (!player || !isReady) return;
+    if (!playerRef.current || !isReady) return;
 
     try
     {
@@ -127,7 +127,7 @@ export const useYouTubePlayer = (videoId?: string) =>
     {
       console.error('Error updating video dimensions:', error);
     }
-  }, [player, isReady]);
+  }, [isReady]);
 
   /**
    * Calculates the actual video dimensions within the iframe container
@@ -235,25 +235,25 @@ export const useYouTubePlayer = (videoId?: string) =>
    */
   const togglePlayPause = useCallback(() =>
   {
-    if (!player) return;
+    if (!playerRef.current) return;
 
     try
     {
-      const state = player.getPlayerState();
+      const state = playerRef.current.getPlayerState();
       if (state === window.YT.PlayerState.PLAYING)
       {
-        player.pauseVideo();
+        playerRef.current.pauseVideo();
       }
       else
       {
-        player.playVideo();
+        playerRef.current.playVideo();
       }
     }
     catch (error)
     {
       console.error('Error toggling play/pause:', error);
     }
-  }, [player]);
+  }, []);
 
   /**
    * Seeks the video forward or backward by a specified number of seconds
@@ -263,20 +263,20 @@ export const useYouTubePlayer = (videoId?: string) =>
    */
   const seekVideo = useCallback((seconds: number) =>
   {
-    if (!player) return;
+    if (!playerRef.current) return;
 
     try
     {
-      const currentTime = player.getCurrentTime();
-      const duration = player.getDuration();
+      const currentTime = playerRef.current.getCurrentTime();
+      const duration = playerRef.current.getDuration();
       const newTime = Math.max(0, Math.min(duration, currentTime + seconds));
-      player.seekTo(newTime, true);
+      playerRef.current.seekTo(newTime, true);
     }
     catch (error)
     {
       console.error('Error seeking video:', error);
     }
-  }, [player]);
+  }, []);
 
   /**
    * Sets the video playback rate (speed)
@@ -286,20 +286,20 @@ export const useYouTubePlayer = (videoId?: string) =>
    */
   const setPlaybackRate = useCallback((rate: number) =>
   {
-    if (!player) return;
+    if (!playerRef.current) return;
 
     try
     {
-      player.setPlaybackRate(rate);
+      playerRef.current.setPlaybackRate(rate);
     }
     catch (error)
     {
       console.error('Error setting playback rate:', error);
     }
-  }, [player]);
+  }, []);
 
   return {
-    player,
+    player: playerRef.current,
     isPlaying,
     isReady,
     videoDimensions,

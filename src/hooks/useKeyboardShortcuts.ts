@@ -1,8 +1,10 @@
 import { useCallback, useEffect } from 'react';
 import { CONFIG, type DrawingColor, type DrawingMode } from '../types/config';
+import type { Player } from '../types/youtube';
 
 interface UseKeyboardShortcutsProps
 {
+  player: Player | null;
   togglePlayPause: () => void;
   seekVideo: (seconds: number) => void;
   setPlaybackRate: (rate: number) => void;
@@ -10,10 +12,10 @@ interface UseKeyboardShortcutsProps
   changeMode: (mode: DrawingMode) => void;
   clearCanvas: () => void;
   undoLastDrawing: () => void;
-  currentPlaybackRate?: number;
 }
 
 export const useKeyboardShortcuts = ({
+  player,
   togglePlayPause,
   seekVideo,
   setPlaybackRate,
@@ -21,7 +23,6 @@ export const useKeyboardShortcuts = ({
   changeMode,
   clearCanvas,
   undoLastDrawing,
-  currentPlaybackRate = 1,
 }: UseKeyboardShortcutsProps) =>
 {
   const handleKeyDown = useCallback((e: KeyboardEvent) =>
@@ -88,35 +89,43 @@ export const useKeyboardShortcuts = ({
       case 'w':
       case 'arrowup':
         // Speed up
-        if (currentPlaybackRate < 2)
+        if (player)
         {
-          if (currentPlaybackRate < 1)
+          const currentRate = player.getPlaybackRate();
+          if (currentRate < 2)
           {
-            setPlaybackRate(CONFIG.video.playbackRates.normal);
-          }
-          else
-          {
-            setPlaybackRate(CONFIG.video.playbackRates.fast);
+            if (currentRate < 1)
+            {
+              setPlaybackRate(CONFIG.video.playbackRates.normal);
+            }
+            else
+            {
+              setPlaybackRate(CONFIG.video.playbackRates.fast);
+            }
           }
         }
         break;
       case 's':
       case 'arrowdown':
         // Speed down
-        if (currentPlaybackRate > 0.5)
+        if (player)
         {
-          if (currentPlaybackRate > 1)
+          const currentRate = player.getPlaybackRate();
+          if (currentRate > 0.5)
           {
-            setPlaybackRate(CONFIG.video.playbackRates.normal);
-          }
-          else
-          {
-            setPlaybackRate(CONFIG.video.playbackRates.slow);
+            if (currentRate > 1)
+            {
+              setPlaybackRate(CONFIG.video.playbackRates.normal);
+            }
+            else
+            {
+              setPlaybackRate(CONFIG.video.playbackRates.slow);
+            }
           }
         }
         break;
     }
-  }, [togglePlayPause, seekVideo, setPlaybackRate, changeColor, changeMode, clearCanvas, undoLastDrawing, currentPlaybackRate]);
+  }, [player, togglePlayPause, seekVideo, setPlaybackRate, changeColor, changeMode, clearCanvas, undoLastDrawing]);
 
   useEffect(() =>
   {

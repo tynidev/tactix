@@ -1,8 +1,7 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback } from 'react';
 import { useDrawingCanvas } from '../hooks/useDrawingCanvas';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { useYouTubePlayer } from '../hooks/useYouTubePlayer';
-import { CONFIG } from '../types/config';
 import DrawingCanvas from './DrawingCanvas/DrawingCanvas';
 import Toolbar from './Toolbar/Toolbar';
 import YouTubePlayer from './YouTubePlayer/YouTubePlayer';
@@ -10,10 +9,9 @@ import './TactixHUD.css';
 
 const TactixHUD: React.FC = () =>
 {
-  const [currentPlaybackRate, setCurrentPlaybackRate] = useState(CONFIG.video.playbackRates.normal);
-
   // YouTube player functionality
   const {
+    player,
     isPlaying,
     isReady,
     videoDimensions,
@@ -39,12 +37,12 @@ const TactixHUD: React.FC = () =>
   // Handle playback rate changes
   const handlePlaybackRateChange = useCallback((rate: number) =>
   {
-    setCurrentPlaybackRate(rate);
     setPlaybackRate(rate);
   }, [setPlaybackRate]);
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
+    player,
     togglePlayPause,
     seekVideo,
     setPlaybackRate: handlePlaybackRateChange,
@@ -52,7 +50,6 @@ const TactixHUD: React.FC = () =>
     changeMode,
     clearCanvas,
     undoLastDrawing,
-    currentPlaybackRate,
   });
 
   return (
@@ -70,7 +67,7 @@ const TactixHUD: React.FC = () =>
         currentColor={currentColor}
         currentMode={currentMode}
         isPlaying={isPlaying}
-        currentPlaybackRate={currentPlaybackRate}
+        currentPlaybackRate={player?.getPlaybackRate() ?? 1}
         onColorChange={changeColor}
         onModeChange={changeMode}
         onClearCanvas={clearCanvas}
