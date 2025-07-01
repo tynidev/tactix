@@ -6,9 +6,9 @@
     <title>Tactix HUD - YouTube Video with Drawing Overlay</title>
     <style>
         :root {
-            --red-color: #EF4444;
-            --yellow-color: #faf615;
-            --blue-color: #3B82F6;
+            --color1-color: #EF4444;
+            --color2-color: #faf615;
+            --color3-color: #3B82F6;
             --white-transparent: rgba(255, 255, 255, 0);
             --white-semi: rgba(255, 255, 255, 0.1);
             --white-more: rgba(255, 255, 255, 0.2);
@@ -152,16 +152,16 @@
             box-shadow: 0 0 10px var(--white-glow);
         }
 
-        #red-btn {
-            background-color: var(--red-color);
+        #color1-btn {
+            background-color: var(--color1-color);
         }
 
-        #yellow-btn {
-            background-color: var(--yellow-color);
+        #color2-btn {
+            background-color: var(--color2-color);
         }
 
-        #blue-btn {
-            background-color: var(--blue-color);
+        #color3-btn {
+            background-color: var(--color3-color);
         }
 
         /* Control buttons */
@@ -232,9 +232,9 @@
 
         <!-- Drawing Tools Group -->
         <div class="toolbar-group">
-            <button id="red-btn" class="toolbar-btn btn-circular color-btn active" data-color="#EF4444" title="Red (1)"></button>
-            <button id="yellow-btn" class="toolbar-btn btn-circular color-btn" data-color="#faf615" title="Yellow (2)"></button>
-            <button id="blue-btn" class="toolbar-btn btn-circular color-btn" data-color="#3B82F6" title="Blue (3)"></button>
+            <button id="color1-btn" class="toolbar-btn btn-circular color-btn active" data-color="#EF4444" title="Color1 (1)"></button>
+            <button id="color2-btn" class="toolbar-btn btn-circular color-btn" data-color="#faf615" title="Color2 (2)"></button>
+            <button id="color3-btn" class="toolbar-btn btn-circular color-btn" data-color="#3B82F6" title="Color3 (3)"></button>
             <button id="erase-btn" class="toolbar-btn btn-circular control-btn" title="Clear (E/C)">🗑️</button>
         </div>
     </div>
@@ -248,9 +248,9 @@
                     defaultColor: '#EF4444',
                     lineWidth: 4,
                     colors: {
-                        red: '#EF4444',
-                        yellow: '#faf615',
-                        blue: '#3B82F6'
+                        color1: '#EF4444',
+                        color2: '#faf615',
+                        color3: '#3B82F6'
                     }
                 },
                 video: {
@@ -507,8 +507,8 @@
                 // Find the currently active color button
                 const activeColorBtn = document.querySelector('.color-btn.active');
                 if (!activeColorBtn) {
-                    // If no color is active, default to red
-                    document.getElementById('red-btn').classList.add('active');
+                    // If no color is active, default to color1
+                    document.getElementById('color1-btn').classList.add('active');
                     currentColor = CONFIG.drawing.defaultColor;
                 }
                 
@@ -585,9 +585,9 @@
 
         // Keyboard shortcuts
         const keyboardActions = {
-            '1': () => document.getElementById('red-btn').click(),
-            '2': () => document.getElementById('yellow-btn').click(),
-            '3': () => document.getElementById('blue-btn').click(),
+            '1': () => document.getElementById('color1-btn').click(),
+            '2': () => document.getElementById('color2-btn').click(),
+            '3': () => document.getElementById('color3-btn').click(),
             'e': () => ctx.clearRect(0, 0, canvas.width, canvas.height),
             'c': () => ctx.clearRect(0, 0, canvas.width, canvas.height),
             ' ': (e) => {

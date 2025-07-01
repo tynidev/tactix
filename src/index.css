@@ -1,7 +1,7 @@
 :root {
-  --red-color: #EF4444;
-  --yellow-color: #faf615;
-  --blue-color: #3B82F6;
+  --color1-color: #EF4444;
+  --color2-color: #faf615;
+  --color3-color: #3B82F6;
   --white-transparent: rgba(255, 255, 255, 0);
   --white-semi: rgba(255, 255, 255, 0.1);
   --white-more: rgba(255, 255, 255, 0.2);

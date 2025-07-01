@@ -172,13 +172,13 @@ const drawEllipse = (
 export const useDrawingCanvas = () =>
 {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const currentColorRef = useRef<DrawingColor>('red');
+  const currentColorRef = useRef<DrawingColor>('color1');
   const currentModeRef = useRef<DrawingMode>('arrow');
   const drawingCommandsRef = useRef<DrawingCommand[]>([]);
   const currentStrokeRef = useRef<{ x: number; y: number; }[]>([]);
   const resizeTimeoutRef = useRef<number>();
   const [isDrawing, setIsDrawing] = useState(false);
-  const [currentColor, setCurrentColor] = useState<DrawingColor>('red');
+  const [currentColor, setCurrentColor] = useState<DrawingColor>('color1');
   const [currentMode, setCurrentMode] = useState<DrawingMode>('arrow');
   const [lastPosition, setLastPosition] = useState({ x: 0, y: 0 });
   const [rectangleStartPoint, setRectangleStartPoint] = useState<{ x: number; y: number; } | null>(null);

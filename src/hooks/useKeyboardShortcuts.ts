@@ -36,16 +36,16 @@ export const useKeyboardShortcuts = ({
     switch (key)
     {
       case '1':
-        console.log('Changing to red color');
-        changeColor('red');
+        console.log('Changing to color1');
+        changeColor('color1');
         break;
       case '2':
-        console.log('Changing to yellow color');
-        changeColor('yellow');
+        console.log('Changing to color2');
+        changeColor('color2');
         break;
       case '3':
-        console.log('Changing to blue color');
-        changeColor('blue');
+        console.log('Changing to color3');
+        changeColor('color3');
         break;
       case '4':
         console.log('Changing to arrow mode');

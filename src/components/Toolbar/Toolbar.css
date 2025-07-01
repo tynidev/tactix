@@ -88,16 +88,16 @@
   box-shadow: 0 0 10px var(--white-glow);
 }
 
-.red-btn {
-  background-color: var(--red-color);
+.color1-btn {
+  background-color: var(--color1-color);
 }
 
-.yellow-btn {
-  background-color: var(--yellow-color);
+.color2-btn {
+  background-color: var(--color2-color);
 }
 
-.blue-btn {
-  background-color: var(--blue-color);
+.color3-btn {
+  background-color: var(--color3-color);
 }
 
 /* Control buttons */

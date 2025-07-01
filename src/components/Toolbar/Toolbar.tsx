@@ -94,31 +94,31 @@ const Toolbar: React.FC<ToolbarProps> = ({
       {/* Drawing Tools Group */}
       <div className='toolbar-group'>
         <button
-          className={`toolbar-btn btn-circular color-btn red-btn ${currentColor === 'red' ? 'active' : ''}`}
+          className={`toolbar-btn btn-circular color-btn color1-btn ${currentColor === 'color1' ? 'active' : ''}`}
           onClick={() =>
           {
-            console.log('Red button clicked');
-            onColorChange('red');
+            console.log('Color1 button clicked');
+            onColorChange('color1');
           }}
-          title='Red (1)'
+          title='Color1 (1)'
         />
         <button
-          className={`toolbar-btn btn-circular color-btn yellow-btn ${currentColor === 'yellow' ? 'active' : ''}`}
+          className={`toolbar-btn btn-circular color-btn color2-btn ${currentColor === 'color2' ? 'active' : ''}`}
           onClick={() =>
           {
-            console.log('Yellow button clicked');
-            onColorChange('yellow');
+            console.log('Color2 button clicked');
+            onColorChange('color2');
           }}
-          title='Yellow (2)'
+          title='Color2 (2)'
         />
         <button
-          className={`toolbar-btn btn-circular color-btn blue-btn ${currentColor === 'blue' ? 'active' : ''}`}
+          className={`toolbar-btn btn-circular color-btn color3-btn ${currentColor === 'color3' ? 'active' : ''}`}
           onClick={() =>
           {
-            console.log('Blue button clicked');
-            onColorChange('blue');
+            console.log('Color3 button clicked');
+            onColorChange('color3');
           }}
-          title='Blue (3)'
+          title='Color3 (3)'
         />
         <button
           className={`toolbar-btn btn-circular mode-btn ${currentMode === 'arrow' ? 'active' : ''}`}

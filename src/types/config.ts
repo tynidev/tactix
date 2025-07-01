@@ -4,9 +4,9 @@ export interface Config
     defaultColor: string;
     lineWidth: number;
     colors: {
-      red: string;
-      yellow: string;
-      blue: string;
+      color1: string;
+      color2: string;
+      color3: string;
     };
   };
   video: {
@@ -35,9 +35,9 @@ export const CONFIG: Config = {
     defaultColor: '#EF4444',
     lineWidth: 8,
     colors: {
-      red: '#EF4444',
-      yellow: '#faf615',
-      blue: '#3B82F6',
+      color1: '#EF4444',
+      color2: '#faf615',
+      color3: '#3B82F6',
     },
   },
   video: {
@@ -61,5 +61,5 @@ export const CONFIG: Config = {
   },
 };
 
-export type DrawingColor = 'red' | 'yellow' | 'blue';
+export type DrawingColor = 'color1' | 'color2' | 'color3';
 export type DrawingMode = 'arrow' | 'line' | 'rectangle' | 'ellipse';
