@@ -57,10 +57,150 @@
 | `timestamp`   | Time      | Time in video (e.g., 12:34)           |
 | `created_at`  | Timestamp | When it was added                     |
 
-## coaching_point_tags
+## coaching_point_drawings
+| Column        | Type      | Description                           |
+| ------------- | --------- | ------------------------------------- |
+| `id`          | UUID (PK) | Unique drawing ID                     |
+| `point_id`    | UUID (FK) | References `coaching_points.id`       |
+| `drawing_data`| JSONB     | Serialized drawing object             |
+| `created_at`  | Timestamp | When drawing was created              |
+
+## coaching_point_audio
+| Column        | Type      | Description                           |
+| ------------- | --------- | ------------------------------------- |
+| `id`          | UUID (PK) | Unique audio ID                       |
+| `point_id`    | UUID (FK) | References `coaching_points.id`       |
+| `audio_url`   | Text      | URL to stored audio file              |
+| `duration`    | Integer   | Audio duration in seconds             |
+| `created_at`  | Timestamp | When audio was recorded               |
+
+## coaching_point_tagged_users
 | Column        | Type      | Description                           |
 | ------------- | --------- | ------------------------------------- |
 | `id`          | UUID (PK) | Unique tag ID                         |
 | `point_id`    | UUID (FK) | References `coaching_points.id`       |
 | `user_id`     | UUID (FK) | References `users.id`                 |
 | `created_at`  | Timestamp | When tag was created                  |
+
+## labels
+| Column        | Type      | Description                           |
+| ------------- | --------- | ------------------------------------- |
+| `id`          | UUID (PK) | Unique label ID                       |
+| `team_id`     | UUID (FK) | References `teams.id`                 |
+| `name`        | Text      | Label text (e.g., "corner kick")      |
+| `created_at`  | Timestamp | When label was created                |
+
+## coaching_point_labels
+| Column        | Type      | Description                           |
+| ------------- | --------- | ------------------------------------- |
+| `id`          | UUID (PK) | Unique association ID                 |
+| `point_id`    | UUID (FK) | References `coaching_points.id`       |
+| `label_id`    | UUID (FK) | References `labels.id`                |
+| `created_at`  | Timestamp | When label was applied                |
+
+# Diagram
+
+```mermaid
+erDiagram
+    users {
+        UUID id PK
+        Text name
+        Text email
+        Timestamp created_at
+    }
+    
+    teams {
+        UUID id PK
+        Text name
+        Timestamp created_at
+    }
+    
+    team_memberships {
+        UUID id PK
+        UUID team_id FK
+        UUID user_id FK
+        Enum role
+    }
+    
+    parent_child_relationships {
+        UUID id PK
+        UUID parent_id FK
+        UUID child_id FK
+        Timestamp created_at
+    }
+    
+    games {
+        UUID id PK
+        UUID team_id FK
+        Text opponent
+        Date date
+        Text location
+        VARCHAR video_id
+        Integer team_score
+        Integer opp_score
+        Enum game_type
+        Enum home_away
+        Text notes
+    }
+    
+    coaching_points {
+        UUID id PK
+        UUID game_id FK
+        UUID author_id FK
+        Text title
+        Text feedback
+        Time timestamp
+        Timestamp created_at
+    }
+    
+    coaching_point_drawings {
+        UUID id PK
+        UUID point_id FK
+        JSONB drawing_data
+        Timestamp created_at
+    }
+    
+    coaching_point_audio {
+        UUID id PK
+        UUID point_id FK
+        Text audio_url
+        Integer duration
+        Timestamp created_at
+    }
+    
+    coaching_point_tagged_users {
+        UUID id PK
+        UUID point_id FK
+        UUID user_id FK
+        Timestamp created_at
+    }
+    
+    labels {
+        UUID id PK
+        UUID team_id FK
+        Text name
+        Timestamp created_at
+    }
+    
+    coaching_point_labels {
+        UUID id PK
+        UUID point_id FK
+        UUID label_id FK
+        Timestamp created_at
+    }
+    
+    users ||--o{ team_memberships : "has many"
+    teams ||--o{ team_memberships : "has many"
+    users ||--o{ parent_child_relationships : "parent"
+    users ||--o{ parent_child_relationships : "child"
+    teams ||--o{ games : "has many"
+    games ||--o{ coaching_points : "has many"
+    users ||--o{ coaching_points : "authors"
+    coaching_points ||--o{ coaching_point_drawings : "has many"
+    coaching_points ||--o{ coaching_point_audio : "has many"
+    coaching_points ||--o{ coaching_point_tagged_users : "has many"
+    users ||--o{ coaching_point_tagged_users : "tagged in"
+    teams ||--o{ labels : "has many"
+    coaching_points ||--o{ coaching_point_labels : "has many"
+    labels ||--o{ coaching_point_labels : "applied to"
+```
