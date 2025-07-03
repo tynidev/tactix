@@ -1,14 +1,14 @@
 import React from 'react';
-import { CONFIG, type DrawingColor, type DrawingMode } from '../../types/config';
+import { CONFIG, type DrawingMode } from '../../types/config';
 import './Toolbar.css';
 
 interface ToolbarProps
 {
-  currentColor: DrawingColor;
+  currentColor: string;
   currentMode: DrawingMode;
   isPlaying: boolean;
   currentPlaybackRate: number;
-  onColorChange: (color: DrawingColor) => void;
+  onColorChange: (color: string) => void;
   onModeChange: (mode: DrawingMode) => void;
   onClearCanvas: () => void;
   onTogglePlayPause: () => void;
@@ -94,29 +94,29 @@ const Toolbar: React.FC<ToolbarProps> = ({
       {/* Drawing Tools Group */}
       <div className='toolbar-group'>
         <button
-          className={`toolbar-btn btn-circular color-btn color1-btn ${currentColor === 'color1' ? 'active' : ''}`}
+          className={`toolbar-btn btn-circular color-btn color1-btn ${currentColor === CONFIG.drawing.colors.color1 ? 'active' : ''}`}
           onClick={() =>
           {
             console.log('Color1 button clicked');
-            onColorChange('color1');
+            onColorChange(CONFIG.drawing.colors.color1);
           }}
           title='Color1 (1)'
         />
         <button
-          className={`toolbar-btn btn-circular color-btn color2-btn ${currentColor === 'color2' ? 'active' : ''}`}
+          className={`toolbar-btn btn-circular color-btn color2-btn ${currentColor === CONFIG.drawing.colors.color2 ? 'active' : ''}`}
           onClick={() =>
           {
             console.log('Color2 button clicked');
-            onColorChange('color2');
+            onColorChange(CONFIG.drawing.colors.color2);
           }}
           title='Color2 (2)'
         />
         <button
-          className={`toolbar-btn btn-circular color-btn color3-btn ${currentColor === 'color3' ? 'active' : ''}`}
+          className={`toolbar-btn btn-circular color-btn color3-btn ${currentColor === CONFIG.drawing.colors.color3 ? 'active' : ''}`}
           onClick={() =>
           {
             console.log('Color3 button clicked');
-            onColorChange('color3');
+            onColorChange(CONFIG.drawing.colors.color3);
           }}
           title='Color3 (3)'
         />

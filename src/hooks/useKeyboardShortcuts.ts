@@ -1,5 +1,5 @@
 import { useCallback, useEffect } from 'react';
-import { CONFIG, type DrawingColor, type DrawingMode } from '../types/config';
+import { CONFIG, type DrawingMode } from '../types/config';
 import type { Player } from '../types/youtube';
 
 interface UseKeyboardShortcutsProps
@@ -8,7 +8,7 @@ interface UseKeyboardShortcutsProps
   togglePlayPause: () => void;
   seekVideo: (seconds: number) => void;
   setPlaybackRate: (rate: number) => void;
-  changeColor: (color: DrawingColor) => void;
+  changeColor: (color: string) => void;
   changeMode: (mode: DrawingMode) => void;
   clearCanvas: () => void;
   undoLastDrawing: () => void;
@@ -40,15 +40,15 @@ export const useKeyboardShortcuts = ({
     {
       case '1':
         console.log('Changing to color1');
-        changeColor('color1');
+        changeColor(CONFIG.drawing.colors.color1);
         break;
       case '2':
         console.log('Changing to color2');
-        changeColor('color2');
+        changeColor(CONFIG.drawing.colors.color2);
         break;
       case '3':
         console.log('Changing to color3');
-        changeColor('color3');
+        changeColor(CONFIG.drawing.colors.color3);
         break;
       case '4':
         console.log('Changing to arrow mode');

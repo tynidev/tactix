@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { CONFIG, type DrawingColor, type DrawingMode } from '../types/config';
+import { CONFIG, type DrawingMode } from '../types/config';
 import { type Drawing, drawElement, drawRectangle, drawEllipse, drawArrowHead } from '../utils/drawingRenderer';
 
 // Define event types for drawing
@@ -49,13 +49,13 @@ const getScaledLineWidth = (canvas: HTMLCanvasElement): number => {
 export const useDrawingCanvas = () =>
 {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const currentColorRef = useRef<DrawingColor>('color1');
+  const currentColorRef = useRef<string>(CONFIG.drawing.colors.color1);
   const currentModeRef = useRef<DrawingMode>('arrow');
   const drawingElementsRef = useRef<Drawing[]>([]);
   const currentStrokeRef = useRef<{ x: number; y: number; }[]>([]);
   const resizeTimeoutRef = useRef<number>();
   const isDrawingRef = useRef<boolean>(false);
-  const [currentColor, setCurrentColor] = useState<DrawingColor>('color1');
+  const [currentColor, setCurrentColor] = useState<string>(CONFIG.drawing.colors.color1);
   const [currentMode, setCurrentMode] = useState<DrawingMode>('arrow');
   const [lastPosition, setLastPosition] = useState({ x: 0, y: 0 });
   const [rectangleStartPoint, setRectangleStartPoint] = useState<{ x: number; y: number; } | null>(null);
@@ -116,7 +116,7 @@ export const useDrawingCanvas = () =>
     }
 
     // Set initial drawing properties
-    ctx.strokeStyle = CONFIG.drawing.colors[currentColorRef.current];
+    ctx.strokeStyle = currentColorRef.current;
     ctx.lineWidth = getScaledLineWidth(canvas);
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
@@ -135,7 +135,7 @@ export const useDrawingCanvas = () =>
     if (!ctx) return;
 
     // Set drawing properties without clearing the canvas
-    ctx.strokeStyle = CONFIG.drawing.colors[currentColor];
+    ctx.strokeStyle = currentColor;
     ctx.lineWidth = getScaledLineWidth(canvas);
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
@@ -308,7 +308,7 @@ export const useDrawingCanvas = () =>
           ctx,
           rectangleStartPoint,
           { x: currentX, y: currentY },
-          CONFIG.drawing.colors[currentColor],
+          currentColor,
           getScaledLineWidth(canvas),
         );
 
@@ -325,7 +325,7 @@ export const useDrawingCanvas = () =>
           ctx,
           ellipseStartPoint,
           { x: currentX, y: currentY },
-          CONFIG.drawing.colors[currentColor],
+          currentColor,
           getScaledLineWidth(canvas),
         );
 
@@ -361,7 +361,7 @@ export const useDrawingCanvas = () =>
         }
 
         // Always draw the line segment for smooth visual feedback
-        ctx.strokeStyle = CONFIG.drawing.colors[currentColor];
+        ctx.strokeStyle = currentColor;
         ctx.lineWidth = getScaledLineWidth(canvas);
         ctx.beginPath();
         ctx.moveTo(lastPosition.x, lastPosition.y);
@@ -403,8 +403,8 @@ export const useDrawingCanvas = () =>
       const command: Drawing = {
         type: 'rectangle',
         points: [normalizedStartPoint, normalizedEndPoint],
-        color: currentColor,
-        lineStyle: 'solid', // For now, defaulting to solid for rectangles
+        strokeColor: currentColor,
+        strokeStyle: 'solid', // For now, defaulting to solid for rectangles
         strokeOpacity: 1.0, // Default stroke opacity
         fillOpacity: undefined, // No fill by default - could be made configurable
       };
@@ -423,8 +423,8 @@ export const useDrawingCanvas = () =>
       const command: Drawing = {
         type: 'ellipse',
         points: [normalizedStartPoint, normalizedEndPoint],
-        color: currentColor,
-        lineStyle: 'solid', // For now, defaulting to solid for ellipses
+        strokeColor: currentColor,
+        strokeStyle: 'solid', // For now, defaulting to solid for ellipses
         strokeOpacity: 1.0, // Default stroke opacity
         fillOpacity: undefined, // No fill by default - could be made configurable
       };
@@ -466,7 +466,7 @@ export const useDrawingCanvas = () =>
           ctx,
           startPoint,
           lastPosition,
-          CONFIG.drawing.colors[currentColor],
+          currentColor,
           getScaledLineWidth(canvas),
           canvas,
         );
@@ -476,9 +476,9 @@ export const useDrawingCanvas = () =>
       const command: Drawing = {
         type: 'stroke',
         points: normalizedPoints,
-        color: currentColor,
+        strokeColor: currentColor,
         hasArrowHead: currentModeRef.current === 'arrow',
-        lineStyle: 'solid', // For now, defaulting to solid for strokes
+        strokeStyle: 'solid', // For now, defaulting to solid for strokes
         strokeOpacity: 1.0, // Default stroke opacity
       };
 
@@ -523,9 +523,9 @@ export const useDrawingCanvas = () =>
    * Updates both the ref (for immediate use) and state (for UI updates).
    * Canvas properties are automatically updated via useEffect.
    *
-   * @param color - The new color to use for drawing strokes
+   * @param color - The new color to use for drawing strokes (CSS color string)
    */
-  const changeColor = useCallback((color: DrawingColor) =>
+  const changeColor = useCallback((color: string) =>
   {
     console.log('Changing color to:', color);
     currentColorRef.current = color; // Update ref immediately

@@ -1,44 +1,46 @@
-import { CONFIG, type DrawingColor } from '../types/config';
+import { CONFIG } from '../types/config';
 
 // Define base properties common to all drawing elements
-interface BaseDrawing {
-  color: DrawingColor;
-  lineStyle: 'solid' | 'dashed';
+interface Stroke {
+  points: { x: number; y: number; }[];
+  strokeColor: string;
+  strokeStyle: 'solid' | 'dashed';
   strokeOpacity?: number; // Optional stroke opacity (0-1, undefined = 1.0)
 }
 
 // Define shape-specific properties for closed paths that can be filled
-interface Shape extends BaseDrawing {
+interface Shape extends Stroke {
   fillOpacity?: number; // Optional fill opacity (0-1, undefined = no fill)
-  fillColor?: DrawingColor; // Optional separate fill color
+  fillColor?: string; // Optional separate fill color
 }
 
 // Define specific drawing element types using discriminated unions
-interface Stroke extends BaseDrawing {
+interface Line extends Stroke {
   type: 'stroke';
-  points: { x: number; y: number; }[]; // Multiple points for the stroke path
   hasArrowHead: boolean;
 }
 
 interface Rectangle extends Shape {
   type: 'rectangle';
-  points: [{ x: number; y: number; }, { x: number; y: number; }]; // Exactly 2 points [start, end]
+  // Points are used to define the bounding rectangle for the rectangle
+  // Exactly 2 points that define the top-left and bottom-right corners
 }
 
 interface Ellipse extends Shape {
   type: 'ellipse';
-  points: [{ x: number; y: number; }, { x: number; y: number; }]; // Exactly 2 points [start, end]
+  // Points are used to define the bounding rectangle for the ellipse
+  // Exactly 2 points that define the top-left and bottom-right corners
 }
 
 // Union type for all drawing elements
-export type Drawing = Stroke | Rectangle | Ellipse;
+export type Drawing = Line | Rectangle | Ellipse;
 
 // Type guards for better type narrowing
 export const isShape = (element: Drawing): element is Rectangle | Ellipse => {
   return element.type === 'rectangle' || element.type === 'ellipse';
 };
 
-export const isStroke = (element: Drawing): element is Stroke => {
+export const isStroke = (element: Drawing): element is Line => {
   return element.type === 'stroke';
 };
 
@@ -247,7 +249,7 @@ export const drawElement = (
   canvas: HTMLCanvasElement
 ): void => {
   const scaledLineWidth = getScaledLineWidth(canvas);
-  const color = CONFIG.drawing.colors[element.color];
+  const color = element.strokeColor;
   const strokeOpacity = element.strokeOpacity ?? 1.0;
 
   // TypeScript automatically narrows the type based on the discriminator
@@ -270,7 +272,7 @@ export const drawElement = (
 
 const drawStrokeElement = (
   ctx: CanvasRenderingContext2D,
-  element: Stroke, // TypeScript knows this is a Stroke
+  element: Line, // TypeScript knows this is a Stroke
   color: string,
   lineWidth: number,
   strokeOpacity: number,
@@ -283,7 +285,7 @@ const drawStrokeElement = (
   ctx.globalAlpha = strokeOpacity;
 
   // Set line dash pattern
-  if (element.lineStyle === 'dashed') {
+  if (element.strokeStyle === 'dashed') {
     ctx.setLineDash([lineWidth * 3, lineWidth * 2]);
   } else {
     ctx.setLineDash([]);
@@ -329,8 +331,8 @@ const drawShapeElement = (
   const startPoint = denormalizePoint(element.points[0], canvas);
   const endPoint = denormalizePoint(element.points[1], canvas);
   
-  // Determine fill color (use fillColor if specified, otherwise use stroke color)
-  const fillColor = element.fillColor ? CONFIG.drawing.colors[element.fillColor] : color;
+  // Use fillColor directly if specified, otherwise use stroke color
+  const fillColor = element.fillColor || color;
 
   switch (element.type) {
     case 'rectangle':
@@ -340,7 +342,7 @@ const drawShapeElement = (
         endPoint, 
         color, 
         lineWidth, 
-        element.lineStyle, 
+        element.strokeStyle, 
         strokeOpacity,
         element.fillOpacity, 
         fillColor
@@ -353,7 +355,7 @@ const drawShapeElement = (
         endPoint, 
         color, 
         lineWidth, 
-        element.lineStyle, 
+        element.strokeStyle, 
         strokeOpacity,
         element.fillOpacity, 
         fillColor
