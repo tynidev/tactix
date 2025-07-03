@@ -82,7 +82,7 @@ export const useYouTubePlayer = (videoId?: string) =>
           modestbranding: 1, // This parameter is deprecated and no longer has any effect
           playsinline: 1, // Controls whether videos play inline or fullscreen on iOS devices
           rel: 0, // Controls what related videos are shown when playback ends
-          mute: 0, // Does not mute the video by default
+          mute: 1, // Mute the video to allow autoplay
         },
         events: {
           onReady: onPlayerReady,

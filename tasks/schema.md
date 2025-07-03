@@ -57,14 +57,6 @@
 | `timestamp`   | Time      | Time in video (e.g., 12:34)           |
 | `created_at`  | Timestamp | When it was added                     |
 
-## coaching_point_drawings
-| Column        | Type      | Description                           |
-| ------------- | --------- | ------------------------------------- |
-| `id`          | UUID (PK) | Unique drawing ID                     |
-| `point_id`    | UUID (FK) | References `coaching_points.id`       |
-| `drawing_data`| JSONB     | Serialized drawing object             |
-| `created_at`  | Timestamp | When drawing was created              |
-
 ## coaching_point_audio
 | Column        | Type      | Description                           |
 | ------------- | --------- | ------------------------------------- |
@@ -73,6 +65,14 @@
 | `audio_url`   | Text      | URL to stored audio file              |
 | `duration`    | Integer   | Audio duration in seconds             |
 | `created_at`  | Timestamp | When audio was recorded               |
+
+## coaching_point_drawings
+| Column        | Type      | Description                           |
+| ------------- | --------- | ------------------------------------- |
+| `id`          | UUID (PK) | Unique drawing ID                     |
+| `point_id`    | UUID (FK) | References `coaching_points.id`       |
+| `drawing_data`| JSONB     | Serialized drawing object             |
+| `created_at`  | Timestamp | When drawing was created              |
 
 ## coaching_point_tagged_users
 | Column        | Type      | Description                           |
