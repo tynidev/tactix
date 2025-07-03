@@ -1,11 +1,9 @@
 import React from 'react';
-import { type DrawingColor } from '../../types/config';
 import './DrawingCanvas.css';
 
 interface DrawingCanvasProps
 {
   canvasRef: React.RefObject<HTMLCanvasElement>;
-  currentColor: DrawingColor;
   startDrawing: (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => void;
   draw: (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => void;
   stopDrawing: () => void;

@@ -57,7 +57,6 @@ const TactixHUD: React.FC = () =>
       <YouTubePlayer className={isReady ? '' : 'loading'} />
       <DrawingCanvas
         canvasRef={canvasRef}
-        currentColor={currentColor}
         startDrawing={startDrawing}
         draw={draw}
         stopDrawing={stopDrawing}
