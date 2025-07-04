@@ -14,31 +14,38 @@ const MAX_ATTEMPTS = 100;
 /**
  * Generates a unique join code by checking for collisions across all join code columns
  */
-async function generateUniqueJoinCode(): Promise<string> {
-  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+async function generateUniqueJoinCode(): Promise<string>
+{
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++)
+  {
     // Generate random code
     let code = '';
-    for (let i = 0; i < CODE_LENGTH; i++) {
+    for (let i = 0; i < CODE_LENGTH; i++)
+    {
       code += SAFE_CHARS.charAt(Math.floor(Math.random() * SAFE_CHARS.length));
     }
-    
+
     // Check if code exists in ANY of the join code columns
     const { data, error } = await supabase
       .from('teams')
       .select('id')
-      .or(`coach_join_code.eq.${code},player_join_code.eq.${code},admin_join_code.eq.${code},parent_join_code.eq.${code}`)
+      .or(
+        `coach_join_code.eq.${code},player_join_code.eq.${code},admin_join_code.eq.${code},parent_join_code.eq.${code}`,
+      )
       .limit(1);
-    
-    if (error) {
+
+    if (error)
+    {
       throw new Error(`Database error while checking join code uniqueness: ${error.message}`);
     }
-    
+
     // If no matches found, code is unique
-    if (!data || data.length === 0) {
+    if (!data || data.length === 0)
+    {
       return code;
     }
   }
-  
+
   throw new Error(`Failed to generate unique join code after ${MAX_ATTEMPTS} attempts`);
 }
 
@@ -68,12 +75,12 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
     // Create team with join codes
     const { data: teamData, error: teamError } = await supabase
       .from('teams')
-      .insert({ 
+      .insert({
         name,
         coach_join_code: coachJoinCode,
         player_join_code: playerJoinCode,
         admin_join_code: adminJoinCode,
-        parent_join_code: parentJoinCode
+        parent_join_code: parentJoinCode,
       })
       .select()
       .single();
@@ -83,7 +90,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
       res.status(400).json({ error: teamError.message });
       return;
     }
-    
+
     // Add creator as coach
     const { error: membershipError } = await supabase
       .from('team_memberships')
@@ -226,16 +233,16 @@ router.post('/join', async (req: AuthenticatedRequest, res: Response): Promise<v
       .eq('user_id', userId)
       .single();
 
-    if (membershipCheckError && membershipCheckError.code !== 'PGRST116') // PGRST116 = no rows found
-    {
+    if (membershipCheckError && membershipCheckError.code !== 'PGRST116')
+    { // PGRST116 = no rows found
       res.status(400).json({ error: membershipCheckError.message });
       return;
     }
 
     if (existingMembership)
     {
-      res.status(409).json({ 
-        error: `You are already a member of this team as a ${existingMembership.role}` 
+      res.status(409).json({
+        error: `You are already a member of this team as a ${existingMembership.role}`,
       });
       return;
     }
@@ -260,8 +267,8 @@ router.post('/join', async (req: AuthenticatedRequest, res: Response): Promise<v
       team: {
         id: team_id,
         name: team_name,
-        role: role_for_code
-      }
+        role: role_for_code,
+      },
     });
   }
   catch (error)

@@ -61,7 +61,10 @@ router.post('/signup', async (req: Request, res: Response): Promise<void> =>
   }
   catch (error)
   {
-    res.status(500).json({ error: 'Internal server error', details: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : String(error),
+    });
   }
 });
 
@@ -84,8 +87,8 @@ router.get('/me', authenticateUser, async (req: AuthenticatedRequest, res: Respo
         error: 'User not found',
         details: {
           userId,
-          message: error.message || String(error)
-        }
+          message: error.message || String(error),
+        },
       });
       return;
     }
@@ -94,7 +97,10 @@ router.get('/me', authenticateUser, async (req: AuthenticatedRequest, res: Respo
   }
   catch (error)
   {
-    res.status(500).json({ error: 'Internal server error', details: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : String(error),
+    });
   }
 });
 
