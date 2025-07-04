@@ -142,6 +142,8 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   border: 1px solid #e2e8f0;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden; /* Ensure all content stays within card bounds */
+  position: relative; /* Establish positioning context */
 }
 
 .team-card:hover {
@@ -154,6 +156,106 @@
   font-size: 1.25rem;
   font-weight: 600;
   margin: 0 0 12px 0;
+}
+
+.team-header {
+  margin-bottom: 12px;
+  width: 100%;
+  overflow: hidden; /* Ensure content stays within bounds */
+}
+
+.team-name-display {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0;
+  width: 100%;
+}
+
+.team-name-display h3 {
+  margin: 0;
+  flex: 1;
+}
+
+.edit-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  font-size: 1rem;
+  opacity: 0.7;
+}
+
+.edit-button:hover {
+  background-color: #f0f0f0;
+  opacity: 1;
+}
+
+.team-name-edit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+.team-name-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 2px solid #667eea;
+  border-radius: 6px;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2d3748;
+  outline: none;
+  min-width: 0; /* Allow input to shrink */
+}
+
+.team-name-input:focus {
+  border-color: #5a67d8;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.edit-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0; /* Prevent buttons from shrinking */
+}
+
+.save-button,
+.cancel-button {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+}
+
+.save-button {
+  background-color: #48bb78;
+  color: white;
+}
+
+.save-button:hover {
+  background-color: #38a169;
+}
+
+.cancel-button {
+  background-color: #e53e3e;
+  color: white;
+}
+
+.cancel-button:hover {
+  background-color: #c53030;
 }
 
 .team-role {

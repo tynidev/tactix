@@ -21,6 +21,8 @@ export const Dashboard: React.FC = () => {
   const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [editingTeamId, setEditingTeamId] = useState<string | null>(null)
+  const [editingTeamName, setEditingTeamName] = useState('')
 
   useEffect(() => {
     // Set body class for dashboard mode
@@ -115,6 +117,60 @@ export const Dashboard: React.FC = () => {
     }
   }
 
+  const handleEditTeam = (teamId: string, currentName: string) => {
+    setEditingTeamId(teamId)
+    setEditingTeamName(currentName)
+  }
+
+  const handleCancelEdit = () => {
+    setEditingTeamId(null)
+    setEditingTeamName('')
+  }
+
+  const handleSaveTeamName = async (teamId: string) => {
+    if (!editingTeamName.trim()) {
+      alert('Team name cannot be empty')
+      return
+    }
+
+    try {
+      const token = (await import('../../lib/supabase')).supabase.auth.getSession()
+      const session = await token
+      
+      if (!session.data.session?.access_token) {
+        throw new Error('No access token')
+      }
+
+      const apiUrl = getApiUrl()
+      const response = await fetch(`${apiUrl}/api/teams/${teamId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${session.data.session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name: editingTeamName.trim() })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update team name')
+      }
+
+      // Update the local state
+      setTeams(teams.map(team => 
+        team.teams.id === teamId 
+          ? { ...team, teams: { ...team.teams, name: editingTeamName.trim() } }
+          : team
+      ))
+
+      // Reset editing state
+      setEditingTeamId(null)
+      setEditingTeamName('')
+    } catch (err) {
+      alert('Failed to update team name')
+      console.error('Error updating team name:', err)
+    }
+  }
+
   if (loading) {
     return (
       <div className="dashboard-container">
@@ -156,7 +212,55 @@ export const Dashboard: React.FC = () => {
             <div className="teams-grid">
               {teams.map((teamMembership) => (
                 <div key={teamMembership.teams.id} className="team-card">
-                  <h3>{teamMembership.teams.name}</h3>
+                  <div className="team-header">
+                    {editingTeamId === teamMembership.teams.id ? (
+                      <div className="team-name-edit">
+                        <input
+                          type="text"
+                          value={editingTeamName}
+                          onChange={(e) => setEditingTeamName(e.target.value)}
+                          className="team-name-input"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleSaveTeamName(teamMembership.teams.id)
+                            } else if (e.key === 'Escape') {
+                              handleCancelEdit()
+                            }
+                          }}
+                          autoFocus
+                        />
+                        <div className="edit-actions">
+                          <button
+                            onClick={() => handleSaveTeamName(teamMembership.teams.id)}
+                            className="save-button"
+                            title="Save"
+                          >
+                            ✓
+                          </button>
+                          <button
+                            onClick={handleCancelEdit}
+                            className="cancel-button"
+                            title="Cancel"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="team-name-display">
+                        <h3>{teamMembership.teams.name}</h3>
+                        {(teamMembership.role === 'coach' || teamMembership.role === 'admin') && (
+                          <button
+                            onClick={() => handleEditTeam(teamMembership.teams.id, teamMembership.teams.name)}
+                            className="edit-button"
+                            title="Edit team name"
+                          >
+                            ✏️
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   <p className="team-role">Role: {teamMembership.role}</p>
                   <p className="team-created">
                     Created: {new Date(teamMembership.teams.created_at).toLocaleDateString()}
