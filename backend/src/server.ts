@@ -20,7 +20,6 @@ app.use(morgan('combined'));
 // Configure CORS to allow multiple frontend origins
 const allowedOrigins = [
   process.env.FRONTEND_URL || 'http://localhost:5173',
-  'http://localhost:5173',
   'https://tactix-frontend.vercel.app',
   /^https:\/\/tactix-frontend-.*\.vercel\.app$/,
   /^https:\/\/.*-tynidevs-projects\.vercel\.app$/
