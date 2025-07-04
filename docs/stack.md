@@ -29,25 +29,3 @@ First iteration of app will use **[Cloud Deployment Stack](#cloud-deployment-sta
 | **Supabase.com** | Supabase          | 500 MB DB, 1 GB storage, paused after 7 days idle, no charges                   |
 | **Render**       | Node.js + Express | Includes HTTPS, custom domains, managed TLS, auto deploys, sleeps when idle     |
 | **Vercel**       | React frontend    | Includes global CDN, 100 GB bandwidth/mo, 1M serverless calls, 6k build minutes |
-
-## Local Deployment Stack
-
-### Backend
-
-| Tech                     | Role in Stack                              |
-| ------------------------ | ------------------------------------------ |
-| **Node.js**              | Run backend server logic                   |
-| **Express**              | Define API endpoints + middleware          |
-| **PostgreSQL**           | PostgreSQL                                 |
-| **Keycloak/Auth.js/Ory** | Auth                                       |
-| **JWT + RSA keypair**    | Session                                    |
-
-*TODO: Decide on auth library for local stack*
-
-### Frontend
-
-| Tech                    | Role in Stack              |
-| ----------------------- | -------------------------- |
-| **React**               | Build UI                   |
-| **jwt-decode**          | Decode JWT for display     |
-| **fetch / Axios**       | Call your own backend APIs |
