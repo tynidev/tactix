@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import { getApiUrl } from '../utils/api'
 
 interface AuthContextType {
   user: User | null
@@ -49,7 +50,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (email: string, password: string, name: string) => {
     try {
       // Use backend API for signup to ensure user record is created properly
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/signup`, {
+      const apiUrl = getApiUrl()
+      const response = await fetch(`${apiUrl}/api/auth/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

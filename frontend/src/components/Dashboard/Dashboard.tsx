@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
+import { getApiUrl } from '../../utils/api'
 import './Dashboard.css'
 
 interface Team {
@@ -30,7 +31,8 @@ export const Dashboard: React.FC = () => {
         throw new Error('No access token')
       }
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/teams`, {
+      const apiUrl = getApiUrl()
+      const response = await fetch(`${apiUrl}/api/teams`, {
         headers: {
           'Authorization': `Bearer ${session.data.session.access_token}`,
           'Content-Type': 'application/json'
@@ -63,7 +65,8 @@ export const Dashboard: React.FC = () => {
         throw new Error('No access token')
       }
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/teams`, {
+      const apiUrl = getApiUrl()
+      const response = await fetch(`${apiUrl}/api/teams`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.data.session.access_token}`,
