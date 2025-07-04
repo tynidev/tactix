@@ -9,11 +9,15 @@
 | `created_at` | Timestamp | Account creation timestamp |
 
 ## teams
-| Column       | Type      | Description             |
-| ------------ | --------- | ----------------------- |
-| `id`         | UUID (PK) | Unique team ID          |
-| `name`       | Text      | Team name               |
-| `created_at` | Timestamp | Team creation timestamp |
+| Column             | Type      | Description                      |
+| ------------------ | --------- | -------------------------------- |
+| `id`               | UUID (PK) | Unique team ID                   |
+| `name`             | Text      | Team name                        |
+| `coach_join_code`  | Text      | Join code for coach role         |
+| `player_join_code` | Text      | Join code for player role        |
+| `admin_join_code`  | Text      | Join code for admin role         |
+| `parent_join_code` | Text      | Join code for parent role        |
+| `created_at`       | Timestamp | Team creation timestamp          |
 
 ## team_memberships
 | Column      | Type      | Description                         |
@@ -117,6 +121,10 @@ erDiagram
     teams {
         UUID id PK
         Text name
+        Text coach_join_code
+        Text player_join_code
+        Text admin_join_code
+        Text parent_join_code
         Timestamp created_at
     }
     

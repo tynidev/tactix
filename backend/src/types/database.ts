@@ -65,16 +65,28 @@ export interface Database
         Row: {
           id: string;
           name: string;
+          coach_join_code: string;
+          player_join_code: string;
+          admin_join_code: string;
+          parent_join_code: string;
           created_at: string;
         };
         Insert: {
           id?: string;
           name: string;
+          coach_join_code?: string;
+          player_join_code?: string;
+          admin_join_code?: string;
+          parent_join_code?: string;
           created_at?: string;
         };
         Update: {
           id?: string;
           name?: string;
+          coach_join_code?: string;
+          player_join_code?: string;
+          admin_join_code?: string;
+          parent_join_code?: string;
           created_at?: string;
         };
       };

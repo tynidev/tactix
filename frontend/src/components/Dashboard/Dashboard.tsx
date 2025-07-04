@@ -8,6 +8,10 @@ interface Team {
   teams: {
     id: string
     name: string
+    coach_join_code: string
+    player_join_code: string
+    admin_join_code: string
+    parent_join_code: string
     created_at: string
   }
 }
@@ -133,6 +137,37 @@ export const Dashboard: React.FC = () => {
                   <p className="team-created">
                     Created: {new Date(teamMembership.teams.created_at).toLocaleDateString()}
                   </p>
+                  
+                  <div className="join-codes">
+                    <h4>Join Codes:</h4>
+                    <div className="join-codes-grid">
+                      {teamMembership.role !== 'coach' && (
+                        <div className="join-code-item">
+                          <span className="join-code-label">Coach:</span>
+                          <code className="join-code">{teamMembership.teams.coach_join_code}</code>
+                        </div>
+                      )}
+                      {teamMembership.role !== 'player' && (
+                        <div className="join-code-item">
+                          <span className="join-code-label">Player:</span>
+                          <code className="join-code">{teamMembership.teams.player_join_code}</code>
+                        </div>
+                      )}
+                      {teamMembership.role !== 'admin' && (
+                        <div className="join-code-item">
+                          <span className="join-code-label">Admin:</span>
+                          <code className="join-code">{teamMembership.teams.admin_join_code}</code>
+                        </div>
+                      )}
+                      {teamMembership.role !== 'parent' && (
+                        <div className="join-code-item">
+                          <span className="join-code-label">Parent:</span>
+                          <code className="join-code">{teamMembership.teams.parent_join_code}</code>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="team-actions">
                     <button className="team-button">View Games</button>
                     {(teamMembership.role === 'coach' || teamMembership.role === 'admin') && (

@@ -11,11 +11,8 @@ router.post('/signup', async (req: Request, res: Response): Promise<void> =>
   {
     const { email, password, name } = req.body;
 
-    console.log('Signup request:', { email, name, hasPassword: !!password });
-
     if (!email || !password || !name)
     {
-      console.log('Missing required fields:', { email: !!email, password: !!password, name: !!name });
       res.status(400).json({ error: 'Email, password, and name are required' });
       return;
     }
@@ -29,20 +26,8 @@ router.post('/signup', async (req: Request, res: Response): Promise<void> =>
       },
     });
 
-    console.log('Supabase auth creation result:', {
-      authData: !!authData?.user,
-      authError: authError ?
-        {
-          message: authError.message,
-          status: authError.status,
-          code: authError.code,
-        } :
-        null,
-    });
-
     if (authError)
     {
-      console.error('Auth creation error:', authError);
       res.status(400).json({ error: authError.message });
       return;
     }
@@ -61,21 +46,8 @@ router.post('/signup', async (req: Request, res: Response): Promise<void> =>
       .eq('id', authData.user.id)
       .single();
 
-    console.log('User database retrieval result:', {
-      userData: !!userData,
-      userError: userError ?
-        {
-          message: userError.message,
-          code: userError.code,
-          details: userError.details,
-          hint: userError.hint,
-        } :
-        null,
-    });
-
     if (userError)
     {
-      console.error('User database retrieval error:', userError);
       // Clean up auth user if we can't find the user record
       await supabase.auth.admin.deleteUser(authData.user.id);
       res.status(400).json({ error: `Failed to retrieve user profile: ${userError.message}` });
@@ -89,8 +61,7 @@ router.post('/signup', async (req: Request, res: Response): Promise<void> =>
   }
   catch (error)
   {
-    console.error('Signup error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error', details: error instanceof Error ? error.message : String(error) });
   }
 });
 
@@ -109,7 +80,13 @@ router.get('/me', authenticateUser, async (req: AuthenticatedRequest, res: Respo
 
     if (error)
     {
-      res.status(404).json({ error: 'User not found' });
+      res.status(404).json({
+        error: 'User not found',
+        details: {
+          userId,
+          message: error.message || String(error)
+        }
+      });
       return;
     }
 
@@ -117,8 +94,7 @@ router.get('/me', authenticateUser, async (req: AuthenticatedRequest, res: Respo
   }
   catch (error)
   {
-    console.error('Get user error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error', details: error instanceof Error ? error.message : String(error) });
   }
 });
 
