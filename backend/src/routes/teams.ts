@@ -8,8 +8,7 @@ const router = Router();
 router.use(authenticateUser);
 
 // Create a new team
-router.post('/', async (req: AuthenticatedRequest, res) =>
-{
+router.post('/', async (req: AuthenticatedRequest, res): Promise<void> => {
   try
   {
     const { name } = req.body;
@@ -17,7 +16,8 @@ router.post('/', async (req: AuthenticatedRequest, res) =>
 
     if (!name)
     {
-      return res.status(400).json({ error: 'Team name is required' });
+      res.status(400).json({ error: 'Team name is required' });
+      return;
     }
 
     // Create team
@@ -29,7 +29,8 @@ router.post('/', async (req: AuthenticatedRequest, res) =>
 
     if (teamError)
     {
-      return res.status(400).json({ error: teamError.message });
+      res.status(400).json({ error: teamError.message });
+      return;
     }
 
     // Add creator as coach
@@ -43,7 +44,8 @@ router.post('/', async (req: AuthenticatedRequest, res) =>
 
     if (membershipError)
     {
-      return res.status(400).json({ error: 'Failed to add user to team' });
+      res.status(400).json({ error: 'Failed to add user to team' });
+      return;
     }
 
     res.status(201).json({
@@ -59,8 +61,7 @@ router.post('/', async (req: AuthenticatedRequest, res) =>
 });
 
 // Get user's teams
-router.get('/', async (req: AuthenticatedRequest, res) =>
-{
+router.get('/', async (req: AuthenticatedRequest, res): Promise<void> => {
   try
   {
     const userId = req.user?.id;
@@ -79,7 +80,8 @@ router.get('/', async (req: AuthenticatedRequest, res) =>
 
     if (error)
     {
-      return res.status(400).json({ error: error.message });
+      res.status(400).json({ error: error.message });
+      return;
     }
 
     res.json(teams);
@@ -92,8 +94,7 @@ router.get('/', async (req: AuthenticatedRequest, res) =>
 });
 
 // Update team
-router.put('/:teamId', async (req: AuthenticatedRequest, res) =>
-{
+router.put('/:teamId', async (req: AuthenticatedRequest, res): Promise<void> => {
   try
   {
     const { teamId } = req.params;
@@ -110,7 +111,8 @@ router.put('/:teamId', async (req: AuthenticatedRequest, res) =>
 
     if (membershipError || !membership || !['coach', 'admin'].includes(membership.role))
     {
-      return res.status(403).json({ error: 'Insufficient permissions' });
+      res.status(403).json({ error: 'Insufficient permissions' });
+      return;
     }
 
     const { data: teamData, error: updateError } = await supabase
@@ -122,7 +124,8 @@ router.put('/:teamId', async (req: AuthenticatedRequest, res) =>
 
     if (updateError)
     {
-      return res.status(400).json({ error: updateError.message });
+      res.status(400).json({ error: updateError.message });
+      return;
     }
 
     res.json({

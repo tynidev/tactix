@@ -5,8 +5,7 @@ import { supabase } from '../utils/supabase.js';
 const router = Router();
 
 // Sign up new user
-router.post('/signup', async (req, res) =>
-{
+router.post('/signup', async (req, res): Promise<void> => {
   try
   {
     const { email, password, name } = req.body;
@@ -16,7 +15,8 @@ router.post('/signup', async (req, res) =>
     if (!email || !password || !name)
     {
       console.log('Missing required fields:', { email: !!email, password: !!password, name: !!name });
-      return res.status(400).json({ error: 'Email, password, and name are required' });
+      res.status(400).json({ error: 'Email, password, and name are required' });
+      return;
     }
 
     // Create user in Supabase Auth using signUp instead of admin
@@ -42,12 +42,14 @@ router.post('/signup', async (req, res) =>
     if (authError)
     {
       console.error('Auth creation error:', authError);
-      return res.status(400).json({ error: authError.message });
+      res.status(400).json({ error: authError.message });
+      return;
     }
 
     if (!authData.user)
     {
-      return res.status(400).json({ error: 'Failed to create user' });
+      res.status(400).json({ error: 'Failed to create user' });
+      return;
     }
 
     // The trigger should have automatically created the user record in public.users
@@ -75,7 +77,8 @@ router.post('/signup', async (req, res) =>
       console.error('User database retrieval error:', userError);
       // Clean up auth user if we can't find the user record
       await supabase.auth.admin.deleteUser(authData.user.id);
-      return res.status(400).json({ error: `Failed to retrieve user profile: ${userError.message}` });
+      res.status(400).json({ error: `Failed to retrieve user profile: ${userError.message}` });
+      return;
     }
 
     res.status(201).json({
@@ -91,8 +94,7 @@ router.post('/signup', async (req, res) =>
 });
 
 // Sign up with team join code
-router.post('/signup/:teamJoinCode', async (req, res) =>
-{
+router.post('/signup/:teamJoinCode', async (req, res): Promise<void> => {
   try
   {
     const { teamJoinCode } = req.params;
@@ -100,7 +102,8 @@ router.post('/signup/:teamJoinCode', async (req, res) =>
 
     if (!email || !password || !name)
     {
-      return res.status(400).json({ error: 'Email, password, and name are required' });
+      res.status(400).json({ error: 'Email, password, and name are required' });
+      return;
     }
 
     // TODO: Implement team join code logic
@@ -113,7 +116,8 @@ router.post('/signup/:teamJoinCode', async (req, res) =>
 
     if (authError)
     {
-      return res.status(400).json({ error: authError.message });
+      res.status(400).json({ error: authError.message });
+      return;
     }
 
     const { data: userData, error: userError } = await supabase
@@ -129,7 +133,8 @@ router.post('/signup/:teamJoinCode', async (req, res) =>
     if (userError)
     {
       await supabase.auth.admin.deleteUser(authData.user.id);
-      return res.status(400).json({ error: 'Failed to create user profile' });
+      res.status(400).json({ error: 'Failed to create user profile' });
+      return;
     }
 
     res.status(201).json({
@@ -146,8 +151,7 @@ router.post('/signup/:teamJoinCode', async (req, res) =>
 });
 
 // Get current user profile
-router.get('/me', authenticateUser, async (req: AuthenticatedRequest, res) =>
-{
+router.get('/me', authenticateUser, async (req: AuthenticatedRequest, res): Promise<void> => {
   try
   {
     const userId = req.user?.id;
@@ -160,7 +164,8 @@ router.get('/me', authenticateUser, async (req: AuthenticatedRequest, res) =>
 
     if (error)
     {
-      return res.status(404).json({ error: 'User not found' });
+      res.status(404).json({ error: 'User not found' });
+      return;
     }
 
     res.json(userData);
@@ -173,8 +178,7 @@ router.get('/me', authenticateUser, async (req: AuthenticatedRequest, res) =>
 });
 
 // Development endpoint to clean up test users (remove in production)
-router.delete('/cleanup/:email', async (req, res) =>
-{
+router.delete('/cleanup/:email', async (req, res): Promise<void> => {
   try
   {
     const { email } = req.params;
@@ -187,7 +191,8 @@ router.delete('/cleanup/:email', async (req, res) =>
     if (listError)
     {
       console.error('Error listing users:', listError);
-      return res.status(400).json({ error: 'Failed to list users' });
+      res.status(400).json({ error: 'Failed to list users' });
+      return;
     }
 
     const userToDelete = users.find(user => user.email === email);
@@ -200,7 +205,8 @@ router.delete('/cleanup/:email', async (req, res) =>
       if (deleteAuthError)
       {
         console.error('Error deleting auth user:', deleteAuthError);
-        return res.status(400).json({ error: 'Failed to delete auth user' });
+        res.status(400).json({ error: 'Failed to delete auth user' });
+        return;
       }
 
       // Delete from users table
