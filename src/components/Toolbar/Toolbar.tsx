@@ -94,7 +94,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
       {/* Drawing Tools Group */}
       <div className='toolbar-group'>
         <button
-          className={`toolbar-btn btn-circular color-btn color1-btn ${currentColor === CONFIG.drawing.colors.color1 ? 'active' : ''}`}
+          className={`toolbar-btn btn-circular color-btn color1-btn ${
+            currentColor === CONFIG.drawing.colors.color1 ? 'active' : ''
+          }`}
           onClick={() =>
           {
             console.log('Color1 button clicked');
@@ -103,7 +105,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
           title='Color1 (1)'
         />
         <button
-          className={`toolbar-btn btn-circular color-btn color2-btn ${currentColor === CONFIG.drawing.colors.color2 ? 'active' : ''}`}
+          className={`toolbar-btn btn-circular color-btn color2-btn ${
+            currentColor === CONFIG.drawing.colors.color2 ? 'active' : ''
+          }`}
           onClick={() =>
           {
             console.log('Color2 button clicked');
@@ -112,7 +116,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
           title='Color2 (2)'
         />
         <button
-          className={`toolbar-btn btn-circular color-btn color3-btn ${currentColor === CONFIG.drawing.colors.color3 ? 'active' : ''}`}
+          className={`toolbar-btn btn-circular color-btn color3-btn ${
+            currentColor === CONFIG.drawing.colors.color3 ? 'active' : ''
+          }`}
           onClick={() =>
           {
             console.log('Color3 button clicked');

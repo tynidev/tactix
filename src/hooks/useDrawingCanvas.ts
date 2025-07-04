@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { CONFIG, type DrawingMode } from '../types/config';
-import { type Drawing, drawElement, drawRectangle, drawEllipse, drawArrowHead } from '../utils/drawingRenderer';
+import { type Drawing } from '../types/drawing';
+import { drawArrowHead, drawElement, drawEllipse, drawRectangle } from '../utils/drawingRenderer';
 
 // Define event types for drawing
 type DrawingMouseEvent = React.MouseEvent<HTMLCanvasElement>;
@@ -27,7 +28,8 @@ const normalizePoint = (point: { x: number; y: number; }, canvas: HTMLCanvasElem
  * @param canvas - The canvas element to calculate line width for
  * @returns The calculated pixel line width
  */
-const getScaledLineWidth = (canvas: HTMLCanvasElement): number => {
+const getScaledLineWidth = (canvas: HTMLCanvasElement): number =>
+{
   const minDimension = Math.min(canvas.width, canvas.height);
   return minDimension * CONFIG.drawing.lineWidth;
 };
@@ -84,7 +86,8 @@ export const useDrawingCanvas = () =>
     console.log('Redrawing canvas with', drawingElementsRef.current.length, 'elements');
 
     // Redraw all stored elements using the new drawing system
-    drawingElementsRef.current.forEach((element) => {
+    drawingElementsRef.current.forEach((element) =>
+    {
       drawElement(ctx, element, canvas);
     });
   }, []);

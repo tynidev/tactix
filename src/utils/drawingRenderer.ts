@@ -1,48 +1,13 @@
 import { CONFIG } from '../types/config';
+import { Drawing } from '../types/drawing';
 
-// Define base properties common to all drawing elements
-interface Stroke {
-  points: { x: number; y: number; }[];
-  strokeColor: string;
-  strokeStyle: 'solid' | 'dashed';
-  strokeOpacity?: number; // Optional stroke opacity (0-1, undefined = 1.0)
-}
+// Re-export drawing types and type guards for internal use
+export { isShape, isStroke } from '../types/drawing';
 
-// Define shape-specific properties for closed paths that can be filled
-interface Shape extends Stroke {
-  fillOpacity?: number; // Optional fill opacity (0-1, undefined = no fill)
-  fillColor?: string; // Optional separate fill color
-}
-
-// Define specific drawing element types using discriminated unions
-interface Line extends Stroke {
-  type: 'stroke';
-  hasArrowHead: boolean;
-}
-
-interface Rectangle extends Shape {
-  type: 'rectangle';
-  // Points are used to define the bounding rectangle for the rectangle
-  // Exactly 2 points that define the top-left and bottom-right corners
-}
-
-interface Ellipse extends Shape {
-  type: 'ellipse';
-  // Points are used to define the bounding rectangle for the ellipse
-  // Exactly 2 points that define the top-left and bottom-right corners
-}
-
-// Union type for all drawing elements
-export type Drawing = Line | Rectangle | Ellipse;
-
-// Type guards for better type narrowing
-export const isShape = (element: Drawing): element is Rectangle | Ellipse => {
-  return element.type === 'rectangle' || element.type === 'ellipse';
-};
-
-export const isStroke = (element: Drawing): element is Line => {
-  return element.type === 'stroke';
-};
+// Import specific types for internal function signatures
+type Line = Extract<Drawing, { type: 'stroke'; }>;
+type Rectangle = Extract<Drawing, { type: 'rectangle'; }>;
+type Ellipse = Extract<Drawing, { type: 'ellipse'; }>;
 
 /**
  * Converts normalized percentage coordinates (0-1) back to pixel coordinates.
@@ -64,7 +29,8 @@ const denormalizePoint = (point: { x: number; y: number; }, canvas: HTMLCanvasEl
  * @param canvas - The canvas element to calculate line width for
  * @returns The calculated pixel line width
  */
-const getScaledLineWidth = (canvas: HTMLCanvasElement): number => {
+const getScaledLineWidth = (canvas: HTMLCanvasElement): number =>
+{
   const minDimension = Math.min(canvas.width, canvas.height);
   return minDimension * CONFIG.drawing.lineWidth;
 };
@@ -86,7 +52,8 @@ export const drawArrowHead = (
   color: string,
   lineWidth: number,
   canvas: HTMLCanvasElement,
-) => {
+) =>
+{
   // Scale arrow length based on canvas dimensions, similar to line width scaling
   const minDimension = Math.min(canvas.width, canvas.height);
   const scaledArrowLength = minDimension * CONFIG.drawing.lineWidth * 5; // 5x the line width percentage
@@ -149,12 +116,14 @@ export const drawRectangle = (
   strokeOpacity: number = 1.0,
   fillOpacity?: number,
   fillColor?: string,
-) => {
+) =>
+{
   const width = endPoint.x - startPoint.x;
   const height = endPoint.y - startPoint.y;
 
   // Draw fill first (if specified)
-  if (fillOpacity !== undefined && fillOpacity > 0) {
+  if (fillOpacity !== undefined && fillOpacity > 0)
+  {
     const originalAlpha = ctx.globalAlpha;
     ctx.globalAlpha = fillOpacity;
     ctx.fillStyle = fillColor || strokeColor;
@@ -167,11 +136,14 @@ export const drawRectangle = (
   ctx.globalAlpha = strokeOpacity;
   ctx.strokeStyle = strokeColor;
   ctx.lineWidth = lineWidth;
-  
+
   // Set line dash pattern
-  if (lineStyle === 'dashed') {
+  if (lineStyle === 'dashed')
+  {
     ctx.setLineDash([lineWidth * 3, lineWidth * 2]);
-  } else {
+  }
+  else
+  {
     ctx.setLineDash([]);
   }
 
@@ -204,14 +176,16 @@ export const drawEllipse = (
   strokeOpacity: number = 1.0,
   fillOpacity?: number,
   fillColor?: string,
-) => {
+) =>
+{
   const centerX = (startPoint.x + endPoint.x) / 2;
   const centerY = (startPoint.y + endPoint.y) / 2;
   const radiusX = Math.abs(endPoint.x - startPoint.x) / 2;
   const radiusY = Math.abs(endPoint.y - startPoint.y) / 2;
 
   // Draw fill first (if specified)
-  if (fillOpacity !== undefined && fillOpacity > 0) {
+  if (fillOpacity !== undefined && fillOpacity > 0)
+  {
     const originalAlpha = ctx.globalAlpha;
     ctx.globalAlpha = fillOpacity;
     ctx.fillStyle = fillColor || strokeColor;
@@ -226,11 +200,14 @@ export const drawEllipse = (
   ctx.globalAlpha = strokeOpacity;
   ctx.strokeStyle = strokeColor;
   ctx.lineWidth = lineWidth;
-  
+
   // Set line dash pattern
-  if (lineStyle === 'dashed') {
+  if (lineStyle === 'dashed')
+  {
     ctx.setLineDash([lineWidth * 3, lineWidth * 2]);
-  } else {
+  }
+  else
+  {
     ctx.setLineDash([]);
   }
 
@@ -246,14 +223,16 @@ export const drawEllipse = (
 export const drawElement = (
   ctx: CanvasRenderingContext2D,
   element: Drawing,
-  canvas: HTMLCanvasElement
-): void => {
+  canvas: HTMLCanvasElement,
+): void =>
+{
   const scaledLineWidth = getScaledLineWidth(canvas);
   const color = element.strokeColor;
   const strokeOpacity = element.strokeOpacity ?? 1.0;
 
   // TypeScript automatically narrows the type based on the discriminator
-  switch (element.type) {
+  switch (element.type)
+  {
     case 'stroke':
       drawStrokeElement(ctx, element, color, scaledLineWidth, strokeOpacity, canvas);
       break;
@@ -276,8 +255,9 @@ const drawStrokeElement = (
   color: string,
   lineWidth: number,
   strokeOpacity: number,
-  canvas: HTMLCanvasElement
-): void => {
+  canvas: HTMLCanvasElement,
+): void =>
+{
   if (element.points.length < 2) return;
 
   // Set stroke opacity
@@ -285,20 +265,24 @@ const drawStrokeElement = (
   ctx.globalAlpha = strokeOpacity;
 
   // Set line dash pattern
-  if (element.strokeStyle === 'dashed') {
+  if (element.strokeStyle === 'dashed')
+  {
     ctx.setLineDash([lineWidth * 3, lineWidth * 2]);
-  } else {
+  }
+  else
+  {
     ctx.setLineDash([]);
   }
 
   ctx.strokeStyle = color;
   ctx.lineWidth = lineWidth;
   ctx.beginPath();
-  
+
   const firstPoint = denormalizePoint(element.points[0], canvas);
   ctx.moveTo(firstPoint.x, firstPoint.y);
 
-  for (let i = 1; i < element.points.length; i++) {
+  for (let i = 1; i < element.points.length; i++)
+  {
     const point = denormalizePoint(element.points[i], canvas);
     ctx.lineTo(point.x, point.y);
   }
@@ -307,12 +291,13 @@ const drawStrokeElement = (
   ctx.globalAlpha = originalAlpha; // Reset alpha
 
   // Draw arrow head if needed
-  if (element.hasArrowHead) {
+  if (element.hasArrowHead)
+  {
     const totalPoints = element.points.length;
     const startIndex = Math.max(0, Math.floor(totalPoints * 0.9));
     const startPoint = denormalizePoint(element.points[startIndex], canvas);
     const lastPoint = denormalizePoint(element.points[element.points.length - 1], canvas);
-    
+
     // Reset alpha for arrow head
     ctx.globalAlpha = strokeOpacity;
     drawArrowHead(ctx, startPoint, lastPoint, color, lineWidth, canvas);
@@ -326,39 +311,41 @@ const drawShapeElement = (
   color: string,
   lineWidth: number,
   strokeOpacity: number,
-  canvas: HTMLCanvasElement
-): void => {
+  canvas: HTMLCanvasElement,
+): void =>
+{
   const startPoint = denormalizePoint(element.points[0], canvas);
   const endPoint = denormalizePoint(element.points[1], canvas);
-  
+
   // Use fillColor directly if specified, otherwise use stroke color
   const fillColor = element.fillColor || color;
 
-  switch (element.type) {
+  switch (element.type)
+  {
     case 'rectangle':
       drawRectangle(
-        ctx, 
-        startPoint, 
-        endPoint, 
-        color, 
-        lineWidth, 
-        element.strokeStyle, 
+        ctx,
+        startPoint,
+        endPoint,
+        color,
+        lineWidth,
+        element.strokeStyle,
         strokeOpacity,
-        element.fillOpacity, 
-        fillColor
+        element.fillOpacity,
+        fillColor,
       );
       break;
     case 'ellipse':
       drawEllipse(
-        ctx, 
-        startPoint, 
-        endPoint, 
-        color, 
-        lineWidth, 
-        element.strokeStyle, 
+        ctx,
+        startPoint,
+        endPoint,
+        color,
+        lineWidth,
+        element.strokeStyle,
         strokeOpacity,
-        element.fillOpacity, 
-        fillColor
+        element.fillOpacity,
+        fillColor,
       );
       break;
   }
