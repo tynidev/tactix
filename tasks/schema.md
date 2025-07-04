@@ -55,24 +55,19 @@
 | `title`       | Text      | Short summary                         |
 | `feedback`    | Text      | Detailed feedback                     |
 | `timestamp`   | Time      | Time in video (e.g., 12:34)           |
+| `audio_url`   | Text      | URL to stored audio file              |
+| `duration`    | Integer   | Total duration in milliseconds        |
 | `created_at`  | Timestamp | When it was added                     |
 
-## coaching_point_audio
-| Column        | Type      | Description                           |
-| ------------- | --------- | ------------------------------------- |
-| `id`          | UUID (PK) | Unique audio ID                       |
-| `point_id`    | UUID (FK) | References `coaching_points.id`       |
-| `audio_url`   | Text      | URL to stored audio file              |
-| `duration`    | Integer   | Audio duration in seconds             |
-| `created_at`  | Timestamp | When audio was recorded               |
-
-## coaching_point_drawings
-| Column        | Type      | Description                           |
-| ------------- | --------- | ------------------------------------- |
-| `id`          | UUID (PK) | Unique drawing ID                     |
-| `point_id`    | UUID (FK) | References `coaching_points.id`       |
-| `drawing_data`| JSONB     | Serialized drawing object             |
-| `created_at`  | Timestamp | When drawing was created              |
+## coaching_point_events
+| Column        | Type      | Description                                       |
+| ------------- | --------- | ------------------------------------------------- |
+| `id`          | UUID (PK) | Unique event ID                                   |
+| `point_id`    | UUID (FK) | References `coaching_points.id`                   |
+| `event_type`  | Enum      | (`play`, `pause`, `seek`, `draw`, `change_speed`) |
+| `timestamp`   | Integer   | Milliseconds from recording start                 |
+| `event_data`  | JSONB     | Event-specific data                               |
+| `created_at`  | Timestamp | When event was recorded                           |
 
 ## coaching_point_tagged_users
 | Column        | Type      | Description                           |
@@ -150,21 +145,16 @@ erDiagram
         Text title
         Text feedback
         Time timestamp
-        Timestamp created_at
-    }
-    
-    coaching_point_drawings {
-        UUID id PK
-        UUID point_id FK
-        JSONB drawing_data
-        Timestamp created_at
-    }
-    
-    coaching_point_audio {
-        UUID id PK
-        UUID point_id FK
-        Text audio_url
         Integer duration
+        Timestamp created_at
+    }
+    
+    coaching_point_events {
+        UUID id PK
+        UUID point_id FK
+        Enum event_type
+        Integer timestamp
+        JSONB event_data
         Timestamp created_at
     }
     
@@ -196,8 +186,7 @@ erDiagram
     teams ||--o{ games : "has many"
     games ||--o{ coaching_points : "has many"
     users ||--o{ coaching_points : "authors"
-    coaching_points ||--o{ coaching_point_drawings : "has many"
-    coaching_points ||--o{ coaching_point_audio : "has many"
+    coaching_points ||--o{ coaching_point_events : "has many"
     coaching_points ||--o{ coaching_point_tagged_users : "has many"
     users ||--o{ coaching_point_tagged_users : "tagged in"
     teams ||--o{ labels : "has many"
