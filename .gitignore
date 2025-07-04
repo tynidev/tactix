@@ -12,7 +12,7 @@ yarn-error.log*
 .env.production.local
 
 # IDE and editor files
-.vscode/
+.vscode/settings.json
 .idea/
 *.swp
 *.swo
@@ -62,3 +62,16 @@ build/
 # Temporary folders
 tmp/
 temp/
+
+# Supabase
+supabase/.env
+supabase/.temp/
+supabase/.branches/
+
+# Production configs with secrets
+**/config/production.js
+**/config/production.json
+
+# Backup files
+*.backup
+*.bak
