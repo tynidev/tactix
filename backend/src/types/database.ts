@@ -6,6 +6,37 @@ export type Json =
   | { [key: string]: Json | undefined; }
   | Json[];
 
+export enum TeamRole
+{
+  Coach = 'coach',
+  Player = 'player',
+  Admin = 'admin',
+  Parent = 'parent',
+}
+
+export enum GameType
+{
+  Regular = 'regular',
+  Tournament = 'tournament',
+  Scrimmage = 'scrimmage',
+}
+
+export enum HomeAway
+{
+  Home = 'home',
+  Away = 'away',
+  Neutral = 'neutral',
+}
+
+export enum CoachingPointEventType
+{
+  Play = 'play',
+  Pause = 'pause',
+  Seek = 'seek',
+  Draw = 'draw',
+  ChangeSpeed = 'change_speed',
+}
+
 export interface Database
 {
   public: {
@@ -52,19 +83,19 @@ export interface Database
           id: string;
           team_id: string;
           user_id: string;
-          role: 'coach' | 'player' | 'admin' | 'parent';
+          role: TeamRole;
         };
         Insert: {
           id?: string;
           team_id: string;
           user_id: string;
-          role: 'coach' | 'player' | 'admin' | 'parent';
+          role: TeamRole;
         };
         Update: {
           id?: string;
           team_id?: string;
           user_id?: string;
-          role?: 'coach' | 'player' | 'admin' | 'parent';
+          role?: TeamRole;
         };
       };
       parent_child_relationships: {
@@ -97,8 +128,8 @@ export interface Database
           video_id: string;
           team_score: number;
           opp_score: number;
-          game_type: 'regular' | 'tournament' | 'scrimmage';
-          home_away: 'home' | 'away' | 'neutral';
+          game_type: GameType;
+          home_away: HomeAway;
           notes: string | null;
         };
         Insert: {
@@ -110,8 +141,8 @@ export interface Database
           video_id: string;
           team_score: number;
           opp_score: number;
-          game_type: 'regular' | 'tournament' | 'scrimmage';
-          home_away: 'home' | 'away' | 'neutral';
+          game_type: GameType;
+          home_away: HomeAway;
           notes?: string | null;
         };
         Update: {
@@ -123,8 +154,8 @@ export interface Database
           video_id?: string;
           team_score?: number;
           opp_score?: number;
-          game_type?: 'regular' | 'tournament' | 'scrimmage';
-          home_away?: 'home' | 'away' | 'neutral';
+          game_type?: GameType;
+          home_away?: HomeAway;
           notes?: string | null;
         };
       };
@@ -167,7 +198,7 @@ export interface Database
         Row: {
           id: string;
           point_id: string;
-          event_type: 'play' | 'pause' | 'seek' | 'draw' | 'change_speed';
+          event_type: CoachingPointEventType;
           timestamp: number;
           event_data: Json;
           created_at: string;
@@ -175,7 +206,7 @@ export interface Database
         Insert: {
           id?: string;
           point_id: string;
-          event_type: 'play' | 'pause' | 'seek' | 'draw' | 'change_speed';
+          event_type: CoachingPointEventType;
           timestamp: number;
           event_data: Json;
           created_at?: string;
@@ -183,7 +214,7 @@ export interface Database
         Update: {
           id?: string;
           point_id?: string;
-          event_type?: 'play' | 'pause' | 'seek' | 'draw' | 'change_speed';
+          event_type?: CoachingPointEventType;
           timestamp?: number;
           event_data?: Json;
           created_at?: string;
@@ -224,7 +255,7 @@ export interface Database
         };
         Update: {
           id?: string;
-          team_id?: string;
+          team_id: string;
           name?: string;
           created_at?: string;
         };

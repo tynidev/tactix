@@ -22,27 +22,35 @@ const allowedOrigins = [
   process.env.FRONTEND_URL || 'http://localhost:5173',
   'https://tactix-frontend.vercel.app',
   /^https:\/\/tactix-frontend-.*\.vercel\.app$/,
-  /^https:\/\/.*-tynidevs-projects\.vercel\.app$/
+  /^https:\/\/.*-tynidevs-projects\.vercel\.app$/,
 ];
 
 app.use(cors({
-  origin: (origin, callback) => {
+  origin: (origin, callback) =>
+  {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-    
+
     // Check if the origin is in our allowed list or matches our patterns
-    const isAllowed = allowedOrigins.some(allowedOrigin => {
-      if (typeof allowedOrigin === 'string') {
+    const isAllowed = allowedOrigins.some(allowedOrigin =>
+    {
+      if (typeof allowedOrigin === 'string')
+      {
         return allowedOrigin === origin;
-      } else if (allowedOrigin instanceof RegExp) {
+      }
+      else if (allowedOrigin instanceof RegExp)
+      {
         return allowedOrigin.test(origin);
       }
       return false;
     });
-    
-    if (isAllowed) {
+
+    if (isAllowed)
+    {
       callback(null, true);
-    } else {
+    }
+    else
+    {
       console.warn(`CORS blocked origin: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
@@ -53,7 +61,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Health check
-app.get('/health', (req: Request, res: Response) => {
+app.get('/health', (req: Request, res: Response) =>
+{
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
@@ -65,7 +74,8 @@ app.use('/api/teams', teamRoutes);
 app.use(errorHandler);
 
 // 404 handler
-app.use('*', (req: Request, res: Response) => {
+app.use('*', (req: Request, res: Response) =>
+{
   res.status(404).json({ error: 'Route not found' });
 });
 

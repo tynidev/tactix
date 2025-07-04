@@ -1,11 +1,12 @@
-import { Router, Request, Response } from 'express';
+import { Request, Response, Router } from 'express';
 import { AuthenticatedRequest, authenticateUser } from '../middleware/auth.js';
 import { supabase } from '../utils/supabase.js';
 
 const router = Router();
 
 // Sign up new user
-router.post('/signup', async (req: Request, res: Response): Promise<void> => {
+router.post('/signup', async (req: Request, res: Response): Promise<void> =>
+{
   try
   {
     const { email, password, name } = req.body;
@@ -93,65 +94,9 @@ router.post('/signup', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
-// Sign up with team join code
-router.post('/signup/:teamJoinCode', async (req: Request, res: Response): Promise<void> => {
-  try
-  {
-    const { teamJoinCode } = req.params;
-    const { email, password, name } = req.body;
-
-    if (!email || !password || !name)
-    {
-      res.status(400).json({ error: 'Email, password, and name are required' });
-      return;
-    }
-
-    // TODO: Implement team join code logic
-    // For now, just create user as coach
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-    });
-
-    if (authError)
-    {
-      res.status(400).json({ error: authError.message });
-      return;
-    }
-
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .insert({
-        id: authData.user.id,
-        email,
-        name,
-      })
-      .select()
-      .single();
-
-    if (userError)
-    {
-      await supabase.auth.admin.deleteUser(authData.user.id);
-      res.status(400).json({ error: 'Failed to create user profile' });
-      return;
-    }
-
-    res.status(201).json({
-      message: 'User created and joined team successfully',
-      user: userData,
-      teamJoinCode,
-    });
-  }
-  catch (error)
-  {
-    console.error('Signup with team error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
 // Get current user profile
-router.get('/me', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+router.get('/me', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> =>
+{
   try
   {
     const userId = req.user?.id;
@@ -173,63 +118,6 @@ router.get('/me', authenticateUser, async (req: AuthenticatedRequest, res: Respo
   catch (error)
   {
     console.error('Get user error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Development endpoint to clean up test users (remove in production)
-router.delete('/cleanup/:email', async (req: Request, res: Response): Promise<void> => {
-  try
-  {
-    const { email } = req.params;
-
-    console.log('Cleanup request for email:', email);
-
-    // List all users to find the one with this email
-    const { data: { users }, error: listError } = await supabase.auth.admin.listUsers();
-
-    if (listError)
-    {
-      console.error('Error listing users:', listError);
-      res.status(400).json({ error: 'Failed to list users' });
-      return;
-    }
-
-    const userToDelete = users.find(user => user.email === email);
-
-    if (userToDelete)
-    {
-      // Delete from auth
-      const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(userToDelete.id);
-
-      if (deleteAuthError)
-      {
-        console.error('Error deleting auth user:', deleteAuthError);
-        res.status(400).json({ error: 'Failed to delete auth user' });
-        return;
-      }
-
-      // Delete from users table
-      const { error: deleteUserError } = await supabase
-        .from('users')
-        .delete()
-        .eq('id', userToDelete.id);
-
-      if (deleteUserError)
-      {
-        console.error('Error deleting user record:', deleteUserError);
-      }
-
-      res.json({ message: 'User cleaned up successfully', userId: userToDelete.id });
-    }
-    else
-    {
-      res.json({ message: 'No user found with that email' });
-    }
-  }
-  catch (error)
-  {
-    console.error('Cleanup error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

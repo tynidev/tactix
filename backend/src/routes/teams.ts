@@ -1,5 +1,7 @@
-import { Router, Response } from 'express';
+import { Response, Router } from 'express';
 import { AuthenticatedRequest, authenticateUser } from '../middleware/auth.js';
+import { TeamRole } from '../types/database.js';
+import { requireTeamRole } from '../utils/roleAuth.js';
 import { supabase } from '../utils/supabase.js';
 
 const router = Router();
@@ -8,7 +10,8 @@ const router = Router();
 router.use(authenticateUser);
 
 // Create a new team
-router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void> =>
+{
   try
   {
     const { name } = req.body;
@@ -32,14 +35,13 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
       res.status(400).json({ error: teamError.message });
       return;
     }
-
     // Add creator as coach
     const { error: membershipError } = await supabase
       .from('team_memberships')
       .insert({
         team_id: teamData.id,
         user_id: userId!,
-        role: 'coach',
+        role: TeamRole.Coach,
       });
 
     if (membershipError)
@@ -61,7 +63,8 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
 });
 
 // Get user's teams
-router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> =>
+{
   try
   {
     const userId = req.user?.id;
@@ -92,52 +95,41 @@ router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> 
     res.status(500).json({ error: 'Internal server error' });
   }
 });
-
-// Update team
-router.put('/:teamId', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try
+// Update team - require coach or admin role
+router.put(
+  '/:teamId',
+  requireTeamRole([TeamRole.Coach, TeamRole.Admin]),
+  async (req: AuthenticatedRequest, res: Response): Promise<void> =>
   {
-    const { teamId } = req.params;
-    const { name } = req.body;
-    const userId = req.user?.id;
-
-    // Check if user is coach or admin of this team
-    const { data: membership, error: membershipError } = await supabase
-      .from('team_memberships')
-      .select('role')
-      .eq('team_id', teamId)
-      .eq('user_id', userId)
-      .single();
-
-    if (membershipError || !membership || !['coach', 'admin'].includes(membership.role))
+    try
     {
-      res.status(403).json({ error: 'Insufficient permissions' });
-      return;
+      const { teamId } = req.params;
+      const { name } = req.body;
+
+      const { data: teamData, error: updateError } = await supabase
+        .from('teams')
+        .update({ name })
+        .eq('id', teamId)
+        .select()
+        .single();
+
+      if (updateError)
+      {
+        res.status(400).json({ error: updateError.message });
+        return;
+      }
+
+      res.json({
+        message: 'Team updated successfully',
+        team: teamData,
+      });
     }
-
-    const { data: teamData, error: updateError } = await supabase
-      .from('teams')
-      .update({ name })
-      .eq('id', teamId)
-      .select()
-      .single();
-
-    if (updateError)
+    catch (error)
     {
-      res.status(400).json({ error: updateError.message });
-      return;
+      console.error('Update team error:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
-
-    res.json({
-      message: 'Team updated successfully',
-      team: teamData,
-    });
-  }
-  catch (error)
-  {
-    console.error('Update team error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+  },
+);
 
 export default router;
