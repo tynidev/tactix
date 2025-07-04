@@ -3,7 +3,10 @@
 ## Project Overview
 TACTIX is a video-based coaching platform for youth sports teams that allows coaches to upload game footage from YouTube and create interactive coaching sessions with time-synced feedback, drawings, and voice recordings.
 
-## Technology Stack (Cloud Deployment)
+- Application description [README.md](../README.md)
+- Application Database Schema [schema.md](../docs/schema.md)
+
+## [Technology Stack](../docs/stack.md) (Cloud Deployment)
 - **Backend**: Node.js + Express + Supabase (PostgreSQL, Auth, Storage, JWT Sessions)
 - **Frontend**: React + Supabase JS SDK + jwt-decode
 - **Hosting**: Supabase.com (DB/Auth), Render (Backend), Vercel (Frontend)
@@ -16,16 +19,16 @@ TACTIX is a video-based coaching platform for youth sports teams that allows coa
 5. Team management and game tracking
 
 ## Database Requirements
-The application needs the following tables (already designed):
-- users, teams, team_memberships, parent_child_relationships
-- games, coaching_points, coaching_point_events
-- coaching_point_tagged_users, labels, coaching_point_labels
-- coaching_point_views
+The application needs the following tables (already designed see [schema.md](../docs/schema.md):
+- `users`, `teams`, `team_memberships`, `parent_child_relationships`
+- `games`, `coaching_points`, `coaching_point_events`
+- `coaching_point_tagged_users`, `labels`, `coaching_point_labels`
+- `coaching_point_views`
 
 **Important**: The `users` table needs to be integrated with Supabase Auth. Need to set up:
 - Supabase Auth integration with the existing users table
 - JWT session management
-- Role-based access control linked to team_memberships
+- Role-based access control linked to `team_memberships`
 
 ## Setup Tasks Needed
 
@@ -54,7 +57,7 @@ Create a monorepo structure with:
 - Vercel deployment configuration
 
 ### 4. Supabase Setup
-- Migration file for all tables from schema.md
+- Migration file for all tables from [schema.md](../docs/schema.md)
 - Row Level Security (RLS) policies for:
   - Users can only see teams they're members of
   - Parents can see their children's coaching points
