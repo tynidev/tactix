@@ -1,11 +1,11 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { AuthenticatedRequest, authenticateUser } from '../middleware/auth.js';
 import { supabase } from '../utils/supabase.js';
 
 const router = Router();
 
 // Sign up new user
-router.post('/signup', async (req, res): Promise<void> => {
+router.post('/signup', async (req: Request, res: Response): Promise<void> => {
   try
   {
     const { email, password, name } = req.body;
@@ -94,7 +94,7 @@ router.post('/signup', async (req, res): Promise<void> => {
 });
 
 // Sign up with team join code
-router.post('/signup/:teamJoinCode', async (req, res): Promise<void> => {
+router.post('/signup/:teamJoinCode', async (req: Request, res: Response): Promise<void> => {
   try
   {
     const { teamJoinCode } = req.params;
@@ -151,7 +151,7 @@ router.post('/signup/:teamJoinCode', async (req, res): Promise<void> => {
 });
 
 // Get current user profile
-router.get('/me', authenticateUser, async (req: AuthenticatedRequest, res): Promise<void> => {
+router.get('/me', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try
   {
     const userId = req.user?.id;
@@ -178,7 +178,7 @@ router.get('/me', authenticateUser, async (req: AuthenticatedRequest, res): Prom
 });
 
 // Development endpoint to clean up test users (remove in production)
-router.delete('/cleanup/:email', async (req, res): Promise<void> => {
+router.delete('/cleanup/:email', async (req: Request, res: Response): Promise<void> => {
   try
   {
     const { email } = req.params;

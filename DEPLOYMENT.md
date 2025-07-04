@@ -26,7 +26,7 @@ Add these in Vercel Dashboard: https://vercel.com/tynidevs-projects/tactix-front
    - **Region**: Choose closest to your users
    - **Branch**: `master`
    - **Root Directory**: `backend`
-   - **Build Command**: `npm install && npm run build`
+   - **Build Command**: `npm install --include=dev && npm run build`
    - **Start Command**: `npm start`
 
 ### Step 3: Set Environment Variables in Render

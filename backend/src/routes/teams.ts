@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Response } from 'express';
 import { AuthenticatedRequest, authenticateUser } from '../middleware/auth.js';
 import { supabase } from '../utils/supabase.js';
 
@@ -8,7 +8,7 @@ const router = Router();
 router.use(authenticateUser);
 
 // Create a new team
-router.post('/', async (req: AuthenticatedRequest, res): Promise<void> => {
+router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try
   {
     const { name } = req.body;
@@ -61,7 +61,7 @@ router.post('/', async (req: AuthenticatedRequest, res): Promise<void> => {
 });
 
 // Get user's teams
-router.get('/', async (req: AuthenticatedRequest, res): Promise<void> => {
+router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try
   {
     const userId = req.user?.id;
@@ -94,7 +94,7 @@ router.get('/', async (req: AuthenticatedRequest, res): Promise<void> => {
 });
 
 // Update team
-router.put('/:teamId', async (req: AuthenticatedRequest, res): Promise<void> => {
+router.put('/:teamId', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try
   {
     const { teamId } = req.params;

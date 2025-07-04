@@ -1,7 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 
-export interface ErrorWithStatus extends Error
-{
+export interface ErrorWithStatus extends Error {
   status?: number;
 }
 
@@ -10,8 +9,7 @@ export const errorHandler = (
   req: Request,
   res: Response,
   next: NextFunction,
-) =>
-{
+) => {
   console.error('Error:', err);
 
   const status = err.status || 500;
