@@ -23,7 +23,14 @@ export const Dashboard: React.FC = () => {
   const [error, setError] = useState('')
 
   useEffect(() => {
+    // Set body class for dashboard mode
+    document.body.className = 'dashboard-mode'
     fetchTeams()
+    
+    // Cleanup function to reset body class
+    return () => {
+      document.body.className = ''
+    }
   }, [])
 
   const fetchTeams = async () => {
@@ -91,6 +98,23 @@ export const Dashboard: React.FC = () => {
     }
   }
 
+  const handleCopyJoinCode = async (code: string) => {
+    try {
+      await navigator.clipboard.writeText(code)
+      // You could add a toast notification here if desired
+      console.log('Join code copied to clipboard')
+    } catch (err) {
+      console.error('Failed to copy join code:', err)
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea')
+      textArea.value = code
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+    }
+  }
+
   if (loading) {
     return (
       <div className="dashboard-container">
@@ -144,25 +168,53 @@ export const Dashboard: React.FC = () => {
                       {teamMembership.role !== 'coach' && (
                         <div className="join-code-item">
                           <span className="join-code-label">Coach:</span>
-                          <code className="join-code">{teamMembership.teams.coach_join_code}</code>
+                          <code 
+                            className="join-code"
+                            onClick={() => handleCopyJoinCode(teamMembership.teams.coach_join_code)}
+                            style={{ cursor: 'pointer' }}
+                            title="Click to copy"
+                          >
+                            {teamMembership.teams.coach_join_code}
+                          </code>
                         </div>
                       )}
                       {teamMembership.role !== 'player' && (
                         <div className="join-code-item">
                           <span className="join-code-label">Player:</span>
-                          <code className="join-code">{teamMembership.teams.player_join_code}</code>
+                          <code 
+                            className="join-code"
+                            onClick={() => handleCopyJoinCode(teamMembership.teams.player_join_code)}
+                            style={{ cursor: 'pointer' }}
+                            title="Click to copy"
+                          >
+                            {teamMembership.teams.player_join_code}
+                          </code>
                         </div>
                       )}
                       {teamMembership.role !== 'admin' && (
                         <div className="join-code-item">
                           <span className="join-code-label">Admin:</span>
-                          <code className="join-code">{teamMembership.teams.admin_join_code}</code>
+                          <code 
+                            className="join-code"
+                            onClick={() => handleCopyJoinCode(teamMembership.teams.admin_join_code)}
+                            style={{ cursor: 'pointer' }}
+                            title="Click to copy"
+                          >
+                            {teamMembership.teams.admin_join_code}
+                          </code>
                         </div>
                       )}
                       {teamMembership.role !== 'parent' && (
                         <div className="join-code-item">
                           <span className="join-code-label">Parent:</span>
-                          <code className="join-code">{teamMembership.teams.parent_join_code}</code>
+                          <code 
+                            className="join-code"
+                            onClick={() => handleCopyJoinCode(teamMembership.teams.parent_join_code)}
+                            style={{ cursor: 'pointer' }}
+                            title="Click to copy"
+                          >
+                            {teamMembership.teams.parent_join_code}
+                          </code>
                         </div>
                       )}
                     </div>
