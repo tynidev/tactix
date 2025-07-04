@@ -10,6 +10,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, name: string) => Promise<{ error?: string }>
   signIn: (email: string, password: string) => Promise<{ error?: string }>
   signOut: () => Promise<void>
+  isSessionValid: () => boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -38,14 +39,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-      setUser(session?.user ?? null)
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state change:', event, session?.user?.email || 'no user')
+      
+      // Handle different auth events
+      if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+        setSession(session)
+        setUser(session?.user ?? null)
+      } else if (event === 'SIGNED_IN') {
+        setSession(session)
+        setUser(session?.user ?? null)
+      } else {
+        // For other events, still update the state
+        setSession(session)
+        setUser(session?.user ?? null)
+      }
+      
       setLoading(false)
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      subscription.unsubscribe()
+    }
   }, [])
+
+  // Separate useEffect for session validation to avoid circular dependency
+  useEffect(() => {
+    if (!session) return
+
+    // Periodic session validation check (every 5 minutes)
+    const sessionCheckInterval = setInterval(() => {
+      if (!isSessionValid()) {
+        console.log('Session expired, clearing auth state')
+        setSession(null)
+        setUser(null)
+      }
+    }, 5 * 60 * 1000) // Check every 5 minutes
+
+    return () => clearInterval(sessionCheckInterval)
+  }, [session])
 
   const signUp = async (email: string, password: string, name: string) => {
     try {
@@ -89,7 +121,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    try {
+      // Check if we have a valid session before attempting logout
+      const { data: { session: currentSession }, error } = await supabase.auth.getSession()
+      
+      if (error || !currentSession || !isSessionValid()) {
+        // If no valid session or session is expired, just clear local state
+        console.log('No valid session or session expired, clearing local auth state')
+        setSession(null)
+        setUser(null)
+        return
+      }
+      
+      // If we have a valid session, attempt proper logout
+      const { error: signOutError } = await supabase.auth.signOut()
+      
+      if (signOutError) {
+        // If logout fails (e.g., token expired), still clear local state
+        console.warn('Logout failed, clearing local auth state:', signOutError.message)
+        setSession(null)
+        setUser(null)
+      }
+    } catch (error) {
+      // If any error occurs, ensure we clear local state
+      console.error('Error during logout:', error)
+      setSession(null)
+      setUser(null)
+    }
+  }
+
+  const isSessionValid = (): boolean => {
+    if (!session || !session.expires_at) {
+      return false
+    }
+    
+    // Check if token expires within the next 5 minutes (300 seconds)
+    const expiresAt = session.expires_at * 1000 // Convert to milliseconds
+    const now = Date.now()
+    const fiveMinutesFromNow = now + (5 * 60 * 1000)
+    
+    return expiresAt > fiveMinutesFromNow
   }
 
   return (
@@ -99,7 +170,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       loading,
       signUp,
       signIn,
-      signOut
+      signOut,
+      isSessionValid
     }}>
       {children}
     </AuthContext.Provider>
