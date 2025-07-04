@@ -93,6 +93,16 @@
 | `label_id`    | UUID (FK) | References `labels.id`                |
 | `created_at`  | Timestamp | When label was applied                |
 
+## coaching_point_views
+| Column        | Type      | Description                           |
+| ------------- | --------- | ------------------------------------- |
+| `id`          | UUID (PK) | Unique view ID                        |
+| `point_id`    | UUID (FK) | References `coaching_points.id`       |
+| `user_id`     | UUID (FK) | References `users.id`                 |
+| `viewed_at`   | Timestamp | When user first viewed the point      |
+| `acknowledged`| Boolean   | Whether user acknowledged the point   |
+| `ack_at`      | Timestamp | When user acknowledged (nullable)     |
+
 # Diagram
 
 ```mermaid
@@ -179,6 +189,15 @@ erDiagram
         Timestamp created_at
     }
     
+    coaching_point_views {
+        UUID id PK
+        UUID point_id FK
+        UUID user_id FK
+        Timestamp viewed_at
+        Boolean acknowledged
+        Timestamp ack_at
+    }
+    
     users ||--o{ team_memberships : "has many"
     teams ||--o{ team_memberships : "has many"
     users ||--o{ parent_child_relationships : "parent"
@@ -192,4 +211,6 @@ erDiagram
     teams ||--o{ labels : "has many"
     coaching_points ||--o{ coaching_point_labels : "has many"
     labels ||--o{ coaching_point_labels : "applied to"
+    coaching_points ||--o{ coaching_point_views : "has many"
+    users ||--o{ coaching_point_views : "views"
 ```

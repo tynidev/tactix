@@ -1,6 +1,10 @@
-# IF Deploy to Cloud
+# Stack
 
-## Backend
+First iteration of app will use **[Cloud Deployment Stack](#cloud-deployment-stack)** to speed up development and time to prototype.
+
+## Cloud Deployment Stack
+
+### Backend
 
 | Tech            | Role in Stack                              |
 | --------------- | ------------------------------------------ |
@@ -8,7 +12,7 @@
 | **Express**     | Define API endpoints + middleware          |
 | **Supabase**    | PostgreSQL, Auth, Storage, JWT Sessions    |
 
-## Frontend
+### Frontend
 
 | Tech                    | Role in Stack              |
 | ----------------------- | -------------------------- |
@@ -18,7 +22,7 @@
 | **Supabase JS SDK**     | Login / upload / query DB  |
 | **Supabase Auth + SDK** | Manage user session/JWT    |
 
-## Hosting Services
+### Hosting Services
 
 | Hosting Service  | Component         | Free Limits                                                                     |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------- |
@@ -26,9 +30,9 @@
 | **Render**       | Node.js + Express | Includes HTTPS, custom domains, managed TLS, auto deploys, sleeps when idle     |
 | **Vercel**       | React frontend    | Includes global CDN, 100 GB bandwidth/mo, 1M serverless calls, 6k build minutes |
 
-# IF Deploy Locally
+## Local Deployment Stack
 
-## Backend
+### Backend
 
 | Tech                     | Role in Stack                              |
 | ------------------------ | ------------------------------------------ |
@@ -38,7 +42,9 @@
 | **Keycloak/Auth.js/Ory** | Auth                                       |
 | **JWT + RSA keypair**    | Session                                    |
 
-## Frontend
+*TODO: Decide on auth library for local stack*
+
+### Frontend
 
 | Tech                    | Role in Stack              |
 | ----------------------- | -------------------------- |
