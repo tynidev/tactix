@@ -11,18 +11,15 @@ import authRoutes from './routes/auth.js';
 import teamRoutes from './routes/teams.js';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = Number(process.env.PORT) || 3001;
 
 // Middleware
 app.use(helmet());
 app.use(morgan('combined'));
 
 // Configure CORS to allow multiple frontend origins
-const allowedOrigins = [
-  process.env.FRONTEND_URL || 'http://localhost:5173',
-  'https://tactix-frontend.vercel.app',
-  /^https:\/\/tactix-frontend-.*\.vercel\.app$/,
-  /^https:\/\/.*-tynidevs-projects\.vercel\.app$/,
+const allowedOrigins: (string | RegExp)[] = [
+  process.env.FRONTEND_URL || /^http:\/\/192\.168\.\d+\.\d+:3000$/
 ];
 
 app.use(cors({
@@ -79,7 +76,7 @@ app.use('*', (req: Request, res: Response) =>
   res.status(404).json({ error: 'Route not found' });
 });
 
-app.listen(PORT, () =>
+app.listen(PORT, '0.0.0.0', () =>
 {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📱 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
