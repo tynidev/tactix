@@ -165,7 +165,7 @@ export const Dashboard: React.FC = () => {
           <h1>TACTIX Dashboard</h1>
           <div className="user-menu">
             <span>Welcome, {user?.email}</span>
-            <button onClick={signOut} className="sign-out-button">
+            <button onClick={signOut} className="btn btn-error btn-sm">
               Sign Out
             </button>
           </div>
@@ -176,12 +176,12 @@ export const Dashboard: React.FC = () => {
         <div className="teams-section">
           <div className="section-header">
             <h2>My Teams</h2>
-            <button onClick={handleCreateTeam} className="create-button">
+            <button onClick={handleCreateTeam} className="btn btn-primary btn-md">
               Create Team
             </button>
           </div>
 
-          {error && <div className="error-message">{error}</div>}
+          {error && <div className="alert alert-error">{error}</div>}
 
           {teams.length === 0 ? (
             <div className="empty-state">
@@ -211,14 +211,16 @@ export const Dashboard: React.FC = () => {
                         <div className="edit-actions">
                           <button
                             onClick={() => handleSaveTeamName(teamMembership.teams.id)}
-                            className="save-button"
+                            className="btn btn-success btn-sm"
+                            style={{ width: '32px', height: '32px', padding: '0' }}
                             title="Save"
                           >
                             ✓
                           </button>
                           <button
                             onClick={handleCancelEdit}
-                            className="cancel-button"
+                            className="btn btn-error btn-sm"
+                            style={{ width: '32px', height: '32px', padding: '0' }}
                             title="Cancel"
                           >
                             ✕
@@ -246,9 +248,9 @@ export const Dashboard: React.FC = () => {
                   </p>
                   
                   <div className="team-actions">
-                    <button className="team-button">View Games</button>
+                    <button className="btn btn-primary btn-md">View Games</button>
                     {(teamMembership.role === 'coach' || teamMembership.role === 'admin') && (
-                      <button className="team-button secondary">Manage</button>
+                      <button className="btn btn-secondary btn-md">Manage</button>
                     )}
                   </div>
                 </div>

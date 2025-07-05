@@ -1,15 +1,15 @@
 /* Toolbar layout */
 #toolbar {
   position: absolute;
-  top: 20px;
+  top: var(--space-5);
   left: 50%;
   transform: translateX(-50%);
-  z-index: 3;
+  z-index: var(--z-fixed);
   display: flex;
-  gap: 15px;
-  padding: 10px 15px;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
   background: var(--black-overlay);
-  border-radius: 15px;
+  border-radius: var(--radius-3xl);
   backdrop-filter: blur(10px);
   border: 1px solid var(--white-more);
   align-items: center;
@@ -19,30 +19,30 @@
   width: 1px;
   height: 30px;
   background: var(--white-more);
-  margin: 0 5px;
+  margin: 0 var(--space-1);
 }
 
 .toolbar-group {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   align-items: center;
 }
 
 .group-label {
   color: rgba(255, 255, 255, 0.5);
-  font-size: 10px;
+  font-size: var(--text-xs);
   text-transform: uppercase;
   letter-spacing: 1px;
-  margin-right: 8px;
-  font-weight: 600;
+  margin-right: var(--space-2);
+  font-weight: var(--font-semibold);
 }
 
 /* Base button styles */
 .toolbar-btn {
   border: none;
   cursor: pointer;
-  transition: all 0.2s ease;
-  font-family: inherit;
+  transition: all var(--transition-normal);
+  font-family: var(--font-family);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -56,12 +56,12 @@
 .btn-circular {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
-  box-shadow: 0 2px 4px var(--black-shadow);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-circular:hover {
-  box-shadow: 0 4px 8px var(--black-shadow-strong);
+  box-shadow: var(--shadow-lg);
 }
 
 /* Color buttons */
@@ -78,9 +78,9 @@
   transform: translate(-50%, -50%);
   width: 100%;
   height: 100%;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   border: 3px solid transparent;
-  transition: all 0.2s ease;
+  transition: all var(--transition-normal);
 }
 
 .color-btn.active::after {
@@ -107,22 +107,22 @@
   background-color: var(--white-transparent);
   color: white;
   font-size: 34px;
-  box-shadow: 0 2px 4px var(--black-shadow);
+  box-shadow: var(--shadow-md);
   position: relative;
   top: -2px;
 }
 
 .control-btn:hover {
   background-color: var(--white-transparent);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0);
+  box-shadow: var(--shadow-lg);
 }
 
 /* Speed control buttons */
 .speed-btn {
   background-color: var(--white-semi);
   color: white;
-  font-size: 16px;
-  font-weight: bold;
+  font-size: var(--text-base);
+  font-weight: var(--font-bold);
 }
 
 .speed-btn:hover {
@@ -153,8 +153,8 @@
 /* Mobile responsive adjustments */
 @media (max-width: 768px) {
   #toolbar {
-    gap: 10px;
-    padding: 8px 12px;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
   }
   
   .btn-circular {
@@ -163,14 +163,14 @@
   }
   
   .toolbar-group {
-    gap: 6px;
+    gap: var(--space-2);
   }
 }
 
 @media (max-width: 480px) {
   #toolbar {
-    gap: 8px;
-    padding: 6px 10px;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
   }
   
   .btn-circular {
@@ -183,6 +183,6 @@
   }
   
   .speed-btn {
-    font-size: 14px;
+    font-size: var(--text-sm);
   }
 }

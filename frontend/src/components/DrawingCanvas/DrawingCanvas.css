@@ -2,4 +2,5 @@
   cursor: crosshair;
   pointer-events: auto;
   touch-action: none;
+  /* Canvas specific styles - minimal styling needed */
 }

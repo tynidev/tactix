@@ -83,8 +83,8 @@ export const Auth: React.FC = () => {
             </button>
           </div>
 
-          {error && <div className="error-message">{error}</div>}
-          {successMessage && <div className="success-message">{successMessage}</div>}
+          {error && <div className="alert alert-error">{error}</div>}
+          {successMessage && <div className="alert alert-success">{successMessage}</div>}
 
           {!isLogin && (
             <div className="form-group">
@@ -127,8 +127,9 @@ export const Auth: React.FC = () => {
 
           <button
             type="submit"
-            className="auth-button"
+            className="btn btn-primary btn-lg"
             disabled={loading}
+            style={{ width: '100%', marginBottom: 'var(--space-5)' }}
           >
             {loading ? 'Loading...' : isLogin ? 'Sign In' : 'Sign Up'}
           </button>
@@ -139,7 +140,7 @@ export const Auth: React.FC = () => {
             {isLogin ? "Don't have an account? " : "Already have an account? "}
             <button
               type="button"
-              className="link-button"
+              className="btn btn-link"
               onClick={() => setIsLogin(!isLogin)}
             >
               {isLogin ? 'Sign Up' : 'Sign In'}

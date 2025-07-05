@@ -9,11 +9,11 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: #f8fafc;
+  background: var(--neutral-50);
 }
 
 .loading-spinner {
-  color: #667eea;
-  font-size: 1.1rem;
-  font-weight: 500;
+  color: var(--primary-500);
+  font-size: var(--text-lg);
+  font-weight: var(--font-medium);
 }
