@@ -17,32 +17,13 @@ const PORT = Number(process.env.PORT) || 3001;
 app.use(helmet());
 app.use(morgan('combined'));
 
-// Configure CORS to allow multiple frontend origins
-const allowedOrigins: (string | RegExp)[] = [
-  process.env.FRONTEND_URL || /^http:\/\/192\.168\.\d+\.\d+:3000$/
-];
-
 app.use(cors({
   origin: (origin, callback) =>
   {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
 
-    // Check if the origin is in our allowed list or matches our patterns
-    const isAllowed = allowedOrigins.some(allowedOrigin =>
-    {
-      if (typeof allowedOrigin === 'string')
-      {
-        return allowedOrigin === origin;
-      }
-      else if (allowedOrigin instanceof RegExp)
-      {
-        return allowedOrigin.test(origin);
-      }
-      return false;
-    });
-
-    if (isAllowed)
+    if (process.env.FRONTEND_URL === origin)
     {
       callback(null, true);
     }
