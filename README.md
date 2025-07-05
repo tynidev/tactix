@@ -2,7 +2,7 @@
 
 ## Overview
 
-TACTIX is a video-based coaching platform designed for youth sports teams. It allows coaches to upload game footage from YouTube and create interactive coaching sessions with time-synced feedback, drawings, and voice recordings. Players and parents can access personalized coaching points specific to them.
+TACTIX is a video-based coaching platform designed for youth sports teams. It allows coaches to upload game footage from YouTube and create interactive coaching sessions with time-synced feedback, drawings, and voice recordings. Players and guardians can access personalized coaching points specific to them.
 
 ## Project Structure
 
@@ -24,8 +24,8 @@ tactix/
   - On-screen drawings (arrows, shapes, plays)
   - Player tagging for personalized feedback
   - Labels for categorization (e.g., "defense", "corner kicks")
-- **Team Management** - Organize coaches, players, and parents with role-based access
-- **Parent Access** - Parents can view coaching feedback specific to their children
+- **Team Management** - Organize coaches, players, and guardians with role-based access
+- **Guardian Access** - Guardians can view coaching feedback specific to their children
 - **Recording Sessions** - Coaches can record their entire coaching process, including video controls and drawing sequences, for players to replay later
 
 ## Technology Stack
@@ -133,14 +133,14 @@ VITE_API_URL=http://localhost:3001
 
 The application uses PostgreSQL with the following main tables:
 
-- `users` - User profiles (integrated with Supabase Auth)
+- `user_profiles` - User profiles (integrated with Supabase Auth)
 - `teams` - Team information
 - `team_memberships` - User roles within teams
-- `parent_child_relationships` - Parent-child relationships
+- `guardian_child_relationships` - guardian-child relationships
 - `games` - Game records with YouTube video IDs
 - `coaching_points` - Time-synced coaching feedback
 - `coaching_point_events` - Recording session events
-- `coaching_point_tagged_users` - Player tagging
+- `coaching_point_tagged_players` - Player tagging
 - `labels` - Categorization labels
 - `coaching_point_views` - View tracking and acknowledgments
 
@@ -151,7 +151,7 @@ See [docs/schema.md](./docs/schema.md) for detailed schema documentation.
 - Row Level Security (RLS) policies ensure data isolation
 - JWT-based authentication via Supabase Auth
 - Role-based access control through team memberships
-- Parents can only see their children's coaching points
+- Guardians can only see their children's coaching points
 - Coaches can only manage their own teams' content
 
 ## Deployment

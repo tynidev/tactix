@@ -5,9 +5,9 @@ import { supabase } from '../lib/supabase';
  */
 export const getApiUrl = (): string =>
 {
-  // In production, prefer the environment variable
-  // Fallback to the production API URL if not set
-  return 'https://tactix-hls7.onrender.com';
+  // In Vite, use import.meta.env instead of process.env
+  // Environment variables must be prefixed with VITE_ to be exposed to the client
+  return import.meta.env.VITE_API_URL || 'https://tactix-hls7.onrender.com';
 };
 
 /**

@@ -14,19 +14,19 @@ TACTIX is a video-based coaching platform for youth sports teams that allows coa
 ## Key Features to Support
 1. YouTube video integration for game footage
 2. Time-synced coaching points with drawings and voice recordings
-3. Role-based access (coaches, players, parents, admins)
-4. Parent-child relationships for viewing permissions
+3. Role-based access (coaches, players, guardians, admins)
+4. guardian-child relationships for viewing permissions
 5. Team management and game tracking
 
 ## Database Requirements
 The application needs the following tables (already designed see [schema.md](../docs/schema.md):
-- `users`, `teams`, `team_memberships`, `parent_child_relationships`
+- `user_profiles`, `teams`, `team_memberships`, `guardian_child_relationships`
 - `games`, `coaching_points`, `coaching_point_events`
-- `coaching_point_tagged_users`, `labels`, `coaching_point_labels`
+- `coaching_point_tagged_players`, `labels`, `coaching_point_labels`
 - `coaching_point_views`
 
-**Important**: The `users` table needs to be integrated with Supabase Auth. Need to set up:
-- Supabase Auth integration with the existing users table
+**Important**: The `user_profiles` table needs to be integrated with Supabase Auth. Need to set up:
+- Supabase Auth integration with the existing user_profiles table
 - JWT session management
 - Role-based access control linked to `team_memberships`
 
@@ -43,7 +43,7 @@ Create a monorepo structure with:
 - Express server with TypeScript
 - Supabase client configuration
 - JWT verification middleware using Supabase Auth
-- API routes for: auth, users, teams 
+- API routes for: auth, user_profiles, teams 
 - CORS configuration for frontend
 - Environment variables for Supabase keys
 - Render deployment configuration (render.yaml)
@@ -60,9 +60,9 @@ Create a monorepo structure with:
 - Migration file for all tables from [schema.md](../docs/schema.md)
 - Row Level Security (RLS) policies for:
   - Users can only see teams they're members of
-  - Parents can see their children's coaching points
+  - guardians can see their children's coaching points
   - Only Coaches can create/edit coaching points for their teams
-- Auth configuration to work with existing users table
+- Auth configuration to work with existing user_profiles table
 - Storage buckets for audio recordings and drawing data
 
 ### 5. Deployment Scripts
@@ -83,7 +83,7 @@ Create a monorepo structure with:
 - POST /api/auth/login
 - POST /api/auth/signup (creates user as a coach role)
 - POST /api/auth/signup/:teamJoinCode (creates user & joins team as user role specified in joinCode)
-- POST /api/auth/team (add team, creates join codes for players, parents, additional coaches)
+- POST /api/auth/team (add team, creates join codes for players, guardians, additional coaches)
 - POST /api/auth/team/:teamId (update team)
 - GET /api/teams (user's teams)
 

@@ -1,6 +1,6 @@
 import { Request, Response, Router } from 'express';
 import { AuthenticatedRequest, authenticateUser } from '../middleware/auth.js';
-import { supabase } from '../utils/supabase.js';
+import { supabase, supabaseAuth } from '../utils/supabase.js';
 
 const router = Router();
 
@@ -17,8 +17,10 @@ router.post('/signup', async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    // Create user in Supabase Auth using signUp instead of admin
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    // Create user in Supabase Auth using signUp with anon key client
+    console.log('Attempting signup for:', email);
+    
+    const { data: authData, error: authError } = await supabaseAuth.auth.signUp({
       email,
       password,
       options: {
@@ -28,6 +30,13 @@ router.post('/signup', async (req: Request, res: Response): Promise<void> =>
 
     if (authError)
     {
+      console.error('Supabase Auth Error:', {
+        message: authError.message,
+        status: authError.status,
+        name: authError.name,
+        cause: authError.cause,
+        stack: authError.stack,
+      });
       res.status(400).json({ error: authError.message });
       return;
     }
@@ -38,17 +47,17 @@ router.post('/signup', async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    // The trigger should have automatically created the user record in public.users
-    // Let's verify it exists and retrieve it
+    // The trigger should have automatically created the user record in public.user_profiles
+    // Let's verify it exists and retrieve it - use service role client for this
     const { data: userData, error: userError } = await supabase
-      .from('users')
+      .from('user_profiles')
       .select('*')
       .eq('id', authData.user.id)
       .single();
 
     if (userError)
     {
-      // Clean up auth user if we can't find the user record
+      // Clean up auth user if we can't find the user record - use service role for admin operation
       await supabase.auth.admin.deleteUser(authData.user.id);
       res.status(400).json({ error: `Failed to retrieve user profile: ${userError.message}` });
       return;
@@ -75,8 +84,13 @@ router.get('/me', authenticateUser, async (req: AuthenticatedRequest, res: Respo
   {
     const userId = req.user?.id;
 
+    if (!userId) {
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
+    }
+
     const { data: userData, error } = await supabase
-      .from('users')
+      .from('user_profiles')
       .select('*')
       .eq('id', userId)
       .single();
@@ -100,6 +114,62 @@ router.get('/me', authenticateUser, async (req: AuthenticatedRequest, res: Respo
     res.status(500).json({
       error: 'Internal server error',
       details: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+// Test Supabase connection
+router.get('/test-connection', async (req: Request, res: Response): Promise<void> => {
+  try {
+    // Test if we can reach Supabase
+    const { data, error } = await supabase.from('user_profiles').select('count').limit(1);
+    
+    if (error) {
+      res.status(500).json({ 
+        error: 'Supabase connection failed', 
+        details: error.message,
+        supabaseUrl: process.env.SUPABASE_URL 
+      });
+      return;
+    }
+    
+    res.json({ 
+      message: 'Supabase connection successful',
+      supabaseUrl: process.env.SUPABASE_URL 
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      error: 'Connection test failed', 
+      details: error instanceof Error ? error.message : String(error) 
+    });
+  }
+});
+
+// Test Supabase Auth connection
+router.get('/test-auth', async (req: Request, res: Response): Promise<void> => {
+  try {
+    // Try to get the current session (should be null if not logged in)
+    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    if (error) {
+      res.status(500).json({ 
+        error: 'Supabase Auth test failed', 
+        details: error.message,
+        errorObject: error
+      });
+      return;
+    }
+    
+    res.json({ 
+      message: 'Supabase Auth connection successful',
+      hasSession: !!session,
+      supabaseUrl: process.env.SUPABASE_URL 
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      error: 'Auth test failed', 
+      details: error instanceof Error ? error.message : String(error),
+      errorType: error?.constructor?.name
     });
   }
 });

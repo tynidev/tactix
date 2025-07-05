@@ -8,10 +8,6 @@ interface Team {
   teams: {
     id: string
     name: string
-    coach_join_code: string
-    player_join_code: string
-    admin_join_code: string
-    parent_join_code: string
     created_at: string
   }
 }
@@ -97,23 +93,6 @@ export const Dashboard: React.FC = () => {
     } catch (err) {
       alert('Failed to create team')
       console.error('Error creating team:', err)
-    }
-  }
-
-  const handleCopyJoinCode = async (code: string) => {
-    try {
-      await navigator.clipboard.writeText(code)
-      // You could add a toast notification here if desired
-      console.log('Join code copied to clipboard')
-    } catch (err) {
-      console.error('Failed to copy join code:', err)
-      // Fallback for older browsers
-      const textArea = document.createElement('textarea')
-      textArea.value = code
-      document.body.appendChild(textArea)
-      textArea.select()
-      document.execCommand('copy')
-      document.body.removeChild(textArea)
     }
   }
 
@@ -266,64 +245,6 @@ export const Dashboard: React.FC = () => {
                     Created: {new Date(teamMembership.teams.created_at).toLocaleDateString()}
                   </p>
                   
-                  <div className="join-codes">
-                    <h4>Join Codes:</h4>
-                    <div className="join-codes-grid">
-                      {teamMembership.role !== 'coach' && (
-                        <div className="join-code-item">
-                          <span className="join-code-label">Coach:</span>
-                          <code 
-                            className="join-code"
-                            onClick={() => handleCopyJoinCode(teamMembership.teams.coach_join_code)}
-                            style={{ cursor: 'pointer' }}
-                            title="Click to copy"
-                          >
-                            {teamMembership.teams.coach_join_code}
-                          </code>
-                        </div>
-                      )}
-                      {teamMembership.role !== 'player' && (
-                        <div className="join-code-item">
-                          <span className="join-code-label">Player:</span>
-                          <code 
-                            className="join-code"
-                            onClick={() => handleCopyJoinCode(teamMembership.teams.player_join_code)}
-                            style={{ cursor: 'pointer' }}
-                            title="Click to copy"
-                          >
-                            {teamMembership.teams.player_join_code}
-                          </code>
-                        </div>
-                      )}
-                      {teamMembership.role !== 'admin' && (
-                        <div className="join-code-item">
-                          <span className="join-code-label">Admin:</span>
-                          <code 
-                            className="join-code"
-                            onClick={() => handleCopyJoinCode(teamMembership.teams.admin_join_code)}
-                            style={{ cursor: 'pointer' }}
-                            title="Click to copy"
-                          >
-                            {teamMembership.teams.admin_join_code}
-                          </code>
-                        </div>
-                      )}
-                      {teamMembership.role !== 'parent' && (
-                        <div className="join-code-item">
-                          <span className="join-code-label">Parent:</span>
-                          <code 
-                            className="join-code"
-                            onClick={() => handleCopyJoinCode(teamMembership.teams.parent_join_code)}
-                            style={{ cursor: 'pointer' }}
-                            title="Click to copy"
-                          >
-                            {teamMembership.teams.parent_join_code}
-                          </code>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
                   <div className="team-actions">
                     <button className="team-button">View Games</button>
                     {(teamMembership.role === 'coach' || teamMembership.role === 'admin') && (
