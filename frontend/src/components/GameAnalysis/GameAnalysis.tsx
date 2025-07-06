@@ -6,7 +6,6 @@ import { CoachingPointModal } from '../CoachingPointModal/CoachingPointModal';
 import { CoachingPointsFlyout } from '../CoachingPointsFlyout/CoachingPointsFlyout';
 import DrawingCanvas from '../DrawingCanvas/DrawingCanvas';
 import DrawingToolbar from '../DrawingToolbar/DrawingToolbar';
-import TransportControl from '../TransportControl/TransportControl';
 import YouTubePlayer from '../YouTubePlayer/YouTubePlayer';
 import type { Drawing } from '../../types/drawing';
 import './GameAnalysis.css';
@@ -291,18 +290,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
 
       <div className={`analysis-workspace ${selectedCoachingPoint ? 'with-sidebar' : ''}`}>
         <div className={`video-container ${selectedCoachingPoint ? 'with-sidebar' : ''}`}>
-          <YouTubePlayer className={isReady ? '' : 'loading'}>
-            <TransportControl
-              isPlaying={isPlaying}
-              currentTime={playerCurrentTime}
-              duration={duration}
-              currentPlaybackRate={player?.getPlaybackRate() ?? 1}
-              onTogglePlayPause={togglePlayPause}
-              onSeek={seekVideo}
-              onSeekTo={seekToTime}
-              onPlaybackRateChange={handlePlaybackRateChange}
-            />
-          </YouTubePlayer>
+          <YouTubePlayer className={isReady ? '' : 'loading'} />
           <DrawingCanvas
             canvasRef={canvasRef}
             startDrawing={startDrawing}
@@ -402,6 +390,14 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
         onPauseVideo={handlePauseVideo}
         onSelectCoachingPoint={handleSelectCoachingPoint}
         refreshTrigger={coachingPointsRefresh}
+        isPlaying={isPlaying}
+        currentTime={playerCurrentTime}
+        duration={duration}
+        currentPlaybackRate={player?.getPlaybackRate() ?? 1}
+        onTogglePlayPause={togglePlayPause}
+        onSeek={seekVideo}
+        onSeekTo={seekToTime}
+        onPlaybackRateChange={handlePlaybackRateChange}
       />
     </div>
   );

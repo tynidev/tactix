@@ -96,7 +96,55 @@ const TransportControl: React.FC<TransportControlProps> = ({
   return (
     <div className="transport-control">
       <div className="transport-main">
-        {/* Speed Controls */}
+        {/* Transport Controls - Left */}
+        <div className="transport-buttons">
+          <button
+            className="transport-btn"
+            onClick={() => onSeek(-CONFIG.video.seekAmount)}
+            title="Rewind (A/←)"
+          >
+            ⏮
+          </button>
+          <button
+            className="transport-btn play-pause"
+            onClick={onTogglePlayPause}
+            title="Play/Pause (S/Space)"
+          >
+            {isPlaying ? '⏸' : '▶'}
+          </button>
+          <button
+            className="transport-btn"
+            onClick={() => onSeek(CONFIG.video.seekAmount)}
+            title="Forward (D/→)"
+          >
+            ⏭
+          </button>
+        </div>
+
+        {/* Timeline - Center */}
+        <div className="timeline-container">
+          <span className="time-display">{formatTime(displayTime)}</span>
+          <div
+            ref={timelineRef}
+            className="timeline"
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleTimelineDrag}
+          >
+            <div className="timeline-track">
+              <div 
+                className="timeline-progress" 
+                style={{ width: `${progressPercentage}%` }}
+              />
+              <div 
+                className="timeline-playhead" 
+                style={{ left: `${progressPercentage}%` }}
+              />
+            </div>
+          </div>
+          <span className="time-display">{formatTime(duration)}</span>
+        </div>
+
+        {/* Speed Controls - Right */}
         <div className="speed-controls">
           <button
             className={`speed-btn ${currentPlaybackRate === CONFIG.video.playbackRates.slow ? 'active' : ''}`}
@@ -119,54 +167,6 @@ const TransportControl: React.FC<TransportControlProps> = ({
           >
             2x
           </button>
-        </div>
-
-        {/* Transport Controls */}
-        <div className="transport-buttons">
-          <button
-            className="transport-btn"
-            onClick={() => onSeek(-CONFIG.video.seekAmount)}
-            title="Rewind (A/←)"
-          >
-            ⏪
-          </button>
-          <button
-            className="transport-btn play-pause"
-            onClick={onTogglePlayPause}
-            title="Play/Pause (S/Space)"
-          >
-            {isPlaying ? '⏸️' : '▶️'}
-          </button>
-          <button
-            className="transport-btn"
-            onClick={() => onSeek(CONFIG.video.seekAmount)}
-            title="Forward (D/→)"
-          >
-            ⏩
-          </button>
-        </div>
-
-        {/* Timeline */}
-        <div className="timeline-container">
-          <span className="time-display">{formatTime(displayTime)}</span>
-          <div
-            ref={timelineRef}
-            className="timeline"
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleTimelineDrag}
-          >
-            <div className="timeline-track">
-              <div 
-                className="timeline-progress" 
-                style={{ width: `${progressPercentage}%` }}
-              />
-              <div 
-                className="timeline-playhead" 
-                style={{ left: `${progressPercentage}%` }}
-              />
-            </div>
-          </div>
-          <span className="time-display">{formatTime(duration)}</span>
         </div>
       </div>
     </div>

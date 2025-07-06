@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getApiUrl } from '../../utils/api';
+import TransportControl from '../TransportControl/TransportControl';
 import type { Drawing } from '../../types/drawing';
 import './CoachingPointsFlyout.css';
 
@@ -57,6 +58,15 @@ interface CoachingPointsFlyoutProps {
   onPauseVideo: () => void;
   onSelectCoachingPoint: (point: CoachingPoint | null) => void;
   refreshTrigger?: number; // Optional prop to trigger refresh
+  // Transport control props
+  isPlaying: boolean;
+  currentTime: number;
+  duration: number;
+  currentPlaybackRate: number;
+  onTogglePlayPause: () => void;
+  onSeek: (seconds: number) => void;
+  onSeekTo: (time: number) => void;
+  onPlaybackRateChange: (rate: number) => void;
 }
 
 export const CoachingPointsFlyout: React.FC<CoachingPointsFlyoutProps> = ({
@@ -66,6 +76,15 @@ export const CoachingPointsFlyout: React.FC<CoachingPointsFlyoutProps> = ({
   onPauseVideo,
   onSelectCoachingPoint,
   refreshTrigger,
+  // Transport control props
+  isPlaying,
+  currentTime,
+  duration,
+  currentPlaybackRate,
+  onTogglePlayPause,
+  onSeek,
+  onSeekTo,
+  onPlaybackRateChange,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [coachingPoints, setCoachingPoints] = useState<CoachingPoint[]>([]);
@@ -264,12 +283,28 @@ export const CoachingPointsFlyout: React.FC<CoachingPointsFlyoutProps> = ({
 
   return (
     <div className={`coaching-points-flyout ${isExpanded ? 'expanded' : 'collapsed'}`}>
-      <div className="flyout-header" onClick={() => setIsExpanded(!isExpanded)}>
-        <div className="header-content">
-          <h3>Coaching Points ({filteredCoachingPoints().length}{filteredCoachingPoints().length !== coachingPoints.length ? ` of ${coachingPoints.length}` : ''})</h3>
-          <button className="expand-button">
-            {isExpanded ? '▼' : '▲'}
-          </button>
+      <div className="flyout-header">
+        <div className="header-content">          
+            <TransportControl
+              isPlaying={isPlaying}
+              currentTime={currentTime}
+              duration={duration}
+              currentPlaybackRate={currentPlaybackRate}
+              onTogglePlayPause={onTogglePlayPause}
+              onSeek={onSeek}
+              onSeekTo={onSeekTo}
+              onPlaybackRateChange={onPlaybackRateChange}
+            />
+          
+          <div className="header-right" onClick={() => setIsExpanded(!isExpanded)}>
+            <h3>Coaching Points ({filteredCoachingPoints().length}{filteredCoachingPoints().length !== coachingPoints.length ? ` of ${coachingPoints.length}` : ''})</h3>
+            <button 
+              className="expand-button"
+              onClick={() => setIsExpanded(!isExpanded)}
+            >
+              {isExpanded ? '▼' : '▲'}
+            </button>
+          </div>
         </div>
       </div>
 
