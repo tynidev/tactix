@@ -9,7 +9,7 @@
   padding: var(--space-md);
   backdrop-filter: blur(100px);
   box-shadow: var(--shadow-lg);
-  z-index: 100;
+  z-index: 200; /* Changed from 100 to 200 to appear above flyout */
 }
 
 .transport-main {

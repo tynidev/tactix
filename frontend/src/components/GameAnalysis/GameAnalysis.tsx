@@ -291,13 +291,32 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
 
       <div className={`analysis-workspace ${selectedCoachingPoint ? 'with-sidebar' : ''}`}>
         <div className={`video-container ${selectedCoachingPoint ? 'with-sidebar' : ''}`}>
-          <YouTubePlayer className={isReady ? '' : 'loading'} />
+          <YouTubePlayer className={isReady ? '' : 'loading'}>
+            <TransportControl
+              isPlaying={isPlaying}
+              currentTime={playerCurrentTime}
+              duration={duration}
+              currentPlaybackRate={player?.getPlaybackRate() ?? 1}
+              onTogglePlayPause={togglePlayPause}
+              onSeek={seekVideo}
+              onSeekTo={seekToTime}
+              onPlaybackRateChange={handlePlaybackRateChange}
+            />
+          </YouTubePlayer>
           <DrawingCanvas
             canvasRef={canvasRef}
             startDrawing={startDrawing}
             draw={draw}
             stopDrawing={stopDrawing}
             videoDimensions={videoDimensions}
+          />
+          
+          <DrawingToolbar
+            currentColor={currentColor}
+            currentMode={currentMode}
+            onColorChange={changeColor}
+            onModeChange={changeMode}
+            onClearCanvas={clearCanvas}
           />
         </div>
 
@@ -356,25 +375,6 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
             </div>
           </div>
         )}
-
-        <DrawingToolbar
-          currentColor={currentColor}
-          currentMode={currentMode}
-          onColorChange={changeColor}
-          onModeChange={changeMode}
-          onClearCanvas={clearCanvas}
-        />
-
-        <TransportControl
-          isPlaying={isPlaying}
-          currentTime={playerCurrentTime}
-          duration={duration}
-          currentPlaybackRate={player?.getPlaybackRate() ?? 1}
-          onTogglePlayPause={togglePlayPause}
-          onSeek={seekVideo}
-          onSeekTo={seekToTime}
-          onPlaybackRateChange={handlePlaybackRateChange}
-        />
       </div>
 
       {isRecording && (
