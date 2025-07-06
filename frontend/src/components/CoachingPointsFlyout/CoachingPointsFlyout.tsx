@@ -306,7 +306,7 @@ export const CoachingPointsFlyout: React.FC<CoachingPointsFlyoutProps> = ({
             />
           
           <div className="header-right" onClick={() => setIsExpanded(!isExpanded)}>
-            <h3 style={{ padding: 0, margin: 0, position: 'relative', top: '3px' }}>Coaching Points</h3>
+            <h3>Coaching Points</h3>
             <button 
               className="expand-button"
               onClick={() => setIsExpanded(!isExpanded)}

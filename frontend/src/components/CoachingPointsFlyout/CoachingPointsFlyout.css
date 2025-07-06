@@ -47,31 +47,34 @@
   min-width: 188px;
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: var(--space-xs);
 }
 
 .header-content h3 {
-  margin: 0;
+  color: white;
   font-size: 1rem;
   font-weight: 600;
-  color: white;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+  margin: 0;
+  position: relative;
+  top: 0px;
+  transition: color var(--transition-normal);
 }
 
 .expand-button {
+  color: white;
   background: none;
   border: none;
-  color: white;
   font-size: 1.2rem;
-  cursor: pointer;
   padding: var(--space-xs);
-  border-radius: var(--radius-sm);
-  transition: all var(--transition-normal);
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+  transition: color var(--transition-normal);
+  cursor: pointer;
 }
 
-.expand-button:hover {
-  background: rgba(0, 0, 0, 0.3);
-  color: white;
+.header-right:hover h3,
+.header-right:hover .expand-button {
+  cursor: pointer;
+  color: var(--color-accent-light);
 }
 
 .flyout-content {
