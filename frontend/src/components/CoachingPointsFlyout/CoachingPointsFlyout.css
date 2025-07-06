@@ -77,6 +77,87 @@
   flex-direction: column;
 }
 
+/* Filter Styles */
+.filters-section {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+  flex-shrink: 0;
+}
+
+.filters-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-md);
+}
+
+@media (min-width: 769px) {
+  .filters-grid {
+    grid-template-columns: 2fr 1fr 1fr auto;
+    gap: var(--space-lg);
+    align-items: end;
+  }
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.clear-filter-group {
+  justify-content: flex-end;
+}
+
+.filter-group label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.filter-input,
+.filter-select {
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  font-size: 0.9rem;
+  transition: all var(--transition-normal);
+}
+
+.filter-input:focus,
+.filter-select:focus {
+  outline: none;
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.filter-input::placeholder {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.clear-filters-btn {
+  background: var(--color-error);
+  color: white;
+  border: none;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  white-space: nowrap;
+  height: fit-content;
+}
+
+.clear-filters-btn:hover {
+  background: var(--color-error);
+  opacity: 0.8;
+}
+
 /* Loading and Error States */
 .loading-state, 
 .error-state, 
@@ -277,6 +358,42 @@
   .flyout-content {
     height: calc(100vh - 60px);
     padding: var(--space-sm);
+  }
+
+  /* Filter responsive styles */
+  .filters-section {
+    padding: var(--space-sm);
+    margin-bottom: var(--space-sm);
+  }
+
+  .filters-grid {
+    gap: var(--space-sm);
+    grid-template-columns: 1fr;
+  }
+
+  .clear-filter-group {
+    order: -1; /* Move clear button to the top on mobile */
+    align-items: flex-start;
+  }
+
+  .clear-filter-group label {
+    display: none; /* Hide the empty label on mobile */
+  }
+
+  .filter-group label {
+    font-size: 0.7rem;
+  }
+
+  .filter-input,
+  .filter-select {
+    font-size: 0.75rem;
+    padding: 6px var(--space-xs);
+  }
+
+  .clear-filters-btn {
+    font-size: 0.7rem;
+    padding: 4px var(--space-xs);
+    margin-bottom: var(--space-xs);
   }
   
   .coaching-point-item {

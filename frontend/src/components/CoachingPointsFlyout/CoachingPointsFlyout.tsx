@@ -69,6 +69,11 @@ export const CoachingPointsFlyout: React.FC<CoachingPointsFlyoutProps> = ({
   const [coachingPoints, setCoachingPoints] = useState<CoachingPoint[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  // Filter states
+  const [titleFilter, setTitleFilter] = useState('');
+  const [selectedPlayerFilter, setSelectedPlayerFilter] = useState('');
+  const [selectedLabelFilter, setSelectedLabelFilter] = useState('');
 
   const loadCoachingPoints = useCallback(async () => {
     setLoading(true);
@@ -180,6 +185,65 @@ export const CoachingPointsFlyout: React.FC<CoachingPointsFlyoutProps> = ({
     });
   };
 
+  // Get unique players and labels for filter options
+  const getUniqueFilterOptions = useCallback(() => {
+    const players = new Set<string>();
+    const labels = new Set<string>();
+
+    coachingPoints.forEach(point => {
+      point.coaching_point_tagged_players?.forEach(tp => {
+        players.add(tp.player_profiles.name);
+      });
+      point.coaching_point_labels?.forEach(label => {
+        labels.add(label.labels.name);
+      });
+    });
+
+    return {
+      players: Array.from(players).sort(),
+      labels: Array.from(labels).sort()
+    };
+  }, [coachingPoints]);
+
+  // Filter coaching points based on active filters
+  const filteredCoachingPoints = useCallback(() => {
+    return coachingPoints.filter(point => {
+      // Title filter
+      if (titleFilter && !point.title.toLowerCase().includes(titleFilter.toLowerCase()) && 
+          !point.feedback.toLowerCase().includes(titleFilter.toLowerCase())) {
+        return false;
+      }
+
+      // Player filter
+      if (selectedPlayerFilter) {
+        const hasPlayer = point.coaching_point_tagged_players?.some(tp => 
+          tp.player_profiles.name === selectedPlayerFilter
+        );
+        if (!hasPlayer) return false;
+      }
+
+      // Label filter
+      if (selectedLabelFilter) {
+        const hasLabel = point.coaching_point_labels?.some(label => 
+          label.labels.name === selectedLabelFilter
+        );
+        if (!hasLabel) return false;
+      }
+
+      return true;
+    });
+  }, [coachingPoints, titleFilter, selectedPlayerFilter, selectedLabelFilter]);
+
+  // Clear all filters
+  const clearFilters = useCallback(() => {
+    setTitleFilter('');
+    setSelectedPlayerFilter('');
+    setSelectedLabelFilter('');
+  }, []);
+
+  // Check if any filters are active
+  const hasActiveFilters = titleFilter || selectedPlayerFilter || selectedLabelFilter;
+
   useEffect(() => {
     if (isExpanded && coachingPoints.length === 0) {
       loadCoachingPoints();
@@ -197,7 +261,7 @@ export const CoachingPointsFlyout: React.FC<CoachingPointsFlyoutProps> = ({
     <div className={`coaching-points-flyout ${isExpanded ? 'expanded' : 'collapsed'}`}>
       <div className="flyout-header" onClick={() => setIsExpanded(!isExpanded)}>
         <div className="header-content">
-          <h3>Coaching Points ({coachingPoints.length})</h3>
+          <h3>Coaching Points ({filteredCoachingPoints().length}{filteredCoachingPoints().length !== coachingPoints.length ? ` of ${coachingPoints.length}` : ''})</h3>
           <button className="expand-button">
             {isExpanded ? '▼' : '▲'}
           </button>
@@ -206,6 +270,67 @@ export const CoachingPointsFlyout: React.FC<CoachingPointsFlyoutProps> = ({
 
       {isExpanded && (
         <div className="flyout-content">
+          {/* Filter Section */}
+          {coachingPoints.length > 0 && (
+            <div className="filters-section">
+              <div className="filters-grid">
+                {/* Title/Content Filter */}
+                <div className="filter-group">
+                  <input
+                    id="title-filter"
+                    type="text"
+                    value={titleFilter}
+                    onChange={(e) => setTitleFilter(e.target.value)}
+                    placeholder="Search in titles and feedback..."
+                    className="filter-input"
+                  />
+                </div>
+
+                {/* Player Filter */}
+                <div className="filter-group">
+                  <select
+                    id="player-filter"
+                    value={selectedPlayerFilter}
+                    onChange={(e) => setSelectedPlayerFilter(e.target.value)}
+                    className="filter-select"
+                  >
+                    <option value="">All Players</option>
+                    {getUniqueFilterOptions().players.map(player => (
+                      <option key={player} value={player}>{player}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Label Filter */}
+                <div className="filter-group">
+                  <select
+                    id="label-filter"
+                    value={selectedLabelFilter}
+                    onChange={(e) => setSelectedLabelFilter(e.target.value)}
+                    className="filter-select"
+                  >
+                    <option value="">All Labels</option>
+                    {getUniqueFilterOptions().labels.map(label => (
+                      <option key={label} value={label}>{label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Clear All Button */}
+                <div className="filter-group clear-filter-group">
+                  {hasActiveFilters && (
+                    <button 
+                      onClick={clearFilters}
+                      className="clear-filters-btn"
+                    >
+                      Clear All
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {loading && (
             <div className="loading-state">
               <div className="loading-spinner">Loading coaching points...</div>
@@ -228,9 +353,20 @@ export const CoachingPointsFlyout: React.FC<CoachingPointsFlyoutProps> = ({
             </div>
           )}
 
-          {!loading && !error && coachingPoints.length > 0 && (
+          {!loading && !error && coachingPoints.length > 0 && filteredCoachingPoints().length === 0 && (
+            <div className="empty-state">
+              <p>No coaching points match the current filters.</p>
+              {hasActiveFilters && (
+                <button onClick={clearFilters} className="btn btn-secondary btn-sm">
+                  Clear Filters
+                </button>
+              )}
+            </div>
+          )}
+
+          {!loading && !error && filteredCoachingPoints().length > 0 && (
             <div className="coaching-points-list">
-              {coachingPoints.map((point) => (
+              {filteredCoachingPoints().map((point) => (
                 <div
                   key={point.id}
                   className="coaching-point-item"
