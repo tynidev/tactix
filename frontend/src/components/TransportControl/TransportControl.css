@@ -5,7 +5,7 @@
   gap: var(--space-3);
   border-radius: var(--radius-md);
   padding: var(--space-2) var(--space-3);
-  width:100%;
+  width: 100%;
 }
 
 .transport-main {
@@ -36,10 +36,8 @@
   align-items: center;
   justify-content: center;
   padding: 0;
-  /* Add these properties to fix text alignment */
   line-height: 1;
   font-family: inherit;
-  vertical-align: baseline;
 }
 
 .transport-btn:hover {
@@ -51,14 +49,8 @@
 .transport-btn.play-pause {
   width: 32px;
   height: 32px;
-  font-size: 24px;
-  background: rgba(255, 255, 255, 0.1);
+  font-size: 22px;
   color: white;
-}
-
-.transport-btn.play-pause:hover {
-  background: rgba(255, 255, 255, 0.2);
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
 }
 
 /* Timeline Container - Center */
@@ -74,7 +66,6 @@
   color: rgba(255, 255, 255, 0.9);
   font-size: 16px;
   font-weight: 500;
-  font-variant-numeric: tabular-nums;
   min-width: 32px;
   text-align: center;
   font-family: monospace;
@@ -104,7 +95,7 @@
   top: 0;
   left: 0;
   height: 100%;
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--color-accent-light);
   border-radius: var(--radius-full);
 }
 
@@ -117,8 +108,6 @@
   background: white;
   border-radius: var(--radius-full);
   box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
-  transition: left 0.1s ease-out;
-  z-index: 1;
 }
 
 .timeline:hover .timeline-playhead {
@@ -136,30 +125,23 @@
 .speed-btn {
   background: none;
   color: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: var(--radius-sm);
-  padding: var(--space-1) var(--space-2);
   font-size: 14px;
   font-weight: 600;
-  cursor: pointer;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
   transition: all var(--transition-normal);
-  min-width: 28px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  cursor: pointer;
 }
 
 .speed-btn:hover {
   background: rgba(255, 255, 255, 0.1);
-  color: white;
-  border-color: rgba(255, 255, 255, 0.4);
+  color: var(--color-accent-light);
 }
 
 .speed-btn.active {
   background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border-color: rgba(255, 255, 255, 0.6);
+  color: var(--color-accent-light);
 }
 
 /* Responsive Design */
@@ -178,29 +160,5 @@
   .timeline-container {
     min-width: 150px;
     gap: var(--space-1);
-  }
-  
-  .transport-btn {
-    width: 24px;
-    height: 24px;
-    font-size: 12px;
-  }
-  
-  .transport-btn.play-pause {
-    width: 28px;
-    height: 28px;
-    font-size: 14px;
-  }
-  
-  .time-display {
-    font-size: 10px;
-    min-width: 28px;
-  }
-  
-  .speed-btn {
-    padding: 2px var(--space-1);
-    font-size: 9px;
-    min-width: 24px;
-    height: 18px;
   }
 }
