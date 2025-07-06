@@ -1,5 +1,5 @@
  import express, { Response } from 'express';
-import { authenticateUser, type AuthenticatedRequest } from '../middleware/auth';
+import { authenticateUser, type AuthenticatedRequest } from '../middleware/auth.js';
 import { supabase } from '../utils/supabase';
 
 const router = express.Router();
