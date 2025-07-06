@@ -70,6 +70,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
   const [showCoachingPointModal, setShowCoachingPointModal] = useState(false);
   const [coachingPointsRefresh, setCoachingPointsRefresh] = useState(0);
   const [selectedCoachingPoint, setSelectedCoachingPoint] = useState<CoachingPoint | null>(null);
+  const [isFlyoutExpanded, setIsFlyoutExpanded] = useState(false);
 
   // Set body class for fullscreen and force dark theme
   useEffect(() => {
@@ -218,7 +219,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
     changeMode,
     clearCanvas,
     undoLastDrawing,
-    disabled: showCoachingPointModal, // Disable shortcuts when modal is open
+    disabled: showCoachingPointModal || isFlyoutExpanded, // Disable shortcuts when modal is open or flyout is expanded
   });
 
   const formatTime = (seconds: number): string => {
@@ -390,6 +391,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
         onPauseVideo={handlePauseVideo}
         onSelectCoachingPoint={handleSelectCoachingPoint}
         refreshTrigger={coachingPointsRefresh}
+        onExpandedChange={setIsFlyoutExpanded}
         isPlaying={isPlaying}
         currentTime={playerCurrentTime}
         duration={duration}

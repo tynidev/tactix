@@ -57,24 +57,11 @@
 /* Color buttons */
 .color-btn {
   position: relative;
-  overflow: hidden;
 }
 
-.color-btn::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 100%;
-  height: 100%;
-  border-radius: var(--radius-full);
-  border: 2px solid transparent;
-  transition: all var(--transition-normal);
-}
-
-.color-btn.active::after {
-  border-color: white;
+.color-btn.active {
+  outline: 2px solid white;
+  outline-offset: 2px;
   box-shadow: 0 0 8px var(--white-glow);
 }
 
@@ -127,7 +114,6 @@
 
 .collapse-btn:hover {
   background-color: var(--white-glow);
-  transform: scale(1.1);
 }
 
 /* Mobile responsive adjustments */
@@ -168,10 +154,6 @@
   .drawing-btn {
     width: 32px;
     height: 32px;
-    font-size: 16px;
-  }
-  
-  .mode-btn {
     font-size: 16px;
   }
   

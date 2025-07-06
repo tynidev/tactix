@@ -58,6 +58,7 @@ interface CoachingPointsFlyoutProps {
   onPauseVideo: () => void;
   onSelectCoachingPoint: (point: CoachingPoint | null) => void;
   refreshTrigger?: number; // Optional prop to trigger refresh
+  onExpandedChange?: (isExpanded: boolean) => void; // Callback to notify parent of expansion state
   // Transport control props
   isPlaying: boolean;
   currentTime: number;
@@ -76,6 +77,7 @@ export const CoachingPointsFlyout: React.FC<CoachingPointsFlyoutProps> = ({
   onPauseVideo,
   onSelectCoachingPoint,
   refreshTrigger,
+  onExpandedChange,
   // Transport control props
   isPlaying,
   currentTime,
@@ -280,6 +282,13 @@ export const CoachingPointsFlyout: React.FC<CoachingPointsFlyoutProps> = ({
       loadCoachingPoints();
     }
   }, [refreshTrigger, loadCoachingPoints]);
+
+  // Notify parent when expansion state changes
+  useEffect(() => {
+    if (onExpandedChange) {
+      onExpandedChange(isExpanded);
+    }
+  }, [isExpanded, onExpandedChange]);
 
   return (
     <div className={`coaching-points-flyout ${isExpanded ? 'expanded' : 'collapsed'}`}>

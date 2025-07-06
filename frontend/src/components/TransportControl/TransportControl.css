@@ -41,8 +41,7 @@
 }
 
 .transport-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
+  color: var(--color-accent-light);
   transform: scale(1.05);
 }
 
@@ -51,6 +50,10 @@
   height: 32px;
   font-size: 22px;
   color: white;
+}
+
+.transport-btn.play-pause:hover {
+  color: var(--color-accent-light);
 }
 
 /* Timeline Container - Center */
@@ -95,7 +98,7 @@
   top: 0;
   left: 0;
   height: 100%;
-  background: var(--color-accent-light);
+  background: var(--color-accent-primary);
   border-radius: var(--radius-full);
 }
 
@@ -135,13 +138,11 @@
 }
 
 .speed-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
   color: var(--color-accent-light);
 }
 
 .speed-btn.active {
-  background: rgba(255, 255, 255, 0.2);
-  color: var(--color-accent-light);
+  color: var(--color-accent-primary);
 }
 
 /* Responsive Design */
