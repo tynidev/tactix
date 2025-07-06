@@ -72,11 +72,18 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
   const [coachingPointsRefresh, setCoachingPointsRefresh] = useState(0);
   const [selectedCoachingPoint, setSelectedCoachingPoint] = useState<CoachingPoint | null>(null);
 
-  // Set body class for fullscreen
+  // Set body class for fullscreen and force dark theme
   useEffect(() => {
     document.body.className = 'hud-mode';
+    
+    // Store the current theme and force dark mode
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    document.documentElement.setAttribute('data-theme', 'dark');
+    
     return () => {
       document.body.className = '';
+      // Restore the original theme
+      document.documentElement.setAttribute('data-theme', currentTheme);
     };
   }, []);
 

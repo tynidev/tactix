@@ -9,7 +9,7 @@ interface YouTubePlayerProps
 const YouTubePlayer: React.FC<YouTubePlayerProps> = ({ className = '' }) =>
 {
   return (
-    <div className={`video-container ${className}`}>
+    <div className={`youtube-player-wrapper ${className}`}>
       <div id='youtube-player'></div>
     </div>
   );

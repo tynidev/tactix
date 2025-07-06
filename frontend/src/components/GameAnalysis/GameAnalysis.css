@@ -3,7 +3,7 @@
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: var(--bg-primary);
+  background: var(--color-bg-primary);
 }
 
 .analysis-header {
@@ -11,7 +11,7 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--space-md) var(--space-lg);
-  background: var(--bg-secondary);
+  background: var(--color-bg-secondary);
   border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
   gap: var(--space-lg);
@@ -26,7 +26,7 @@
   margin: 0;
   font-size: 1.5rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
 }
 
 .game-meta {
@@ -34,7 +34,7 @@
   align-items: center;
   gap: var(--space-md);
   font-size: 0.875rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .game-meta span {
@@ -42,7 +42,7 @@
   font-weight: 900;
   color: var(--color-accent-primary);
   padding: 2px 8px;
-  background: var(--bg-tertiary);
+  background: var(--color-bg-card);
   border-radius: var(--radius-sm);
 }
 
@@ -66,19 +66,15 @@
 .video-container {
   flex: 1;
   position: relative;
-  background: var(--bg-tertiary);
+  background: var(--color-bg-card);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-}
-
-.video-container.with-sidebar {
-  flex: 0 0 70%;
 }
 
 .coaching-point-sidebar {
   flex: 0 0 30%;
-  background: var(--bg-secondary);
+  background: var(--color-bg-secondary);
   border-left: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
@@ -92,14 +88,14 @@
   justify-content: space-between;
   padding: var(--space-md);
   border-bottom: 1px solid var(--border-color);
-  background: var(--bg-primary);
+  background: var(--color-bg-primary);
 }
 
 .sidebar-header h3 {
   margin: 0;
   font-size: 1rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
 }
 
 .sidebar-content {
@@ -112,7 +108,7 @@
   margin: 0 0 var(--space-sm) 0;
   font-size: 1.1rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
 }
 
 .point-meta {
@@ -120,13 +116,13 @@
   gap: var(--space-md);
   margin-bottom: var(--space-md);
   font-size: 0.875rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .point-timestamp {
   font-weight: 600;
   color: var(--color-accent-primary);
-  background: var(--bg-tertiary);
+  background: var(--color-bg-card);
   padding: 2px 6px;
   border-radius: var(--radius-sm);
 }
@@ -144,7 +140,7 @@
   margin: 0 0 var(--space-xs) 0;
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   display: block;
@@ -153,7 +149,7 @@
 .coaching-point-details .point-feedback p {
   margin: 0;
   line-height: 1.5;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   display: block;
   word-wrap: break-word;
   overflow-wrap: break-word;
@@ -168,12 +164,12 @@
   justify-content: center;
   text-align: center;
   padding: var(--space-2xl);
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .error-state h2 {
   margin: 0 0 var(--space-md) 0;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   font-size: 1.5rem;
 }
 
@@ -187,7 +183,7 @@
   position: fixed;
   top: var(--space-lg);
   right: var(--space-lg);
-  background: var(--error-500);
+  background: var(--color-error);
   color: white;
   padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-full);
@@ -225,7 +221,7 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   font-size: 1.1rem;
 }
 
@@ -275,9 +271,6 @@
     flex-direction: column;
   }
 
-  .video-container.with-sidebar {
-    flex: 0 0 60%;
-  }
 
   .coaching-point-sidebar {
     flex: 0 0 40%;
@@ -288,7 +281,7 @@
 
 /* Focus and accessibility */
 .analysis-controls .btn:focus {
-  outline: 2px solid var(--primary-500);
+  outline: 2px solid var(--color-accent-primary);
   outline-offset: 2px;
 }
 
