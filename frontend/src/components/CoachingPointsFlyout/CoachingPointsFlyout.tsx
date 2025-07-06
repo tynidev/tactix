@@ -475,20 +475,20 @@ export const CoachingPointsFlyout: React.FC<CoachingPointsFlyoutProps> = ({
                   className="coaching-point-item"
                   onClick={() => handlePointClick(point)}
                 >
+                  {canDeletePoint(point) && (
+                    <button
+                      className="delete-point-btn"
+                      onClick={(e) => handleDeletePoint(point.id, e)}
+                      title="Delete coaching point"
+                      aria-label="Delete coaching point"
+                    >
+                      ✕
+                    </button>
+                  )}
                   <div className="point-header">
                     <div className="point-timestamp">
                       {formatTimestamp(point.timestamp)}
                     </div>
-                    {canDeletePoint(point) && (
-                      <button
-                        className="delete-point-btn"
-                        onClick={(e) => handleDeletePoint(point.id, e)}
-                        title="Delete coaching point"
-                        aria-label="Delete coaching point"
-                      >
-                        ✕
-                      </button>
-                    )}
                   </div>
                   
                   <div className="point-content">

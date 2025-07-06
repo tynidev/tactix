@@ -22,7 +22,6 @@
 
 .flyout-header {
   height: 50px;
-  padding: var(--space-md) var(--space-lg);
   border-bottom: none;
   background: transparent;
   display: flex;
@@ -49,6 +48,9 @@
   justify-content: flex-end;
   align-items: center;
   gap: var(--space-xs);
+  background-color: var(--color-accent-primary);
+  height: 50px;
+  padding-right: 12px;
 }
 
 .header-content h3 {
@@ -74,7 +76,8 @@
 .header-right:hover h3,
 .header-right:hover .expand-button {
   cursor: pointer;
-  color: var(--color-accent-light);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); /* Add shadow for depth */
+  transform: scale(1.0); /* Slightly enlarge text */
 }
 
 .flyout-content {
@@ -216,6 +219,7 @@
   align-items: stretch;
   justify-content: space-between;
   min-height: 60px;
+  position: relative;
 }
 
 .coaching-point-item:hover {
@@ -233,7 +237,6 @@
   margin-right: var(--space-sm);
   min-width: 80px;
   height: 100%;
-  position: relative;
 }
 
 .point-timestamp {
@@ -255,8 +258,8 @@
 
 .delete-point-btn {
   position: absolute;
-  top: -8px;
-  right: -8px;
+  top: 8px;
+  right: 8px;
   width: 20px;
   height: 20px;
   border-radius: 50%;
