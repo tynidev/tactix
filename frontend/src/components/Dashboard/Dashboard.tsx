@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { getApiUrl } from '../../utils/api'
+import { GameAnalysis } from '../GameAnalysis/GameAnalysis'
+import { GameForm } from '../GameForm/GameForm'
+import { GamesList } from '../GamesList/GamesList'
 import Navigation from '../Navigation/Navigation'
 import UserProfilePage from '../UserProfile/UserProfile'
 
@@ -13,6 +16,24 @@ interface Team {
   }
 }
 
+interface Game {
+  id: string
+  opponent: string
+  date: string
+  location: string | null
+  video_id: string | null
+  team_score: number | null
+  opp_score: number | null
+  game_type: 'regular' | 'tournament' | 'scrimmage'
+  home_away: 'home' | 'away' | 'neutral'
+  notes: string | null
+  created_at: string
+  teams?: {
+    id: string
+    name: string
+  }
+}
+
 export const Dashboard: React.FC = () => {
   const { } = useAuth()
   const [teams, setTeams] = useState<Team[]>([])
@@ -21,6 +42,12 @@ export const Dashboard: React.FC = () => {
   const [editingTeamId, setEditingTeamId] = useState<string | null>(null)
   const [editingTeamName, setEditingTeamName] = useState('')
   const [currentPage, setCurrentPage] = useState('dashboard')
+  
+  // Game management state
+  const [selectedTeam, setSelectedTeam] = useState<Team | null>(null)
+  const [showGameForm, setShowGameForm] = useState(false)
+  const [editingGame, setEditingGame] = useState<Game | null>(null)
+  const [analyzingGame, setAnalyzingGame] = useState<Game | null>(null)
 
   useEffect(() => {
     // Set body class for dashboard mode
@@ -62,6 +89,76 @@ export const Dashboard: React.FC = () => {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Game management functions
+  const handleViewGames = (team: Team) => {
+    setSelectedTeam(team)
+    setCurrentPage('games')
+  }
+
+  const handleAddGame = () => {
+    setEditingGame(null)
+    setShowGameForm(true)
+  }
+
+  const handleEditGame = (game: Game) => {
+    setEditingGame(game)
+    setShowGameForm(true)
+  }
+
+  const handleAnalyzeGame = (game: Game) => {
+    setAnalyzingGame(game)
+  }
+
+  const handleGameFormSubmit = async (gameData: any) => {
+    try {
+      const token = (await import('../../lib/supabase')).supabase.auth.getSession()
+      const session = await token
+      
+      if (!session.data.session?.access_token) {
+        throw new Error('No access token')
+      }
+
+      const apiUrl = getApiUrl()
+      const url = editingGame 
+        ? `${apiUrl}/api/games/${editingGame.id}`
+        : `${apiUrl}/api/games`
+      
+      const response = await fetch(url, {
+        method: editingGame ? 'PUT' : 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.data.session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(gameData)
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to save game')
+      }
+
+      setShowGameForm(false)
+      setEditingGame(null)
+      // The GamesList component will refresh automatically
+    } catch (err) {
+      alert('Failed to save game')
+      console.error('Error saving game:', err)
+    }
+  }
+
+  const handleCancelGameForm = () => {
+    setShowGameForm(false)
+    setEditingGame(null)
+  }
+
+  const handleBackFromAnalysis = () => {
+    setAnalyzingGame(null)
+  }
+
+  const handleBackFromGames = () => {
+    setSelectedTeam(null)
+    setCurrentPage('dashboard')
   }
 
   const handleCreateTeam = async () => {
@@ -154,6 +251,18 @@ export const Dashboard: React.FC = () => {
 
   const handleNavigation = (page: string) => {
     setCurrentPage(page)
+    // Reset game-related state when navigating away
+    if (page !== 'games') {
+      setSelectedTeam(null)
+      setAnalyzingGame(null)
+      setShowGameForm(false)
+      setEditingGame(null)
+    }
+  }
+
+  // Show game analysis if a game is being analyzed
+  if (analyzingGame) {
+    return <GameAnalysis game={analyzingGame} onBack={handleBackFromAnalysis} />
   }
 
   // Show profile page if selected
@@ -180,17 +289,31 @@ export const Dashboard: React.FC = () => {
     <div className="dashboard-container">
       <Navigation currentPage={currentPage} onNavigate={handleNavigation} />
       
+      {/* Game Form Modal */}
+      {showGameForm && selectedTeam && (
+        <GameForm
+          teamId={selectedTeam.teams.id}
+          onSubmit={handleGameFormSubmit}
+          onCancel={handleCancelGameForm}
+          initialData={editingGame || undefined}
+          isEditing={!!editingGame}
+        />
+      )}
+      
       <main className="dashboard-main">
         <div className="section-header">
           <h1 className="section-title">
-            {currentPage === 'teams' ? 'Team Management' : 
-             currentPage === 'games' ? 'Game Analysis' :
-             currentPage === 'analysis' ? 'Video Analysis' :
+            {currentPage === 'games' ? `${selectedTeam?.teams.name || ''} Games` :
              'Dashboard'}
           </h1>
           {currentPage === 'dashboard' && (
             <button onClick={handleCreateTeam} className="btn btn-primary">
               Create Team
+            </button>
+          )}
+          {currentPage === 'games' && selectedTeam && (selectedTeam.role === 'coach' || selectedTeam.role === 'admin') && (
+            <button onClick={handleAddGame} className="btn btn-primary">
+              Add Game
             </button>
           )}
         </div>
@@ -293,7 +416,12 @@ export const Dashboard: React.FC = () => {
                       </p>
                       
                       <div className="team-actions">
-                        <button className="btn btn-primary">View Games</button>
+                        <button 
+                          onClick={() => handleViewGames(teamMembership)}
+                          className="btn btn-primary"
+                        >
+                          View Games
+                        </button>
                         {(teamMembership.role === 'coach' || teamMembership.role === 'admin') && (
                           <button className="btn btn-secondary">Manage</button>
                         )}
@@ -306,55 +434,14 @@ export const Dashboard: React.FC = () => {
           </>
         )}
 
-        {/* Teams Page */}
-        {currentPage === 'teams' && (
-          <div>
-            <div style={{ marginBottom: 'var(--space-lg)' }}>
-              <button onClick={handleCreateTeam} className="btn btn-primary">
-                Create New Team
-              </button>
-            </div>
-            
-            {teams.length === 0 ? (
-              <div className="empty-state">
-                <p>No teams found. Create your first team to get started!</p>
-              </div>
-            ) : (
-              <div className="teams-grid">
-                {teams.map((teamMembership) => (
-                  <div key={teamMembership.teams.id} className="team-card">
-                    <div className="team-header">
-                      <h3 className="team-name">{teamMembership.teams.name}</h3>
-                    </div>
-                    <p className="team-role">Role: {teamMembership.role}</p>
-                    <p className="team-created">
-                      Created: {new Date(teamMembership.teams.created_at).toLocaleDateString()}
-                    </p>
-                    <div className="team-actions">
-                      <button className="btn btn-primary">View Details</button>
-                      <button className="btn btn-secondary">Manage</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Games Page */}
-        {currentPage === 'games' && (
-          <div className="empty-state">
-            <h3>Game Analysis</h3>
-            <p>Game analysis features coming soon!</p>
-          </div>
-        )}
-
-        {/* Analysis Page */}
-        {currentPage === 'analysis' && (
-          <div className="empty-state">
-            <h3>Video Analysis</h3>
-            <p>Video analysis tools coming soon!</p>
-          </div>
+        {currentPage === 'games' && selectedTeam && (
+          <GamesList
+            teamId={selectedTeam.teams.id}
+            userRole={selectedTeam.role}
+            onEditGame={handleEditGame}
+            onAnalyzeGame={handleAnalyzeGame}
+          />
         )}
       </main>
     </div>

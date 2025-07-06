@@ -40,18 +40,6 @@ export const Navigation: React.FC<NavigationProps> = ({
           <li>
             <a
               href="#"
-              className={`nav-item ${currentPage === 'teams' ? 'active' : ''}`}
-              onClick={(e) => {
-                e.preventDefault();
-                handleNavigation('teams');
-              }}
-            >
-              Teams
-            </a>
-          </li>
-          <li>
-            <a
-              href="#"
               className={`nav-item ${currentPage === 'games' ? 'active' : ''}`}
               onClick={(e) => {
                 e.preventDefault();
@@ -59,18 +47,6 @@ export const Navigation: React.FC<NavigationProps> = ({
               }}
             >
               Games
-            </a>
-          </li>
-          <li>
-            <a
-              href="#"
-              className={`nav-item ${currentPage === 'analysis' ? 'active' : ''}`}
-              onClick={(e) => {
-                e.preventDefault();
-                handleNavigation('analysis');
-              }}
-            >
-              Analysis
             </a>
           </li>
         </ul>

@@ -435,9 +435,9 @@ p {
   max-width: 1200px;
   margin: 0 auto;
   display: flex;
-  justify-content: space-between;
   align-items: center;
   padding: var(--space-md) var(--space-lg);
+  gap: var(--space-xl);
 }
 
 .header-nav .nav-brand {
@@ -473,6 +473,7 @@ p {
   display: flex;
   align-items: center;
   gap: var(--space-md);
+  margin-left: auto;
 }
 
 .user-info {

@@ -8,6 +8,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import { errorHandler } from './middleware/errorHandler.js';
 import authRoutes from './routes/auth.js';
+import gameRoutes from './routes/games.js';
 import teamRoutes from './routes/teams.js';
 
 const app = express();
@@ -46,6 +47,7 @@ app.get('/health', (req: Request, res: Response) =>
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/games', gameRoutes);
 app.use('/api/teams', teamRoutes);
 
 // Error handling

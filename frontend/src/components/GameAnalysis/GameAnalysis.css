@@ -1,0 +1,211 @@
+/* Game Analysis Styles */
+.game-analysis {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+}
+
+.analysis-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md) var(--space-lg);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.game-info {
+  flex: 1;
+  text-align: center;
+}
+
+.game-info h1 {
+  margin: 0 0 var(--space-xs) 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.game-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.game-meta span {
+  padding: 2px 8px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+}
+
+.current-time {
+  background: var(--primary-100) !important;
+  color: var(--primary-700) !important;
+  font-weight: 500;
+}
+
+.analysis-controls {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.analysis-workspace {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.video-container {
+  flex: 1;
+  position: relative;
+  background: var(--bg-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.error-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--space-2xl);
+  color: var(--text-secondary);
+}
+
+.error-state h2 {
+  margin: 0 0 var(--space-md) 0;
+  color: var(--text-primary);
+  font-size: 1.5rem;
+}
+
+.error-state p {
+  margin: 0;
+  max-width: 400px;
+  line-height: 1.5;
+}
+
+.recording-indicator {
+  position: fixed;
+  top: var(--space-lg);
+  right: var(--space-lg);
+  background: var(--error-500);
+  color: white;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-full);
+  font-size: 0.875rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  z-index: 1000;
+  box-shadow: var(--shadow-lg);
+}
+
+.recording-dot {
+  width: 8px;
+  height: 8px;
+  background: white;
+  border-radius: 50%;
+  animation: recording-pulse 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes recording-pulse {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0.6;
+    transform: scale(0.8);
+  }
+}
+
+/* Loading state for video */
+.video-container .loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .current-time {
+    background: var(--primary-900) !important;
+    color: var(--primary-300) !important;
+  }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .analysis-header {
+    flex-direction: column;
+    gap: var(--space-md);
+    padding: var(--space-md);
+  }
+
+  .game-info {
+    order: 1;
+  }
+
+  .analysis-controls {
+    order: 2;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .game-info h1 {
+    font-size: 1.25rem;
+  }
+
+  .game-meta {
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  .recording-indicator {
+    top: var(--space-md);
+    right: var(--space-md);
+    font-size: 0.75rem;
+    padding: 6px var(--space-sm);
+  }
+}
+
+/* Focus and accessibility */
+.analysis-controls .btn:focus {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 2px;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Animations */
+.game-analysis {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
