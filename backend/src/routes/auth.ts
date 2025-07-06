@@ -118,6 +118,54 @@ router.get('/me', authenticateUser, async (req: AuthenticatedRequest, res: Respo
   }
 });
 
+// Update user profile
+router.put('/profile', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> =>
+{
+  try
+  {
+    const userId = req.user?.id;
+    const { name } = req.body;
+
+    if (!userId) {
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
+    }
+
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      res.status(400).json({ error: 'Name is required and must be a valid string' });
+      return;
+    }
+
+    const { data: userData, error } = await supabase
+      .from('user_profiles')
+      .update({ name: name.trim() })
+      .eq('id', userId)
+      .select()
+      .single();
+
+    if (error)
+    {
+      res.status(400).json({
+        error: 'Failed to update profile',
+        details: error.message || String(error),
+      });
+      return;
+    }
+
+    res.json({
+      message: 'Profile updated successfully',
+      user: userData,
+    });
+  }
+  catch (error)
+  {
+    res.status(500).json({
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
 // Test Supabase connection
 router.get('/test-connection', async (req: Request, res: Response): Promise<void> => {
   try {

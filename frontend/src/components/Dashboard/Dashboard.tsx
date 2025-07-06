@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { getApiUrl } from '../../utils/api'
-import './Dashboard.css'
+import Navigation from '../Navigation/Navigation'
+import UserProfilePage from '../UserProfile/UserProfile'
 
 interface Team {
   role: string
@@ -13,12 +14,13 @@ interface Team {
 }
 
 export const Dashboard: React.FC = () => {
-  const { user, signOut } = useAuth()
+  const { } = useAuth()
   const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [editingTeamId, setEditingTeamId] = useState<string | null>(null)
   const [editingTeamName, setEditingTeamName] = useState('')
+  const [currentPage, setCurrentPage] = useState('dashboard')
 
   useEffect(() => {
     // Set body class for dashboard mode
@@ -150,9 +152,25 @@ export const Dashboard: React.FC = () => {
     }
   }
 
+  const handleNavigation = (page: string) => {
+    setCurrentPage(page)
+  }
+
+  // Show profile page if selected
+  if (currentPage === 'profile') {
+    return (
+      <div className="dashboard-container">
+        <Navigation currentPage={currentPage} onNavigate={handleNavigation} />
+        <UserProfilePage />
+      </div>
+    )
+  }
+
+  // Show loading state
   if (loading) {
     return (
       <div className="dashboard-container">
+        <Navigation currentPage={currentPage} onNavigate={handleNavigation} />
         <div className="loading">Loading...</div>
       </div>
     )
@@ -160,104 +178,184 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="dashboard-container">
-      <header className="dashboard-header">
-        <div className="header-content">
-          <h1>TACTIX Dashboard</h1>
-          <div className="user-menu">
-            <span>Welcome, {user?.email}</span>
-            <button onClick={signOut} className="btn btn-error btn-sm">
-              Sign Out
-            </button>
-          </div>
-        </div>
-      </header>
-
+      <Navigation currentPage={currentPage} onNavigate={handleNavigation} />
+      
       <main className="dashboard-main">
-        <div className="teams-section">
-          <div className="section-header">
-            <h2>My Teams</h2>
-            <button onClick={handleCreateTeam} className="btn btn-primary btn-md">
+        <div className="section-header">
+          <h1 className="section-title">
+            {currentPage === 'teams' ? 'Team Management' : 
+             currentPage === 'games' ? 'Game Analysis' :
+             currentPage === 'analysis' ? 'Video Analysis' :
+             'Dashboard'}
+          </h1>
+          {currentPage === 'dashboard' && (
+            <button onClick={handleCreateTeam} className="btn btn-primary">
               Create Team
             </button>
-          </div>
-
-          {error && <div className="alert alert-error">{error}</div>}
-
-          {teams.length === 0 ? (
-            <div className="empty-state">
-              <p>No teams found. Create your first team to get started!</p>
-            </div>
-          ) : (
-            <div className="teams-grid">
-              {teams.map((teamMembership) => (
-                <div key={teamMembership.teams.id} className="team-card">
-                  <div className="team-header">
-                    {editingTeamId === teamMembership.teams.id ? (
-                      <div className="team-name-edit">
-                        <input
-                          type="text"
-                          value={editingTeamName}
-                          onChange={(e) => setEditingTeamName(e.target.value)}
-                          className="team-name-input"
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              handleSaveTeamName(teamMembership.teams.id)
-                            } else if (e.key === 'Escape') {
-                              handleCancelEdit()
-                            }
-                          }}
-                          autoFocus
-                        />
-                        <div className="edit-actions">
-                          <button
-                            onClick={() => handleSaveTeamName(teamMembership.teams.id)}
-                            className="btn btn-success btn-sm"
-                            style={{ width: '32px', height: '32px', padding: '0' }}
-                            title="Save"
-                          >
-                            ✓
-                          </button>
-                          <button
-                            onClick={handleCancelEdit}
-                            className="btn btn-error btn-sm"
-                            style={{ width: '32px', height: '32px', padding: '0' }}
-                            title="Cancel"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="team-name-display">
-                        <h3>{teamMembership.teams.name}</h3>
-                        {(teamMembership.role === 'coach' || teamMembership.role === 'admin') && (
-                          <button
-                            onClick={() => handleEditTeam(teamMembership.teams.id, teamMembership.teams.name)}
-                            className="edit-button"
-                            title="Edit team name"
-                          >
-                            ✏️
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <p className="team-role">Role: {teamMembership.role}</p>
-                  <p className="team-created">
-                    Created: {new Date(teamMembership.teams.created_at).toLocaleDateString()}
-                  </p>
-                  
-                  <div className="team-actions">
-                    <button className="btn btn-primary btn-md">View Games</button>
-                    {(teamMembership.role === 'coach' || teamMembership.role === 'admin') && (
-                      <button className="btn btn-secondary btn-md">Manage</button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
           )}
         </div>
+
+        {error && <div className="alert alert-error">{error}</div>}
+
+        {/* Dashboard Overview */}
+        {currentPage === 'dashboard' && (
+          <>
+            {/* Quick Stats */}
+            <div className="grid grid-3" style={{ marginBottom: 'var(--space-2xl)' }}>
+              <div className="card card-compact">
+                <div className="stat">
+                  <div className="stat-value">{teams.length}</div>
+                  <div className="stat-label">Teams</div>
+                </div>
+              </div>
+              <div className="card card-compact">
+                <div className="stat">
+                  <div className="stat-value">0</div>
+                  <div className="stat-label">Games Analyzed</div>
+                </div>
+              </div>
+              <div className="card card-compact">
+                <div className="stat">
+                  <div className="stat-value">0</div>
+                  <div className="stat-label">Active Sessions</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Recent Teams */}
+            <div style={{ marginBottom: 'var(--space-2xl)' }}>
+              <h2 style={{ marginBottom: 'var(--space-lg)' }}>My Teams</h2>
+              
+              {teams.length === 0 ? (
+                <div className="empty-state">
+                  <p>No teams found. Create your first team to get started!</p>
+                  <button onClick={handleCreateTeam} className="btn btn-primary" style={{ marginTop: 'var(--space-md)' }}>
+                    Create Your First Team
+                  </button>
+                </div>
+              ) : (
+                <div className="teams-grid">
+                  {teams.map((teamMembership) => (
+                    <div key={teamMembership.teams.id} className="team-card">
+                      <div className="team-header">
+                        {editingTeamId === teamMembership.teams.id ? (
+                          <div style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'center' }}>
+                            <input
+                              type="text"
+                              value={editingTeamName}
+                              onChange={(e) => setEditingTeamName(e.target.value)}
+                              className="form-input"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleSaveTeamName(teamMembership.teams.id)
+                                } else if (e.key === 'Escape') {
+                                  handleCancelEdit()
+                                }
+                              }}
+                              autoFocus
+                              style={{ flex: 1 }}
+                            />
+                            <button
+                              onClick={() => handleSaveTeamName(teamMembership.teams.id)}
+                              className="btn btn-success btn-sm"
+                              title="Save"
+                            >
+                              ✓
+                            </button>
+                            <button
+                              onClick={handleCancelEdit}
+                              className="btn btn-error btn-sm"
+                              title="Cancel"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <h3 className="team-name">{teamMembership.teams.name}</h3>
+                            {(teamMembership.role === 'coach' || teamMembership.role === 'admin') && (
+                              <button
+                                onClick={() => handleEditTeam(teamMembership.teams.id, teamMembership.teams.name)}
+                                className="btn btn-secondary btn-sm"
+                                title="Edit team name"
+                                style={{ padding: '4px 8px' }}
+                              >
+                                ✏️
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      
+                      <p className="team-role">Role: {teamMembership.role}</p>
+                      <p className="team-created">
+                        Created: {new Date(teamMembership.teams.created_at).toLocaleDateString()}
+                      </p>
+                      
+                      <div className="team-actions">
+                        <button className="btn btn-primary">View Games</button>
+                        {(teamMembership.role === 'coach' || teamMembership.role === 'admin') && (
+                          <button className="btn btn-secondary">Manage</button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* Teams Page */}
+        {currentPage === 'teams' && (
+          <div>
+            <div style={{ marginBottom: 'var(--space-lg)' }}>
+              <button onClick={handleCreateTeam} className="btn btn-primary">
+                Create New Team
+              </button>
+            </div>
+            
+            {teams.length === 0 ? (
+              <div className="empty-state">
+                <p>No teams found. Create your first team to get started!</p>
+              </div>
+            ) : (
+              <div className="teams-grid">
+                {teams.map((teamMembership) => (
+                  <div key={teamMembership.teams.id} className="team-card">
+                    <div className="team-header">
+                      <h3 className="team-name">{teamMembership.teams.name}</h3>
+                    </div>
+                    <p className="team-role">Role: {teamMembership.role}</p>
+                    <p className="team-created">
+                      Created: {new Date(teamMembership.teams.created_at).toLocaleDateString()}
+                    </p>
+                    <div className="team-actions">
+                      <button className="btn btn-primary">View Details</button>
+                      <button className="btn btn-secondary">Manage</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Games Page */}
+        {currentPage === 'games' && (
+          <div className="empty-state">
+            <h3>Game Analysis</h3>
+            <p>Game analysis features coming soon!</p>
+          </div>
+        )}
+
+        {/* Analysis Page */}
+        {currentPage === 'analysis' && (
+          <div className="empty-state">
+            <h3>Video Analysis</h3>
+            <p>Video analysis tools coming soon!</p>
+          </div>
+        )}
       </main>
     </div>
   )

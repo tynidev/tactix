@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { Auth } from './components/Auth/Auth'
 import { Dashboard } from './components/Dashboard/Dashboard'
@@ -6,6 +6,11 @@ import './App.css'
 
 const AppContent: React.FC = () => {
   const { user, loading } = useAuth()
+
+  // Set the theme to light by default
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', 'light')
+  }, [])
 
   if (loading) {
     return (

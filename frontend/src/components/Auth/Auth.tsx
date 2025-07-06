@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
-import './Auth.css'
+import ThemeToggle from '../ThemeToggle/ThemeToggle'
 
 export const Auth: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true)
@@ -51,44 +51,47 @@ export const Auth: React.FC = () => {
 
   return (
     <div className="auth-container">
+      <div className="auth-theme-toggle">
+        <ThemeToggle />
+      </div>
       <div className="auth-card">
         <div className="auth-header">
           <h1>TACTIX</h1>
           <p>Video Coaching Platform</p>
         </div>
 
+        <div className="auth-tabs">
+          <button
+            type="button"
+            className={`auth-tab ${isLogin ? 'active' : ''}`}
+            onClick={() => {
+              setIsLogin(true)
+              setError('')
+              setSuccessMessage('')
+            }}
+          >
+            Sign In
+          </button>
+          <button
+            type="button"
+            className={`auth-tab ${!isLogin ? 'active' : ''}`}
+            onClick={() => {
+              setIsLogin(false)
+              setError('')
+              setSuccessMessage('')
+            }}
+          >
+            Sign Up
+          </button>
+        </div>
+
+        {error && <div className="alert alert-error">{error}</div>}
+        {successMessage && <div className="alert alert-success">{successMessage}</div>}
+
         <form onSubmit={handleSubmit} className="auth-form">
-          <div className="auth-tabs">
-            <button
-              type="button"
-              className={`tab ${isLogin ? 'active' : ''}`}
-              onClick={() => {
-                setIsLogin(true)
-                setError('')
-                setSuccessMessage('')
-              }}
-            >
-              Sign In
-            </button>
-            <button
-              type="button"
-              className={`tab ${!isLogin ? 'active' : ''}`}
-              onClick={() => {
-                setIsLogin(false)
-                setError('')
-                setSuccessMessage('')
-              }}
-            >
-              Sign Up
-            </button>
-          </div>
-
-          {error && <div className="alert alert-error">{error}</div>}
-          {successMessage && <div className="alert alert-success">{successMessage}</div>}
-
           {!isLogin && (
             <div className="form-group">
-              <label htmlFor="name">Full Name</label>
+              <label htmlFor="name" className="form-label">Full Name</label>
               <input
                 type="text"
                 id="name"
@@ -96,12 +99,13 @@ export const Auth: React.FC = () => {
                 onChange={(e) => setName(e.target.value)}
                 required={!isLogin}
                 placeholder="Enter your full name"
+                className="form-input"
               />
             </div>
           )}
 
           <div className="form-group">
-            <label htmlFor="email">Email</label>
+            <label htmlFor="email" className="form-label">Email</label>
             <input
               type="email"
               id="email"
@@ -109,11 +113,12 @@ export const Auth: React.FC = () => {
               onChange={(e) => setEmail(e.target.value)}
               required
               placeholder="Enter your email"
+              className="form-input"
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="password">Password</label>
+            <label htmlFor="password" className="form-label">Password</label>
             <input
               type="password"
               id="password"
@@ -122,21 +127,21 @@ export const Auth: React.FC = () => {
               required
               placeholder="Enter your password"
               minLength={6}
+              className="form-input"
             />
           </div>
 
           <button
             type="submit"
-            className="btn btn-primary btn-lg"
+            className="btn btn-primary btn-full"
             disabled={loading}
-            style={{ width: '100%', marginBottom: 'var(--space-5)' }}
           >
             {loading ? 'Loading...' : isLogin ? 'Sign In' : 'Sign Up'}
           </button>
         </form>
 
-        <div className="auth-footer">
-          <p>
+        <div style={{ textAlign: 'center', marginTop: 'var(--space-lg)' }}>
+          <p style={{ color: 'var(--color-text-secondary)', margin: 0 }}>
             {isLogin ? "Don't have an account? " : "Already have an account? "}
             <button
               type="button"

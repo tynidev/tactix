@@ -1,5 +1,5 @@
-/* Import Design System */
-@import './styles/design-system.css';
+/* Import TACTIX UI Kit */
+@import './styles/ui-kit.css';
 
 * {
   margin: 0;
