@@ -1,6 +1,6 @@
 import express, { Response } from 'express';
 import { authenticateUser, type AuthenticatedRequest } from '../middleware/auth.js';
-import { supabase } from '../utils/supabase';
+import { supabase } from '../utils/supabase.js';
 
 const router = express.Router();
 
