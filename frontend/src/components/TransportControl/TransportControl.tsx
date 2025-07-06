@@ -25,7 +25,10 @@ const TransportControl: React.FC<TransportControlProps> = ({
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragTime, setDragTime] = useState(0);
+  const [isSeekingFromClick, setIsSeekingFromClick] = useState(false);
+  const [lastSeekTime, setLastSeekTime] = useState(0);
   const timelineRef = useRef<HTMLDivElement>(null);
+  const seekTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -39,15 +42,32 @@ const TransportControl: React.FC<TransportControlProps> = ({
     const rect = timelineRef.current.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
     const percentage = clickX / rect.width;
-    const newTime = percentage * duration;
+    const newTime = Math.max(0, Math.min(duration, percentage * duration));
     
-    onSeekTo(Math.max(0, Math.min(duration, newTime)));
+    // Set the seeking state and target time
+    setIsSeekingFromClick(true);
+    setLastSeekTime(newTime);
+    setDragTime(newTime);
+    
+    // Clear any existing timeout
+    if (seekTimeoutRef.current) {
+      clearTimeout(seekTimeoutRef.current);
+    }
+    
+    // Set a timeout to clear the seeking state
+    seekTimeoutRef.current = setTimeout(() => {
+      setIsSeekingFromClick(false);
+    }, 300); // Give YouTube player time to complete the seek
+    
+    // Immediately seek
+    onSeekTo(newTime);
   };
 
   const handleTimelineDrag = (e: React.MouseEvent) => {
     if (!isDragging || !timelineRef.current || duration === 0) return;
     
     const rect = timelineRef.current.getBoundingClientRect();
+    // Only care about horizontal position (clientX), ignore vertical position (clientY)
     const clickX = e.clientX - rect.left;
     const percentage = Math.max(0, Math.min(1, clickX / rect.width));
     const newTime = percentage * duration;
@@ -56,13 +76,41 @@ const TransportControl: React.FC<TransportControlProps> = ({
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    if (!timelineRef.current || duration === 0) return;
+    
+    // Calculate initial drag position
+    const rect = timelineRef.current.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const percentage = clickX / rect.width;
+    const newTime = percentage * duration;
+    
+    setDragTime(newTime);
     setIsDragging(true);
-    handleTimelineClick(e);
+    
+    // Don't immediately seek on mousedown - wait for mouseup
+    e.preventDefault();
   };
 
   const handleMouseUp = () => {
-    if (isDragging) {
-      onSeekTo(dragTime);
+    if (isDragging && duration > 0) {
+      // Use the current dragTime which should be updated by mouse move events
+      const seekTime = Math.max(0, Math.min(duration, dragTime));
+      
+      // Set seeking state for drag completion
+      setIsSeekingFromClick(true);
+      setLastSeekTime(seekTime);
+      
+      // Clear any existing timeout
+      if (seekTimeoutRef.current) {
+        clearTimeout(seekTimeoutRef.current);
+      }
+      
+      // Set a timeout to clear the seeking state
+      seekTimeoutRef.current = setTimeout(() => {
+        setIsSeekingFromClick(false);
+      }, 300);
+      
+      onSeekTo(seekTime);
       setIsDragging(false);
     }
   };
@@ -70,8 +118,9 @@ const TransportControl: React.FC<TransportControlProps> = ({
   useEffect(() => {
     const handleGlobalMouseUp = () => handleMouseUp();
     const handleGlobalMouseMove = (e: MouseEvent) => {
-      if (isDragging && timelineRef.current) {
+      if (isDragging && timelineRef.current && duration > 0) {
         const rect = timelineRef.current.getBoundingClientRect();
+        // Only care about horizontal position, ignore vertical
         const clickX = e.clientX - rect.left;
         const percentage = Math.max(0, Math.min(1, clickX / rect.width));
         const newTime = percentage * duration;
@@ -90,7 +139,37 @@ const TransportControl: React.FC<TransportControlProps> = ({
     };
   }, [isDragging, duration]);
 
-  const displayTime = isDragging ? dragTime : currentTime;
+  // Update dragTime when currentTime changes, but only if not dragging and not seeking from a click
+  useEffect(() => {
+    // Only update dragTime with currentTime if we're not actively dragging or seeking
+    if (!isDragging && !isSeekingFromClick) {
+      setDragTime(currentTime);
+    }
+  }, [currentTime, isDragging, isSeekingFromClick]);
+
+  // Separate effect to handle seek completion detection
+  useEffect(() => {
+    // If we're seeking from a click and the currentTime has caught up to our target, stop seeking
+    if (isSeekingFromClick && Math.abs(currentTime - lastSeekTime) < 0.5) {
+      setIsSeekingFromClick(false);
+      if (seekTimeoutRef.current) {
+        clearTimeout(seekTimeoutRef.current);
+        seekTimeoutRef.current = null;
+      }
+    }
+  }, [currentTime, isSeekingFromClick, lastSeekTime]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (seekTimeoutRef.current) {
+        clearTimeout(seekTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Use dragTime for display when dragging or seeking, otherwise use currentTime
+  const displayTime = (isDragging || isSeekingFromClick) ? dragTime : currentTime;
   const progressPercentage = duration > 0 ? (displayTime / duration) * 100 : 0;
 
   return (
@@ -127,6 +206,7 @@ const TransportControl: React.FC<TransportControlProps> = ({
           <div
             ref={timelineRef}
             className="timeline"
+            onClick={!isDragging ? handleTimelineClick : undefined}
             onMouseDown={handleMouseDown}
             onMouseMove={handleTimelineDrag}
           >

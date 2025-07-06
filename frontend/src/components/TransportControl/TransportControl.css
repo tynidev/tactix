@@ -106,7 +106,6 @@
   height: 100%;
   background: rgba(255, 255, 255, 0.8);
   border-radius: var(--radius-full);
-  transition: width 0.1s ease-out;
 }
 
 .timeline-playhead {
