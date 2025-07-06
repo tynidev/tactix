@@ -5,7 +5,7 @@
   right: var(--space-5);
   display: flex;
   flex-direction: column;
-  background: var(--black-overlay);
+  background: rgba(0, 0, 0, 0.3);
   border-radius: var(--radius-lg);
   padding: var(--space-sm);
   backdrop-filter: blur(20px);
@@ -39,7 +39,6 @@
   border: none;
   cursor: pointer;
   transition: all var(--transition-normal);
-  font-family: var(--font-family);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -55,14 +54,10 @@
 }
 
 /* Color buttons */
-.color-btn {
-  position: relative;
-}
-
 .color-btn.active {
-  outline: 2px solid white;
+  outline: 1px solid white;
   outline-offset: 2px;
-  box-shadow: 0 0 8px var(--white-glow);
+  box-shadow: 0 0 8px var(--color-accent-light);
 }
 
 .color1-btn {
@@ -79,35 +74,32 @@
 
 /* Mode buttons */
 .mode-btn {
-  background-color: var(--white-semi);
-  color: white;
+  background: rgba(0, 0, 0, 0.3);
   font-size: 20px;
 }
 
 .mode-btn:hover {
-  background-color: var(--white-opaque);
+  background: rgba(0, 0, 0, 0.5);
 }
 
 .mode-btn.active {
-  background-color: var(--green-active);
-  box-shadow: 0 0 10px var(--green-glow);
+  background-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 10px white;
 }
 
 /* Action buttons */
 .action-btn {
-  background-color: var(--white-transparent);
-  color: white;
+  background: rgba(0, 0, 0, 0.1);
   font-size: 18px;
 }
 
 .action-btn:hover {
-  background-color: var(--white-semi);
+  background: rgba(0, 0, 0, 0.3);
 }
 
 /* Collapse button */
 .collapse-btn {
-  background-color: var(--white-opaque);
-  color: white;
+  background: rgba(0, 0, 0, 0.1);
   font-size: 16px;
   font-weight: bold;
 }
@@ -154,15 +146,6 @@
   .drawing-btn {
     width: 32px;
     height: 32px;
-    font-size: 16px;
-  }
-  
-  .action-btn {
-    font-size: 14px;
-  }
-  
-  .collapse-btn {
-    font-size: 14px;
   }
 }
 
