@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import { getApiUrl } from '../../utils/api';
 import TransportControl from '../TransportControl/TransportControl';
 import type { Drawing } from '../../types/drawing';
@@ -88,6 +89,7 @@ export const CoachingPointsFlyout: React.FC<CoachingPointsFlyoutProps> = ({
   onSeekTo,
   onPlaybackRateChange,
 }) => {
+  const { user } = useAuth();
   const [isExpanded, setIsExpanded] = useState(false);
   const [coachingPoints, setCoachingPoints] = useState<CoachingPoint[]>([]);
   const [loading, setLoading] = useState(false);
@@ -192,6 +194,58 @@ export const CoachingPointsFlyout: React.FC<CoachingPointsFlyoutProps> = ({
     // Hide the flyout
     setIsExpanded(false);
   }, [onPauseVideo, onSeekToPoint, loadDrawingEvents, onSelectCoachingPoint]);
+
+  const handleDeletePoint = useCallback(async (pointId: string, event: React.MouseEvent) => {
+    // Stop event propagation to prevent triggering the point click
+    event.stopPropagation();
+    
+    if (!confirm('Are you sure you want to delete this coaching point? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const token = (await import('../../lib/supabase')).supabase.auth.getSession();
+      const session = await token;
+      
+      if (!session.data.session?.access_token) {
+        throw new Error('No access token');
+      }
+
+      const apiUrl = getApiUrl();
+      const response = await fetch(`${apiUrl}/api/coaching-points/${pointId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.data.session.access_token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete coaching point');
+      }
+
+      // Remove the deleted point from the local state
+      setCoachingPoints(prev => prev.filter(point => point.id !== pointId));
+    } catch (err) {
+      console.error('Error deleting coaching point:', err);
+      alert(err instanceof Error ? err.message : 'Failed to delete coaching point');
+    }
+  }, []);
+
+  const canDeletePoint = useCallback((point: CoachingPoint): boolean => {
+    if (!user) return false;
+    
+    // User can delete if they are the author
+    if (point.author_id === user.id) {
+      return true;
+    }
+    
+    // For coaches and admins, we'll show the button and let the backend handle the permission check
+    // This is a reasonable approach since the delete operation will fail gracefully if unauthorized
+    // We could make an additional API call to check roles, but that would be overkill for this feature
+    return true; // Show delete button for all users, backend will enforce proper permissions
+  }, [user]);
 
   const formatTimestamp = (timestamp: string): string => {
     const timestampNum = parseInt(timestamp);
@@ -425,6 +479,16 @@ export const CoachingPointsFlyout: React.FC<CoachingPointsFlyoutProps> = ({
                     <div className="point-timestamp">
                       {formatTimestamp(point.timestamp)}
                     </div>
+                    {canDeletePoint(point) && (
+                      <button
+                        className="delete-point-btn"
+                        onClick={(e) => handleDeletePoint(point.id, e)}
+                        title="Delete coaching point"
+                        aria-label="Delete coaching point"
+                      >
+                        ✕
+                      </button>
+                    )}
                   </div>
                   
                   <div className="point-content">

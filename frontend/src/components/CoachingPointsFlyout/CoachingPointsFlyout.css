@@ -84,6 +84,7 @@
   background: transparent;
   display: flex;
   flex-direction: column;
+  background-color: var(--color-bg-secondary);
 }
 
 /* Filter Styles */
@@ -232,6 +233,7 @@
   margin-right: var(--space-sm);
   min-width: 80px;
   height: 100%;
+  position: relative;
 }
 
 .point-timestamp {
@@ -249,6 +251,40 @@
     justify-content: center;
     flex: 1;
     min-height: 100%;
+}
+
+.delete-point-btn {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-error);
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all var(--transition-fast);
+  z-index: 10;
+  box-shadow: var(--shadow-sm);
+}
+
+.delete-point-btn:hover {
+  background: #DC2626; /* Darker red for hover */
+  transform: scale(1);
+  box-shadow: var(--shadow-md);
+}
+
+.coaching-point-item:hover .delete-point-btn {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .point-date {
