@@ -55,6 +55,7 @@ interface CoachingPointsFlyoutProps {
   onSeekToPoint: (timestamp: string) => void;
   onShowDrawings: (drawings: Drawing[]) => void;
   onPauseVideo: () => void;
+  onSelectCoachingPoint: (point: CoachingPoint | null) => void;
   refreshTrigger?: number; // Optional prop to trigger refresh
 }
 
@@ -63,6 +64,7 @@ export const CoachingPointsFlyout: React.FC<CoachingPointsFlyoutProps> = ({
   onSeekToPoint,
   onShowDrawings,
   onPauseVideo,
+  onSelectCoachingPoint,
   refreshTrigger,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -163,9 +165,12 @@ export const CoachingPointsFlyout: React.FC<CoachingPointsFlyoutProps> = ({
     // Load and show any drawings for this point
     await loadDrawingEvents(point.id);
     
+    // Pass the selected coaching point to parent
+    onSelectCoachingPoint(point);
+    
     // Hide the flyout
     setIsExpanded(false);
-  }, [onPauseVideo, onSeekToPoint, loadDrawingEvents]);
+  }, [onPauseVideo, onSeekToPoint, loadDrawingEvents, onSelectCoachingPoint]);
 
   const formatTimestamp = (timestamp: string): string => {
     const timestampNum = parseInt(timestamp);

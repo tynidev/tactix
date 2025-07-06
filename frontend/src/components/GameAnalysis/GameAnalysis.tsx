@@ -28,6 +28,38 @@ interface Game {
   };
 }
 
+interface CoachingPoint {
+  id: string;
+  game_id: string;
+  author_id: string;
+  title: string;
+  feedback: string;
+  timestamp: string;
+  audio_url: string;
+  duration: number;
+  created_at: string;
+  author?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  coaching_point_tagged_players?: {
+    id: string;
+    player_profiles: {
+      id: string;
+      name: string;
+      jersey_number: string;
+    };
+  }[];
+  coaching_point_labels?: {
+    id: string;
+    labels: {
+      id: string;
+      name: string;
+    };
+  }[];
+}
+
 interface GameAnalysisProps {
   game: Game;
   onBack: () => void;
@@ -38,6 +70,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
   const [currentTime, setCurrentTime] = useState(0);
   const [showCoachingPointModal, setShowCoachingPointModal] = useState(false);
   const [coachingPointsRefresh, setCoachingPointsRefresh] = useState(0);
+  const [selectedCoachingPoint, setSelectedCoachingPoint] = useState<CoachingPoint | null>(null);
 
   // Set body class for fullscreen
   useEffect(() => {
@@ -56,6 +89,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
     togglePlayPause,
     seekVideo,
     setPlaybackRate,
+    updateVideoDimensions,
   } = useYouTubePlayer(game.video_id || undefined);
 
   // Drawing canvas functionality
@@ -159,6 +193,22 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
     player.pauseVideo();
   }, [player, isPlaying]);
 
+  // Handle selecting a coaching point
+  const handleSelectCoachingPoint = useCallback((point: CoachingPoint | null) => {
+    setSelectedCoachingPoint(point);
+  }, []);
+
+  // Update video dimensions when sidebar state changes
+  useEffect(() => {
+    if (isReady && updateVideoDimensions) {
+      // Use a small delay to ensure CSS layout changes have been applied
+      const timer = setTimeout(() => {
+        updateVideoDimensions();
+      }, 10);
+      return () => clearTimeout(timer);
+    }
+  }, [selectedCoachingPoint, isReady, updateVideoDimensions]);
+
   // Keyboard shortcuts
   useKeyboardShortcuts({
     player,
@@ -239,8 +289,8 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
         </div>
       </div>
 
-      <div className="analysis-workspace">
-        <div className="video-container">
+      <div className={`analysis-workspace ${selectedCoachingPoint ? 'with-sidebar' : ''}`}>
+        <div className={`video-container ${selectedCoachingPoint ? 'with-sidebar' : ''}`}>
           <YouTubePlayer className={isReady ? '' : 'loading'} />
           <DrawingCanvas
             canvasRef={canvasRef}
@@ -250,6 +300,62 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
             videoDimensions={videoDimensions}
           />
         </div>
+
+        {selectedCoachingPoint && (
+          <div className="coaching-point-sidebar">
+            <div className="sidebar-header">
+              <h3>Coaching Point Details</h3>
+              <button 
+                onClick={() => handleSelectCoachingPoint(null)}
+                className="btn btn-secondary btn-sm"
+                title="Close details"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="sidebar-content">
+              <div className="coaching-point-details">
+                <h4 className="point-title">{selectedCoachingPoint.title}</h4>
+                <div className="point-meta">
+                  <span className="point-timestamp">
+                    {formatTime(parseInt(selectedCoachingPoint.timestamp) / 1000)}
+                  </span>
+                  <span className="point-author">
+                    by {selectedCoachingPoint.author?.name || 'Unknown'}
+                  </span>
+                </div>
+                <div className="point-feedback">
+                  <h5>Feedback:</h5>
+                  <p>{selectedCoachingPoint.feedback}</p>
+                </div>
+                {selectedCoachingPoint.coaching_point_tagged_players && selectedCoachingPoint.coaching_point_tagged_players.length > 0 && (
+                  <div className="point-players">
+                    <h5>Tagged Players:</h5>
+                    <div className="player-tags">
+                      {selectedCoachingPoint.coaching_point_tagged_players.map((taggedPlayer) => (
+                        <span key={taggedPlayer.id} className="player-tag">
+                          {taggedPlayer.player_profiles.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {selectedCoachingPoint.coaching_point_labels && selectedCoachingPoint.coaching_point_labels.length > 0 && (
+                  <div className="point-labels">
+                    <h5>Labels:</h5>
+                    <div className="label-tags">
+                      {selectedCoachingPoint.coaching_point_labels.map((labelAssignment) => (
+                        <span key={labelAssignment.id} className="label-tag">
+                          {labelAssignment.labels.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         <Toolbar
           currentColor={currentColor}
@@ -288,6 +394,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
         onSeekToPoint={handleSeekToPoint}
         onShowDrawings={handleShowDrawings}
         onPauseVideo={handlePauseVideo}
+        onSelectCoachingPoint={handleSelectCoachingPoint}
         refreshTrigger={coachingPointsRefresh}
       />
     </div>

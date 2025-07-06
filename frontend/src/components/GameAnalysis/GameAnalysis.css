@@ -59,6 +59,10 @@
   overflow: hidden;
 }
 
+.analysis-workspace.with-sidebar {
+  flex-direction: row;
+}
+
 .video-container {
   flex: 1;
   position: relative;
@@ -66,6 +70,94 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.video-container.with-sidebar {
+  flex: 0 0 70%;
+}
+
+.coaching-point-sidebar {
+  flex: 0 0 30%;
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 10;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-primary);
+}
+
+.sidebar-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-md);
+}
+
+.coaching-point-details h4 {
+  margin: 0 0 var(--space-sm) 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.point-meta {
+  display: flex;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.point-timestamp {
+  font-weight: 600;
+  color: var(--color-accent-primary);
+  background: var(--bg-tertiary);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+/* Coaching point sidebar details specific styles */
+.coaching-point-details .point-feedback {
+  margin-bottom: var(--space-md);
+  display: block;
+  width: 100%;
+}
+
+.coaching-point-details .point-feedback h5,
+.coaching-point-details .point-players h5,
+.coaching-point-details .point-labels h5 {
+  margin: 0 0 var(--space-xs) 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: block;
+}
+
+.coaching-point-details .point-feedback p {
+  margin: 0;
+  line-height: 1.5;
+  color: var(--text-primary);
+  display: block;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
 }
 
 .error-state {
@@ -176,6 +268,21 @@
     right: var(--space-md);
     font-size: 0.75rem;
     padding: 6px var(--space-sm);
+  }
+
+  /* Stack sidebar below video on mobile */
+  .analysis-workspace.with-sidebar {
+    flex-direction: column;
+  }
+
+  .video-container.with-sidebar {
+    flex: 0 0 60%;
+  }
+
+  .coaching-point-sidebar {
+    flex: 0 0 40%;
+    border-left: none;
+    border-top: 1px solid var(--border-color);
   }
 }
 

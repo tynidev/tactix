@@ -321,5 +321,6 @@ export const useYouTubePlayer = (videoId?: string) =>
     togglePlayPause,
     seekVideo,
     setPlaybackRate,
+    updateVideoDimensions,
   };
 };
