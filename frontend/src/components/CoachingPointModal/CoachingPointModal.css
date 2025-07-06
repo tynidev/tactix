@@ -72,6 +72,129 @@
 .coaching-point-modal .form-textarea {
   min-height: 100px;
   resize: vertical;
+  width: 100%;
+  padding: var(--space-md);
+  background: var(--color-bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-size: 14px;
+  transition: all 0.2s ease;
+  font-family: var(--font-family);
+}
+
+.coaching-point-modal .form-textarea:focus {
+  outline: none;
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+}
+
+.coaching-point-modal .form-textarea::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* Autocomplete styles */
+.autocomplete-container {
+  position: relative;
+}
+
+.autocomplete-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--color-bg-card);
+  border: 1px solid var(--border-color);
+  border-top: none;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  box-shadow: var(--shadow-md);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.autocomplete-suggestion {
+  padding: var(--space-sm) var(--space-md);
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.autocomplete-suggestion:hover {
+  background: var(--color-bg-secondary);
+}
+
+.autocomplete-suggestion:last-child {
+  border-bottom: none;
+}
+
+.autocomplete-suggestion.create-new {
+  background: var(--color-bg-secondary);
+  font-style: italic;
+  color: var(--color-accent-primary);
+}
+
+.autocomplete-suggestion.create-new:hover {
+  background: var(--color-accent-primary);
+  color: white;
+}
+
+.autocomplete-no-results {
+  padding: var(--space-sm) var(--space-md);
+  color: var(--color-text-muted);
+  font-style: italic;
+  text-align: center;
+}
+
+.jersey-number {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  margin-left: var(--space-xs);
+}
+
+/* Selected tags */
+.selected-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+}
+
+.selected-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-sm);
+  background: var(--color-accent-primary);
+  color: white;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 500;
+  gap: var(--space-xs);
+}
+
+.remove-tag {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0;
+  margin-left: var(--space-xs);
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s ease;
+}
+
+.remove-tag:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .coaching-point-modal .form-group {

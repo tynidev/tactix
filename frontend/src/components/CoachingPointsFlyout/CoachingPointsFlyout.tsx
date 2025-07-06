@@ -18,6 +18,21 @@ interface CoachingPoint {
     name: string;
     email: string;
   };
+  coaching_point_tagged_players?: {
+    id: string;
+    player_profiles: {
+      id: string;
+      name: string;
+      jersey_number: string;
+    };
+  }[];
+  coaching_point_labels?: {
+    id: string;
+    labels: {
+      id: string;
+      name: string;
+    };
+  }[];
 }
 
 interface CoachingPointEvent {
@@ -40,6 +55,7 @@ interface CoachingPointsFlyoutProps {
   onSeekToPoint: (timestamp: string) => void;
   onShowDrawings: (drawings: Drawing[]) => void;
   onPauseVideo: () => void;
+  refreshTrigger?: number; // Optional prop to trigger refresh
 }
 
 export const CoachingPointsFlyout: React.FC<CoachingPointsFlyoutProps> = ({
@@ -47,6 +63,7 @@ export const CoachingPointsFlyout: React.FC<CoachingPointsFlyoutProps> = ({
   onSeekToPoint,
   onShowDrawings,
   onPauseVideo,
+  refreshTrigger,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [coachingPoints, setCoachingPoints] = useState<CoachingPoint[]>([]);
@@ -169,6 +186,13 @@ export const CoachingPointsFlyout: React.FC<CoachingPointsFlyoutProps> = ({
     }
   }, [isExpanded, coachingPoints.length, loadCoachingPoints]);
 
+  // Refresh coaching points when refreshTrigger changes
+  useEffect(() => {
+    if (refreshTrigger !== undefined) {
+      loadCoachingPoints();
+    }
+  }, [refreshTrigger, loadCoachingPoints]);
+
   return (
     <div className={`coaching-points-flyout ${isExpanded ? 'expanded' : 'collapsed'}`}>
       <div className="flyout-header" onClick={() => setIsExpanded(!isExpanded)}>
@@ -221,6 +245,34 @@ export const CoachingPointsFlyout: React.FC<CoachingPointsFlyoutProps> = ({
                   <div className="point-content">
                     <h4 className="point-title">{point.title}</h4>
                     <p className="point-feedback">{point.feedback}</p>
+                    
+                    {/* Combined Players and Labels Container */}
+                    {((point.coaching_point_tagged_players && point.coaching_point_tagged_players.length > 0) || 
+                      (point.coaching_point_labels && point.coaching_point_labels.length > 0)) && (
+                      <div className="point-tags-container">
+                        {/* Tagged Players */}
+                        {point.coaching_point_tagged_players && point.coaching_point_tagged_players.length > 0 && (
+                          <div className="point-tagged-players">
+                            {point.coaching_point_tagged_players.map((taggedPlayer) => (
+                              <span key={taggedPlayer.id} className="player-tag">
+                                {taggedPlayer.player_profiles.name}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {/* Labels */}
+                        {point.coaching_point_labels && point.coaching_point_labels.length > 0 && (
+                          <div className="point-labels">
+                            {point.coaching_point_labels.map((labelAssignment) => (
+                              <span key={labelAssignment.id} className="label-tag">
+                                {labelAssignment.labels.name}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                   
                   <div className="point-footer">

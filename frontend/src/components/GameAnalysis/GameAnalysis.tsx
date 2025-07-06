@@ -37,6 +37,15 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [showCoachingPointModal, setShowCoachingPointModal] = useState(false);
+  const [coachingPointsRefresh, setCoachingPointsRefresh] = useState(0);
+
+  // Set body class for fullscreen
+  useEffect(() => {
+    document.body.className = 'hud-mode';
+    return () => {
+      document.body.className = '';
+    };
+  }, []);
 
   // YouTube player functionality - initialize with the game's video ID
   const {
@@ -108,6 +117,12 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
     console.log('Creating coaching point at:', timestamp);
     setShowCoachingPointModal(true);
   }, [player, isPlaying]);
+
+  // Handle when a coaching point is created successfully
+  const handleCoachingPointCreated = useCallback(() => {
+    // Trigger a refresh of the coaching points flyout
+    setCoachingPointsRefresh(prev => prev + 1);
+  }, []);
 
   // Handle starting/stopping recording
   const handleToggleRecording = useCallback(() => {
@@ -194,13 +209,14 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
           ← Back to Games
         </button>
         
+        <div className="game-meta">
+          <span>{new Date(game.date).toLocaleDateString()}</span>
+          <span>{formatGameResult(game.team_score, game.opp_score)}</span>
+          <span className="current-time">{formatTime(currentTime)}</span>
+        </div>
+
         <div className="game-info">
           <h1>vs {game.opponent}</h1>
-          <div className="game-meta">
-            <span>{new Date(game.date).toLocaleDateString()}</span>
-            <span>{formatGameResult(game.team_score, game.opp_score)}</span>
-            <span className="current-time">{formatTime(currentTime)}</span>
-          </div>
         </div>
 
         <div className="analysis-controls">
@@ -263,6 +279,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
         gameId={game.id}
         timestamp={currentTime}
         drawingData={getDrawingData()}
+        onCoachingPointCreated={handleCoachingPointCreated}
       />
 
       {/* Coaching Points Flyout */}
@@ -271,6 +288,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
         onSeekToPoint={handleSeekToPoint}
         onShowDrawings={handleShowDrawings}
         onPauseVideo={handlePauseVideo}
+        refreshTrigger={coachingPointsRefresh}
       />
     </div>
   );

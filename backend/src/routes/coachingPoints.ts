@@ -1,15 +1,16 @@
-import express from 'express';
+import express, { Response } from 'express';
 import { authenticateUser, type AuthenticatedRequest } from '../middleware/auth';
 import { supabase } from '../utils/supabase';
 
 const router = express.Router();
 
 // POST /api/coaching-points - Create a new coaching point
-router.post('/', authenticateUser, async (req: AuthenticatedRequest, res) => {
+router.post('/', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
     if (!userId) {
-      return res.status(401).json({ message: 'User ID not found' });
+      res.status(401).json({ message: 'User ID not found' });
+      return;
     }
 
     const {
@@ -24,9 +25,10 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res) => {
 
     // Validate required fields
     if (!game_id || !title || !feedback || !timestamp) {
-      return res.status(400).json({ 
+      res.status(400).json({ 
         message: 'Missing required fields: game_id, title, feedback, timestamp' 
       });
+      return;
     }
 
     // Verify the user has permission to create coaching points for this game
@@ -47,15 +49,17 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res) => {
       .single();
 
     if (gameError || !gameData) {
-      return res.status(404).json({ message: 'Game not found or access denied' });
+      res.status(404).json({ message: 'Game not found or access denied' });
+      return;
     }
 
     // Check if user is a coach or admin
     const userRole = gameData.teams.team_memberships[0]?.role;
     if (!userRole || !['coach', 'admin'].includes(userRole)) {
-      return res.status(403).json({ 
+      res.status(403).json({ 
         message: 'Only coaches and admins can create coaching points' 
       });
+      return;
     }
 
     // Create the coaching point
@@ -75,7 +79,8 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res) => {
 
     if (error) {
       console.error('Error creating coaching point:', error);
-      return res.status(500).json({ message: 'Failed to create coaching point' });
+      res.status(500).json({ message: 'Failed to create coaching point' });
+      return;
     }
 
     res.status(201).json(coachingPoint);
@@ -86,11 +91,12 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res) => {
 });
 
 // GET /api/coaching-points/game/:gameId - Get coaching points for a game
-router.get('/game/:gameId', authenticateUser, async (req: AuthenticatedRequest, res) => {
+router.get('/game/:gameId', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
     if (!userId) {
-      return res.status(401).json({ message: 'User ID not found' });
+      res.status(401).json({ message: 'User ID not found' });
+      return;
     }
 
     const { gameId } = req.params;
@@ -113,7 +119,8 @@ router.get('/game/:gameId', authenticateUser, async (req: AuthenticatedRequest, 
       .single();
 
     if (gameError || !gameData) {
-      return res.status(404).json({ message: 'Game not found or access denied' });
+      res.status(404).json({ message: 'Game not found or access denied' });
+      return;
     }
 
     // Get coaching points for this game
@@ -125,6 +132,21 @@ router.get('/game/:gameId', authenticateUser, async (req: AuthenticatedRequest, 
           id,
           name,
           email
+        ),
+        coaching_point_tagged_players(
+          id,
+          player_profiles(
+            id,
+            name,
+            jersey_number
+          )
+        ),
+        coaching_point_labels(
+          id,
+          labels(
+            id,
+            name
+          )
         )
       `)
       .eq('game_id', gameId)
@@ -132,7 +154,8 @@ router.get('/game/:gameId', authenticateUser, async (req: AuthenticatedRequest, 
 
     if (error) {
       console.error('Error fetching coaching points:', error);
-      return res.status(500).json({ message: 'Failed to fetch coaching points' });
+      res.status(500).json({ message: 'Failed to fetch coaching points' });
+      return;
     }
 
     res.json(coachingPoints || []);
@@ -143,11 +166,12 @@ router.get('/game/:gameId', authenticateUser, async (req: AuthenticatedRequest, 
 });
 
 // DELETE /api/coaching-points/:id - Delete a coaching point
-router.delete('/:id', authenticateUser, async (req: AuthenticatedRequest, res) => {
+router.delete('/:id', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
     if (!userId) {
-      return res.status(401).json({ message: 'User ID not found' });
+      res.status(401).json({ message: 'User ID not found' });
+      return;
     }
 
     const { id } = req.params;
@@ -171,7 +195,8 @@ router.delete('/:id', authenticateUser, async (req: AuthenticatedRequest, res) =
       .single();
 
     if (fetchError || !coachingPoint) {
-      return res.status(404).json({ message: 'Coaching point not found or access denied' });
+      res.status(404).json({ message: 'Coaching point not found or access denied' });
+      return;
     }
 
     // Check if user is the author or has admin/coach privileges
@@ -180,9 +205,10 @@ router.delete('/:id', authenticateUser, async (req: AuthenticatedRequest, res) =
     const hasPermission = isAuthor || ['coach', 'admin'].includes(userRole);
 
     if (!hasPermission) {
-      return res.status(403).json({ 
+      res.status(403).json({ 
         message: 'Only the author, coaches, or admins can delete coaching points' 
       });
+      return;
     }
 
     // Delete the coaching point (events and other related data will be cascade deleted)
@@ -193,7 +219,8 @@ router.delete('/:id', authenticateUser, async (req: AuthenticatedRequest, res) =
 
     if (deleteError) {
       console.error('Error deleting coaching point:', deleteError);
-      return res.status(500).json({ message: 'Failed to delete coaching point' });
+      res.status(500).json({ message: 'Failed to delete coaching point' });
+      return;
     }
 
     res.status(204).send();

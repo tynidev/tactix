@@ -528,4 +528,124 @@ router.post(
   },
 );
 
+// Get labels for a team
+router.get(
+  '/:teamId/labels',
+  requireTeamRole([TeamRole.Coach, TeamRole.Admin, TeamRole.Player, TeamRole.Guardian]),
+  async (req: AuthenticatedRequest, res: Response): Promise<void> =>
+  {
+    try
+    {
+      const { teamId } = req.params;
+
+      const { data: labels, error } = await supabase
+        .from('labels')
+        .select('*')
+        .eq('team_id', teamId)
+        .order('name');
+
+      if (error)
+      {
+        res.status(400).json({ error: error.message });
+        return;
+      }
+
+      res.json(labels || []);
+    }
+    catch (error)
+    {
+      console.error('Get team labels error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+);
+
+// Create a label for a team
+router.post(
+  '/:teamId/labels',
+  requireTeamRole([TeamRole.Coach, TeamRole.Admin]),
+  async (req: AuthenticatedRequest, res: Response): Promise<void> =>
+  {
+    try
+    {
+      const { teamId } = req.params;
+      const { name } = req.body;
+
+      if (!name || !name.trim())
+      {
+        res.status(400).json({ error: 'Label name is required' });
+        return;
+      }
+
+      const { data: label, error } = await supabase
+        .from('labels')
+        .insert({
+          team_id: teamId,
+          name: name.trim(),
+        })
+        .select()
+        .single();
+
+      if (error)
+      {
+        if (error.code === '23505') // Unique constraint violation
+        {
+          res.status(409).json({ error: 'Label with this name already exists for this team' });
+          return;
+        }
+        res.status(400).json({ error: error.message });
+        return;
+      }
+
+      res.status(201).json(label);
+    }
+    catch (error)
+    {
+      console.error('Create team label error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+);
+
+// Get players for a team
+router.get(
+  '/:teamId/players',
+  requireTeamRole([TeamRole.Coach, TeamRole.Admin, TeamRole.Player, TeamRole.Guardian]),
+  async (req: AuthenticatedRequest, res: Response): Promise<void> =>
+  {
+    try
+    {
+      const { teamId } = req.params;
+
+      const { data: players, error } = await supabase
+        .from('team_players')
+        .select(`
+          player_profiles (
+            id,
+            name,
+            jersey_number,
+            user_id
+          )
+        `)
+        .eq('team_id', teamId);
+
+      if (error)
+      {
+        res.status(400).json({ error: error.message });
+        return;
+      }
+
+      // Flatten the structure to make it easier to work with
+      const flattenedPlayers = players?.map(tp => tp.player_profiles).filter(Boolean) || [];
+
+      res.json(flattenedPlayers);
+    }
+    catch (error)
+    {
+      console.error('Get team players error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+);
+
 export default router;

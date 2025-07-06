@@ -14,6 +14,7 @@
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
+  gap: var(--space-lg);
 }
 
 .game-info {
@@ -22,7 +23,7 @@
 }
 
 .game-info h1 {
-  margin: 0 0 var(--space-xs) 0;
+  margin: 0;
   font-size: 1.5rem;
   font-weight: 600;
   color: var(--text-primary);
@@ -31,22 +32,18 @@
 .game-meta {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: var(--space-md);
   font-size: 0.875rem;
   color: var(--text-secondary);
 }
 
 .game-meta span {
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: var(--color-accent-primary);
   padding: 2px 8px;
   background: var(--bg-tertiary);
   border-radius: var(--radius-sm);
-}
-
-.current-time {
-  background: var(--primary-100) !important;
-  color: var(--primary-700) !important;
-  font-weight: 500;
 }
 
 .analysis-controls {
@@ -140,28 +137,27 @@
   font-size: 1.1rem;
 }
 
-/* Dark mode adjustments */
-@media (prefers-color-scheme: dark) {
-  .current-time {
-    background: var(--primary-900) !important;
-    color: var(--primary-300) !important;
-  }
-}
-
 /* Responsive design */
 @media (max-width: 768px) {
   .analysis-header {
     flex-direction: column;
     gap: var(--space-md);
     padding: var(--space-md);
+    align-items: stretch;
   }
 
   .game-info {
     order: 1;
+    text-align: center;
+  }
+
+  .game-meta {
+    order: 2;
+    justify-content: center;
   }
 
   .analysis-controls {
-    order: 2;
+    order: 3;
     justify-content: center;
     flex-wrap: wrap;
   }

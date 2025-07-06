@@ -299,6 +299,20 @@ export const useYouTubePlayer = (videoId?: string) =>
     }
   }, []);
 
+  useEffect(() => {
+    return () => {
+      // Clean up player on unmount
+      if (playerRef.current) {
+        try {
+          playerRef.current.destroy();
+        } catch (error) {
+          console.error('Error destroying YouTube player:', error);
+        }
+        playerRef.current = null;
+      }
+    };
+  }, []);
+
   return {
     player: playerRef.current,
     isPlaying,

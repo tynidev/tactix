@@ -44,6 +44,7 @@ export interface Player
   getPlayerState(): number;
   setPlaybackRate(rate: number): void;
   getPlaybackRate(): number;
+  destroy(): void;
 }
 
 export interface PlayerEvent

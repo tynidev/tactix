@@ -332,10 +332,8 @@ p {
 .video-container {
   position: relative;
   background: var(--color-bg-card);
-  border-radius: var(--radius-lg);
   overflow: hidden;
   aspect-ratio: 16/9;
-  border: 1px solid var(--border-color);
   box-shadow: var(--shadow-md);
 }
 

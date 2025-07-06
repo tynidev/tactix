@@ -1,15 +1,16 @@
-import express from 'express';
+ import express, { Response } from 'express';
 import { authenticateUser, type AuthenticatedRequest } from '../middleware/auth';
 import { supabase } from '../utils/supabase';
 
 const router = express.Router();
 
 // POST /api/coaching-point-events - Create a new coaching point event
-router.post('/', authenticateUser, async (req: AuthenticatedRequest, res) => {
+router.post('/', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
     if (!userId) {
-      return res.status(401).json({ message: 'User ID not found' });
+      res.status(401).json({ message: 'User ID not found' });
+      return;
     }
 
     const {
@@ -21,9 +22,10 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res) => {
 
     // Validate required fields
     if (!point_id || !event_type || timestamp === undefined || !event_data) {
-      return res.status(400).json({ 
+      res.status(400).json({ 
         message: 'Missing required fields: point_id, event_type, timestamp, event_data' 
       });
+      return;
     }
 
     // Verify the user has permission to add events to this coaching point
@@ -46,7 +48,8 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res) => {
       .single();
 
     if (pointError || !coachingPoint) {
-      return res.status(404).json({ message: 'Coaching point not found or access denied' });
+      res.status(404).json({ message: 'Coaching point not found or access denied' });
+      return;
     }
 
     // Check if user has permission (author, coach, or admin)
@@ -55,9 +58,10 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res) => {
     const hasPermission = isAuthor || ['coach', 'admin'].includes(userRole);
 
     if (!hasPermission) {
-      return res.status(403).json({ 
+      res.status(403).json({ 
         message: 'Only the author, coaches, or admins can add events to coaching points' 
       });
+      return;
     }
 
     // Create the coaching point event
@@ -74,7 +78,8 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res) => {
 
     if (error) {
       console.error('Error creating coaching point event:', error);
-      return res.status(500).json({ message: 'Failed to create coaching point event' });
+      res.status(500).json({ message: 'Failed to create coaching point event' });
+      return;
     }
 
     res.status(201).json(event);
@@ -85,11 +90,12 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res) => {
 });
 
 // GET /api/coaching-point-events/point/:pointId - Get events for a coaching point
-router.get('/point/:pointId', authenticateUser, async (req: AuthenticatedRequest, res) => {
+router.get('/point/:pointId', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
     if (!userId) {
-      return res.status(401).json({ message: 'User ID not found' });
+      res.status(401).json({ message: 'User ID not found' });
+      return;
     }
 
     const { pointId } = req.params;
@@ -113,7 +119,8 @@ router.get('/point/:pointId', authenticateUser, async (req: AuthenticatedRequest
       .single();
 
     if (pointError || !coachingPoint) {
-      return res.status(404).json({ message: 'Coaching point not found or access denied' });
+      res.status(404).json({ message: 'Coaching point not found or access denied' });
+      return;
     }
 
     // Get events for this coaching point
@@ -125,7 +132,8 @@ router.get('/point/:pointId', authenticateUser, async (req: AuthenticatedRequest
 
     if (error) {
       console.error('Error fetching coaching point events:', error);
-      return res.status(500).json({ message: 'Failed to fetch coaching point events' });
+      res.status(500).json({ message: 'Failed to fetch coaching point events' });
+      return;
     }
 
     res.json(events || []);
@@ -136,11 +144,12 @@ router.get('/point/:pointId', authenticateUser, async (req: AuthenticatedRequest
 });
 
 // DELETE /api/coaching-point-events/:id - Delete a coaching point event
-router.delete('/:id', authenticateUser, async (req: AuthenticatedRequest, res) => {
+router.delete('/:id', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
     if (!userId) {
-      return res.status(401).json({ message: 'User ID not found' });
+      res.status(401).json({ message: 'User ID not found' });
+      return;
     }
 
     const { id } = req.params;
@@ -167,7 +176,8 @@ router.delete('/:id', authenticateUser, async (req: AuthenticatedRequest, res) =
       .single();
 
     if (fetchError || !event) {
-      return res.status(404).json({ message: 'Coaching point event not found or access denied' });
+      res.status(404).json({ message: 'Coaching point event not found or access denied' });
+      return;
     }
 
     // Check if user has permission (author, coach, or admin)
@@ -176,9 +186,10 @@ router.delete('/:id', authenticateUser, async (req: AuthenticatedRequest, res) =
     const hasPermission = isAuthor || ['coach', 'admin'].includes(userRole);
 
     if (!hasPermission) {
-      return res.status(403).json({ 
+      res.status(403).json({ 
         message: 'Only the author, coaches, or admins can delete coaching point events' 
       });
+      return;
     }
 
     // Delete the event
@@ -189,7 +200,8 @@ router.delete('/:id', authenticateUser, async (req: AuthenticatedRequest, res) =
 
     if (deleteError) {
       console.error('Error deleting coaching point event:', deleteError);
-      return res.status(500).json({ message: 'Failed to delete coaching point event' });
+      res.status(500).json({ message: 'Failed to delete coaching point event' });
+      return;
     }
 
     res.status(204).send();

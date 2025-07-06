@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getApiUrl } from '../../utils/api';
 import type { Drawing } from '../../types/drawing';
@@ -10,11 +10,13 @@ interface CoachingPointModalProps {
   gameId: string;
   timestamp: number; // Video timestamp in seconds
   drawingData: Drawing[]; // Current drawing data from canvas
+  onCoachingPointCreated?: () => void; // Callback to refresh coaching points list
 }
 
 interface Player {
   id: string;
   name: string;
+  jersey_number?: string;
 }
 
 interface Label {
@@ -28,6 +30,7 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
   gameId,
   timestamp,
   drawingData,
+  onCoachingPointCreated,
 }) => {
   const { user } = useAuth();
   const [formData, setFormData] = useState({
@@ -40,6 +43,13 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
   const [labels, setLabels] = useState<Label[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [labelInput, setLabelInput] = useState('');
+  const [playerInput, setPlayerInput] = useState('');
+  const [showLabelSuggestions, setShowLabelSuggestions] = useState(false);
+  const [showPlayerSuggestions, setShowPlayerSuggestions] = useState(false);
+  const [teamId, setTeamId] = useState<string | null>(null);
+  const labelInputRef = useRef<HTMLDivElement>(null);
+  const playerInputRef = useRef<HTMLDivElement>(null);
 
   // Reset form when modal opens/closes
   useEffect(() => {
@@ -47,11 +57,31 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
       setFormData({ title: '', feedback: '' });
       setSelectedPlayers([]);
       setSelectedLabels([]);
+      setLabelInput('');
+      setPlayerInput('');
+      setShowLabelSuggestions(false);
+      setShowPlayerSuggestions(false);
       setError('');
-      // TODO: Load players and labels for the team
       loadPlayersAndLabels();
     }
   }, [isOpen, gameId]);
+
+  // Handle click outside to close suggestions
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (labelInputRef.current && !labelInputRef.current.contains(event.target as Node)) {
+        setShowLabelSuggestions(false);
+      }
+      if (playerInputRef.current && !playerInputRef.current.contains(event.target as Node)) {
+        setShowPlayerSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const loadPlayersAndLabels = async () => {
     try {
@@ -62,10 +92,44 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
         throw new Error('No access token');
       }
 
-      // For now, we'll leave players and labels empty since they're not required
-      // In the future, these would be loaded from the team's players and labels
-      setPlayers([]);
-      setLabels([]);
+      const apiUrl = getApiUrl();
+      
+      // First get the game to find the team ID
+      const gameResponse = await fetch(`${apiUrl}/api/games/${gameId}`, {
+        headers: {
+          'Authorization': `Bearer ${session.data.session.access_token}`,
+        }
+      });
+
+      if (gameResponse.ok) {
+        const game = await gameResponse.json();
+        const teamIdFromGame = game.team_id;
+        setTeamId(teamIdFromGame);
+
+        // Load players for this team
+        const playersResponse = await fetch(`${apiUrl}/api/teams/${teamIdFromGame}/players`, {
+          headers: {
+            'Authorization': `Bearer ${session.data.session.access_token}`,
+          }
+        });
+
+        if (playersResponse.ok) {
+          const playersData = await playersResponse.json();
+          setPlayers(playersData);
+        }
+
+        // Load labels for this team
+        const labelsResponse = await fetch(`${apiUrl}/api/teams/${teamIdFromGame}/labels`, {
+          headers: {
+            'Authorization': `Bearer ${session.data.session.access_token}`,
+          }
+        });
+
+        if (labelsResponse.ok) {
+          const labelsData = await labelsResponse.json();
+          setLabels(labelsData);
+        }
+      }
     } catch (err) {
       console.error('Error loading players and labels:', err);
     }
@@ -75,6 +139,113 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Filter labels based on input
+  const getFilteredLabels = () => {
+    if (!labelInput.trim()) return [];
+    return labels.filter(label => 
+      label.name.toLowerCase().includes(labelInput.toLowerCase()) &&
+      !selectedLabels.includes(label.id)
+    );
+  };
+
+  // Filter players based on input
+  const getFilteredPlayers = () => {
+    if (!playerInput.trim()) return [];
+    return players.filter(player => {
+      const matchesName = player.name.toLowerCase().includes(playerInput.toLowerCase());
+      const matchesJersey = player.jersey_number?.toLowerCase().includes(playerInput.toLowerCase());
+      return (matchesName || matchesJersey) && !selectedPlayers.includes(player.id);
+    });
+  };
+
+  // Create a new label
+  const createNewLabel = async (name: string) => {
+    if (!teamId) return null;
+
+    try {
+      const token = (await import('../../lib/supabase')).supabase.auth.getSession();
+      const session = await token;
+      
+      if (!session.data.session?.access_token) {
+        throw new Error('No access token');
+      }
+
+      const apiUrl = getApiUrl();
+      
+      const response = await fetch(`${apiUrl}/api/teams/${teamId}/labels`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.data.session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name: name.trim().toUpperCase() })
+      });
+
+      if (response.ok) {
+        const newLabel = await response.json();
+        setLabels(prev => [...prev, newLabel]);
+        return newLabel;
+      }
+    } catch (err) {
+      console.error('Error creating label:', err);
+    }
+    return null;
+  };
+
+  const handleLabelInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.toUpperCase();
+    setLabelInput(value);
+    setShowLabelSuggestions(value.trim().length > 0);
+  };
+
+  const handlePlayerInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setPlayerInput(value);
+    setShowPlayerSuggestions(value.trim().length > 0);
+  };
+
+  const handleLabelSelect = async (label: Label | null, inputValue?: string) => {
+    if (label) {
+      setSelectedLabels(prev => [...prev, label.id]);
+    } else if (inputValue?.trim()) {
+      // Create new label
+      const newLabel = await createNewLabel(inputValue.trim());
+      if (newLabel) {
+        setSelectedLabels(prev => [...prev, newLabel.id]);
+      }
+    }
+    setLabelInput('');
+    setShowLabelSuggestions(false);
+  };
+
+  const handlePlayerSelect = (player: Player) => {
+    setSelectedPlayers(prev => [...prev, player.id]);
+    setPlayerInput('');
+    setShowPlayerSuggestions(false);
+  };
+
+  const handleLabelKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const filteredLabels = getFilteredLabels();
+      if (filteredLabels.length > 0) {
+        handleLabelSelect(filteredLabels[0]);
+      } else if (labelInput.trim()) {
+        handleLabelSelect(null, labelInput.trim());
+      }
+    }
+  };
+
+  const handlePlayerKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const filteredPlayers = getFilteredPlayers();
+      if (filteredPlayers.length > 0) {
+        handlePlayerSelect(filteredPlayers[0]);
+      }
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -202,6 +373,11 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
         }
       }
 
+      // Notify parent component that a coaching point was created
+      if (onCoachingPointCreated) {
+        onCoachingPointCreated();
+      }
+
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create coaching point');
@@ -216,22 +392,6 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
       ...prev,
       [name]: value
     }));
-  };
-
-  const togglePlayerSelection = (playerId: string) => {
-    setSelectedPlayers(prev => 
-      prev.includes(playerId) 
-        ? prev.filter(id => id !== playerId)
-        : [...prev, playerId]
-    );
-  };
-
-  const toggleLabelSelection = (labelId: string) => {
-    setSelectedLabels(prev => 
-      prev.includes(labelId) 
-        ? prev.filter(id => id !== labelId)
-        : [...prev, labelId]
-    );
   };
 
   if (!isOpen) return null;
@@ -291,41 +451,117 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
             />
           </div>
 
-          {players.length > 0 && (
-            <div className="form-group">
-              <label className="form-label">Tagged Players</label>
-              <div className="player-tags">
-                {players.map((player) => (
-                  <button
-                    key={player.id}
-                    type="button"
-                    className={`tag ${selectedPlayers.includes(player.id) ? 'selected' : ''}`}
-                    onClick={() => togglePlayerSelection(player.id)}
-                  >
-                    {player.name}
-                  </button>
-                ))}
-              </div>
+          <div className="form-group">
+            <label className="form-label">Tagged Players</label>
+            <div className="autocomplete-container" ref={playerInputRef}>
+              <input
+                type="text"
+                value={playerInput}
+                onChange={handlePlayerInputChange}
+                onKeyDown={handlePlayerKeyDown}
+                onFocus={() => setShowPlayerSuggestions(playerInput.trim().length > 0)}
+                className="form-input"
+                placeholder="Type to search players..."
+              />
+              {showPlayerSuggestions && (
+                <div className="autocomplete-suggestions">
+                  {getFilteredPlayers().map((player) => (
+                    <div
+                      key={player.id}
+                      className="autocomplete-suggestion"
+                      onClick={() => handlePlayerSelect(player)}
+                    >
+                      {player.name}
+                      {player.jersey_number && (
+                        <span className="jersey-number">#{player.jersey_number}</span>
+                      )}
+                    </div>
+                  ))}
+                  {getFilteredPlayers().length === 0 && playerInput.trim() && (
+                    <div className="autocomplete-no-results">
+                      No players found matching "{playerInput}"
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          )}
+            {selectedPlayers.length > 0 && (
+              <div className="selected-tags">
+                {selectedPlayers.map((playerId) => {
+                  const player = players.find(p => p.id === playerId);
+                  return player ? (
+                    <span key={playerId} className="selected-tag">
+                      {player.name.split(' ')[0]}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedPlayers(prev => prev.filter(id => id !== playerId))}
+                        className="remove-tag"
+                        aria-label={`Remove ${player.name}`}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ) : null;
+                })}
+              </div>
+            )}
+          </div>
 
-          {labels.length > 0 && (
-            <div className="form-group">
-              <label className="form-label">Labels</label>
-              <div className="label-tags">
-                {labels.map((label) => (
-                  <button
-                    key={label.id}
-                    type="button"
-                    className={`tag ${selectedLabels.includes(label.id) ? 'selected' : ''}`}
-                    onClick={() => toggleLabelSelection(label.id)}
-                  >
-                    {label.name}
-                  </button>
-                ))}
-              </div>
+          <div className="form-group">
+            <label className="form-label">Labels</label>
+            <div className="autocomplete-container" ref={labelInputRef}>
+              <input
+                type="text"
+                value={labelInput}
+                onChange={handleLabelInputChange}
+                onKeyDown={handleLabelKeyDown}
+                onFocus={() => setShowLabelSuggestions(labelInput.trim().length > 0)}
+                className="form-input"
+                placeholder="Type to search or create labels..."
+              />
+              {showLabelSuggestions && (
+                <div className="autocomplete-suggestions">
+                  {getFilteredLabels().map((label) => (
+                    <div
+                      key={label.id}
+                      className="autocomplete-suggestion"
+                      onClick={() => handleLabelSelect(label)}
+                    >
+                      {label.name}
+                    </div>
+                  ))}
+                  {getFilteredLabels().length === 0 && labelInput.trim() && (
+                    <div 
+                      className="autocomplete-suggestion create-new"
+                      onClick={() => handleLabelSelect(null, labelInput.trim())}
+                    >
+                      Create "{labelInput.trim()}"
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          )}
+            {selectedLabels.length > 0 && (
+              <div className="selected-tags">
+                {selectedLabels.map((labelId) => {
+                  const label = labels.find(l => l.id === labelId);
+                  return label ? (
+                    <span key={labelId} className="selected-tag">
+                      {label.name}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedLabels(prev => prev.filter(id => id !== labelId))}
+                        className="remove-tag"
+                        aria-label={`Remove ${label.name}`}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ) : null;
+                })}
+              </div>
+            )}
+          </div>
 
           <div className="form-actions">
             <button

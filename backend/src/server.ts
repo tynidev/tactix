@@ -10,6 +10,8 @@ import { errorHandler } from './middleware/errorHandler.js';
 import authRoutes from './routes/auth.js';
 import coachingPointRoutes from './routes/coachingPoints.js';
 import coachingPointEventRoutes from './routes/coachingPointEvents.js';
+import coachingPointLabelRoutes from './routes/coachingPointLabels.js';
+import coachingPointTaggedPlayerRoutes from './routes/coachingPointTaggedPlayers.js';
 import gameRoutes from './routes/games.js';
 import teamRoutes from './routes/teams.js';
 
@@ -51,6 +53,8 @@ app.get('/health', (req: Request, res: Response) =>
 app.use('/api/auth', authRoutes);
 app.use('/api/coaching-points', coachingPointRoutes);
 app.use('/api/coaching-point-events', coachingPointEventRoutes);
+app.use('/api/coaching-point-labels', coachingPointLabelRoutes);
+app.use('/api/coaching-point-tagged-players', coachingPointTaggedPlayerRoutes);
 app.use('/api/games', gameRoutes);
 app.use('/api/teams', teamRoutes);
 
