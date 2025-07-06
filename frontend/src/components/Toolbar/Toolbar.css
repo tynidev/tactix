@@ -2,17 +2,11 @@
 #toolbar {
   position: absolute;
   top: var(--space-5);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: var(--z-fixed);
   display: flex;
-  gap: var(--space-4);
-  padding: var(--space-3) var(--space-4);
   background: var(--black-overlay);
-  border-radius: var(--radius-3xl);
-  backdrop-filter: blur(10px);
-  border: 1px solid var(--white-more);
-  align-items: center;
+  border-radius: var(--radius-lg);
+  padding: var(--space-sm);
+  backdrop-filter: blur(100px);
 }
 
 .toolbar-separator {

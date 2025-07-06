@@ -15,6 +15,8 @@ export const useYouTubePlayer = (videoId?: string) =>
   const playerRef = useRef<Player | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isReady, setIsReady] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const [videoDimensions, setVideoDimensions] = useState<
     { width: number; height: number; top: number; left: number; } | null
   >(null);
@@ -171,6 +173,40 @@ export const useYouTubePlayer = (videoId?: string) =>
   };
 
   /**
+   * Updates the current time and duration from the player
+   * Called periodically to keep the time state in sync
+   */
+  const updateTimeState = useCallback(() => {
+    if (!playerRef.current || !isReady) return;
+
+    try {
+      const time = playerRef.current.getCurrentTime();
+      const dur = playerRef.current.getDuration();
+      setCurrentTime(time);
+      setDuration(dur);
+    } catch (error) {
+      console.error('Error updating time state:', error);
+    }
+  }, [isReady]);
+
+  /**
+   * Seeks to a specific time position in the video
+   *
+   * @param time - Time in seconds to seek to
+   */
+  const seekToTime = useCallback((time: number) => {
+    if (!playerRef.current) return;
+
+    try {
+      const duration = playerRef.current.getDuration();
+      const newTime = Math.max(0, Math.min(duration, time));
+      playerRef.current.seekTo(newTime, true);
+    } catch (error) {
+      console.error('Error seeking to time:', error);
+    }
+  }, []);
+
+  /**
    * Handles the YouTube player ready event
    * Automatically starts video playback and begins dimension tracking
    *
@@ -184,12 +220,14 @@ export const useYouTubePlayer = (videoId?: string) =>
       setIsReady(true);
       // Start tracking video dimensions after player is ready
       setTimeout(updateVideoDimensions, 100);
+      // Initialize time state
+      setTimeout(updateTimeState, 200);
     }
     catch (error)
     {
       console.error('Error initializing player:', error);
     }
-  }, [updateVideoDimensions]);
+  }, [updateVideoDimensions, updateTimeState]);
 
   /**
    * Handles YouTube player state change events
@@ -219,15 +257,18 @@ export const useYouTubePlayer = (videoId?: string) =>
 
     window.addEventListener('resize', handleResize);
 
-    // Update dimensions periodically to handle dynamic changes
-    const interval = setInterval(updateVideoDimensions, 1000);
+    // Update dimensions and time periodically to handle dynamic changes
+    const interval = setInterval(() => {
+      updateVideoDimensions();
+      updateTimeState();
+    }, 250); // Update every 250ms for smooth timeline
 
     return () =>
     {
       window.removeEventListener('resize', handleResize);
       clearInterval(interval);
     };
-  }, [isReady, updateVideoDimensions]);
+  }, [isReady, updateVideoDimensions, updateTimeState]);
 
   /**
    * Toggles video playback between play and pause states
@@ -317,9 +358,12 @@ export const useYouTubePlayer = (videoId?: string) =>
     player: playerRef.current,
     isPlaying,
     isReady,
+    currentTime,
+    duration,
     videoDimensions,
     togglePlayPause,
     seekVideo,
+    seekToTime,
     setPlaybackRate,
     updateVideoDimensions,
   };

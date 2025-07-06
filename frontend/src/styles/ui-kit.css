@@ -7,6 +7,41 @@
   --color2-color: #faf615;
   --color3-color: #3b82f6;
 
+  /* HUD Overlay Colors */
+  --black-overlay: rgba(0, 0, 0, 0.8);
+  --white-transparent: rgba(255, 255, 255, 0.2);
+  --white-semi: rgba(255, 255, 255, 0.3);
+  --white-opaque: rgba(255, 255, 255, 0.4);
+  --white-more: rgba(255, 255, 255, 0.15);
+  --white-glow: rgba(255, 255, 255, 0.5);
+  --green-active: #10b981;
+  --green-glow: rgba(16, 185, 129, 0.5);
+
+  /* Text sizing */
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 18px;
+  --text-xl: 20px;
+
+  /* Font weights */
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.3s ease;
+  --transition-slow: 0.5s ease;
+
+  /* Spacing system extension */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+
   /* Light Theme Colors */
   --color-bg-primary-light: #FFFFFF;
   --color-bg-secondary-light: #F8F9FA;

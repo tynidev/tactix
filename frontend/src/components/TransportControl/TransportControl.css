@@ -1,0 +1,213 @@
+/* Transport Control Layout */
+.transport-control {
+  position: absolute;
+  bottom: var(--space-5);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--black-overlay);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  backdrop-filter: blur(100px);
+  box-shadow: var(--shadow-lg);
+  z-index: 100;
+}
+
+.transport-main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/* Speed Controls */
+.speed-controls {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.speed-btn {
+  background-color: var(--white-semi);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  min-width: 40px;
+}
+
+.speed-btn:hover {
+  background-color: var(--white-opaque);
+  transform: scale(1.05);
+}
+
+.speed-btn.active {
+  background-color: var(--green-active);
+  box-shadow: 0 0 10px var(--green-glow);
+}
+
+/* Transport Buttons */
+.transport-buttons {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.transport-btn {
+  width: 48px;
+  height: 48px;
+  background-color: var(--white-transparent);
+  color: white;
+  border: none;
+  border-radius: var(--radius-full);
+  font-size: 24px;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+}
+
+.transport-btn:hover {
+  background-color: var(--white-semi);
+  transform: scale(1.1);
+  box-shadow: var(--shadow-lg);
+}
+
+.transport-btn.play-pause {
+  width: 56px;
+  height: 56px;
+  font-size: 28px;
+  background-color: var(--green-active);
+}
+
+.transport-btn.play-pause:hover {
+  background-color: var(--green-active);
+  box-shadow: 0 0 15px var(--green-glow);
+}
+
+/* Timeline Container */
+.timeline-container {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+  min-width: 300px;
+}
+
+.time-display {
+  color: white;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  font-variant-numeric: tabular-nums;
+  min-width: 40px;
+  text-align: center;
+}
+
+/* Timeline */
+.timeline {
+  flex: 1;
+  height: 32px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: var(--space-2) 0;
+}
+
+.timeline-track {
+  position: relative;
+  width: 100%;
+  height: 6px;
+  background: var(--white-transparent);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.timeline-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(90deg, var(--green-active), var(--green-glow));
+  border-radius: var(--radius-full);
+  transition: width 0.1s ease-out;
+}
+
+.timeline-playhead {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: var(--radius-full);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+  transition: left 0.1s ease-out;
+  z-index: 1;
+}
+
+.timeline:hover .timeline-playhead {
+  transform: translate(-50%, -50%) scale(1.2);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.6);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .transport-control {
+    bottom: var(--space-3);
+    left: var(--space-3);
+    right: var(--space-3);
+    transform: none;
+    padding: var(--space-3);
+  }
+  
+  .transport-main {
+    gap: var(--space-3);
+  }
+  
+  .timeline-container {
+    min-width: 200px;
+  }
+  
+  .transport-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+  
+  .transport-btn.play-pause {
+    width: 48px;
+    height: 48px;
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .transport-main {
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  
+  .speed-controls {
+    order: 2;
+  }
+  
+  .transport-buttons {
+    order: 1;
+  }
+  
+  .timeline-container {
+    order: 3;
+    min-width: auto;
+    width: 100%;
+  }
+  
+  .speed-btn {
+    padding: var(--space-1) var(--space-2);
+    font-size: var(--text-xs);
+    min-width: 35px;
+  }
+}

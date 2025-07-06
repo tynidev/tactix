@@ -5,7 +5,8 @@ import { useYouTubePlayer } from '../../hooks/useYouTubePlayer';
 import { CoachingPointModal } from '../CoachingPointModal/CoachingPointModal';
 import { CoachingPointsFlyout } from '../CoachingPointsFlyout/CoachingPointsFlyout';
 import DrawingCanvas from '../DrawingCanvas/DrawingCanvas';
-import Toolbar from '../Toolbar/Toolbar';
+import DrawingToolbar from '../DrawingToolbar/DrawingToolbar';
+import TransportControl from '../TransportControl/TransportControl';
 import YouTubePlayer from '../YouTubePlayer/YouTubePlayer';
 import type { Drawing } from '../../types/drawing';
 import './GameAnalysis.css';
@@ -67,7 +68,6 @@ interface GameAnalysisProps {
 
 export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
   const [isRecording, setIsRecording] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
   const [showCoachingPointModal, setShowCoachingPointModal] = useState(false);
   const [coachingPointsRefresh, setCoachingPointsRefresh] = useState(0);
   const [selectedCoachingPoint, setSelectedCoachingPoint] = useState<CoachingPoint | null>(null);
@@ -92,9 +92,12 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
     player,
     isPlaying,
     isReady,
+    currentTime: playerCurrentTime,
+    duration,
     videoDimensions,
     togglePlayPause,
     seekVideo,
+    seekToTime,
     setPlaybackRate,
     updateVideoDimensions,
   } = useYouTubePlayer(game.video_id || undefined);
@@ -127,17 +130,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
   }, [game.video_id]);
 
   // Track current video time
-  useEffect(() => {
-    if (!player) return;
-
-    const interval = setInterval(() => {
-      if (player.getCurrentTime) {
-        setCurrentTime(player.getCurrentTime());
-      }
-    }, 100);
-
-    return () => clearInterval(interval);
-  }, [player]);
+  // Note: currentTime is now provided by the useYouTubePlayer hook as playerCurrentTime
 
   // Handle playback rate changes
   const handlePlaybackRateChange = useCallback((rate: number) => {
@@ -269,7 +262,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
         <div className="game-meta">
           <span>{new Date(game.date).toLocaleDateString()}</span>
           <span>{formatGameResult(game.team_score, game.opp_score)}</span>
-          <span className="current-time">{formatTime(currentTime)}</span>
+          <span className="current-time">{formatTime(playerCurrentTime)}</span>
         </div>
 
         <div className="game-info">
@@ -364,16 +357,22 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
           </div>
         )}
 
-        <Toolbar
+        <DrawingToolbar
           currentColor={currentColor}
           currentMode={currentMode}
-          isPlaying={isPlaying}
-          currentPlaybackRate={player?.getPlaybackRate() ?? 1}
           onColorChange={changeColor}
           onModeChange={changeMode}
           onClearCanvas={clearCanvas}
+        />
+
+        <TransportControl
+          isPlaying={isPlaying}
+          currentTime={playerCurrentTime}
+          duration={duration}
+          currentPlaybackRate={player?.getPlaybackRate() ?? 1}
           onTogglePlayPause={togglePlayPause}
           onSeek={seekVideo}
+          onSeekTo={seekToTime}
           onPlaybackRateChange={handlePlaybackRateChange}
         />
       </div>
@@ -390,7 +389,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
         isOpen={showCoachingPointModal}
         onClose={() => setShowCoachingPointModal(false)}
         gameId={game.id}
-        timestamp={currentTime}
+        timestamp={playerCurrentTime}
         drawingData={getDrawingData()}
         onCoachingPointCreated={handleCoachingPointCreated}
       />
