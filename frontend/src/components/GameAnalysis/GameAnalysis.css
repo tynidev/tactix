@@ -25,23 +25,21 @@
 .game-info h1 {
   margin: 0;
   font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--color-text-primary);
+  font-weight: 900;
 }
 
 .game-meta {
   display: flex;
   align-items: center;
   gap: var(--space-md);
-  font-size: 0.875rem;
   color: var(--color-text-secondary);
 }
 
 .game-meta span {
-  font-size: 1.1rem;
-  font-weight: 900;
-  color: var(--color-accent-primary);
-  padding: 2px 8px;
+  position: relative;
+  top:2px;
+  font-size: 1rem;
+  font-weight: 500;
   background: var(--color-bg-card);
   border-radius: var(--radius-sm);
 }

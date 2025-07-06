@@ -258,15 +258,14 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
         <button onClick={onBack} className="btn btn-secondary">
           ← Back to Games
         </button>
-        
-        <div className="game-meta">
-          <span>{new Date(game.date).toLocaleDateString()}</span>
-          <span>{formatGameResult(game.team_score, game.opp_score)}</span>
-          <span className="current-time">{formatTime(playerCurrentTime)}</span>
-        </div>
 
         <div className="game-info">
           <h1>vs {game.opponent}</h1>
+        </div>
+        
+        <div className="game-meta">
+          <span>Game Date: {new Date(game.date).toLocaleDateString()}</span>
+          <span>Score: {formatGameResult(game.team_score, game.opp_score)}</span>
         </div>
 
         <div className="analysis-controls">
