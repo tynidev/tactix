@@ -12,6 +12,7 @@ interface UseKeyboardShortcutsProps
   changeMode: (mode: DrawingMode) => void;
   clearCanvas: () => void;
   undoLastDrawing: () => void;
+  disabled?: boolean; // Disable shortcuts when modal is open
 }
 
 export const useKeyboardShortcuts = ({
@@ -23,10 +24,14 @@ export const useKeyboardShortcuts = ({
   changeMode,
   clearCanvas,
   undoLastDrawing,
+  disabled = false,
 }: UseKeyboardShortcutsProps) =>
 {
   const handleKeyDown = useCallback((e: KeyboardEvent) =>
   {
+    // Don't handle shortcuts if disabled (e.g., when modal is open)
+    if (disabled) return;
+
     const key = e.key.toLowerCase();
     console.log('Key pressed:', key);
 
@@ -125,7 +130,7 @@ export const useKeyboardShortcuts = ({
         }
         break;
     }
-  }, [player, togglePlayPause, seekVideo, setPlaybackRate, changeColor, changeMode, clearCanvas, undoLastDrawing]);
+  }, [disabled, player, togglePlayPause, seekVideo, setPlaybackRate, changeColor, changeMode, clearCanvas, undoLastDrawing]);
 
   useEffect(() =>
   {

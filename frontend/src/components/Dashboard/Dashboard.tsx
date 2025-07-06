@@ -156,10 +156,10 @@ export const Dashboard: React.FC = () => {
     setAnalyzingGame(null)
   }
 
-  const handleBackFromGames = () => {
-    setSelectedTeam(null)
-    setCurrentPage('dashboard')
-  }
+  // const handleBackFromGames = () => {
+  //   setSelectedTeam(null)
+  //   setCurrentPage('dashboard')
+  // }
 
   const handleCreateTeam = async () => {
     const teamName = prompt('Enter team name:')

@@ -1,0 +1,105 @@
+/* Coaching Point Modal Styles */
+.coaching-point-modal {
+  width: 100%;
+  max-width: 700px;
+}
+
+.coaching-point-info {
+  background: var(--color-bg-secondary);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-lg);
+  border: 1px solid var(--border-color);
+}
+
+.coaching-point-info p {
+  margin: 0 0 var(--space-xs) 0;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.coaching-point-info p:last-child {
+  margin-bottom: 0;
+}
+
+.coaching-point-info strong {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+/* Tag Selection Styles */
+.player-tags,
+.label-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  white-space: nowrap;
+}
+
+.tag:hover {
+  border-color: var(--color-accent-primary);
+  background: var(--color-bg-secondary);
+  transform: translateY(-1px);
+}
+
+.tag.selected {
+  background: var(--color-accent-primary);
+  border-color: var(--color-accent-primary);
+  color: white;
+}
+
+.tag.selected:hover {
+  background: var(--color-accent-secondary);
+  border-color: var(--color-accent-secondary);
+}
+
+/* Form overrides for coaching point modal */
+.coaching-point-modal .form-textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.coaching-point-modal .form-group {
+  margin-bottom: var(--space-lg);
+}
+
+.coaching-point-modal .form-label {
+  font-weight: 600;
+  margin-bottom: var(--space-sm);
+}
+
+/* Alert styling within modal */
+.coaching-point-modal .alert {
+  margin-bottom: var(--space-lg);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .coaching-point-modal {
+    max-width: 95vw;
+  }
+  
+  .coaching-point-info {
+    padding: var(--space-sm);
+  }
+  
+  .tag {
+    font-size: 0.7rem;
+    padding: 6px var(--space-xs);
+  }
+}

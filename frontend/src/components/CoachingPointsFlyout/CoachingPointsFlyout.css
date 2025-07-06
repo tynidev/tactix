@@ -1,0 +1,280 @@
+/* Coaching Points Flyout Styles */
+.coaching-points-flyout {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.3);
+  border-top: none;
+  box-shadow: none;
+  z-index: 100;
+  transition: all var(--transition-normal);
+  backdrop-filter: blur(4px);
+}
+
+.coaching-points-flyout.collapsed {
+  height: 60px;
+}
+
+.coaching-points-flyout.expanded {
+  height: 400px;
+}
+
+.flyout-header {
+  height: 60px;
+  padding: var(--space-md) var(--space-lg);
+  cursor: pointer;
+  border-bottom: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  transition: background-color var(--transition-normal);
+}
+
+.flyout-header:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.header-content h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+.expand-button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: var(--space-xs);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-normal);
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+.expand-button:hover {
+  background: rgba(0, 0, 0, 0.3);
+  color: white;
+}
+
+.flyout-content {
+  height: 340px;
+  overflow-y: auto;
+  padding: var(--space-md);
+  background: transparent;
+}
+
+/* Loading and Error States */
+.loading-state, 
+.error-state, 
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.loading-spinner {
+  font-size: 0.9rem;
+}
+
+.error-state p {
+  margin-bottom: var(--space-md);
+  color: var(--color-error);
+}
+
+.empty-state p {
+  margin: 0 0 var(--space-xs) 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* Coaching Points List */
+.coaching-points-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.coaching-point-item {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 60px;
+}
+
+.coaching-point-item:hover {
+  border-color: var(--color-accent-primary);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.point-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  flex-shrink: 0;
+  margin-right: var(--space-sm);
+  min-width: 80px;
+}
+
+.point-timestamp {
+    background: var(--color-bg-secondary);
+    color: var(--color-accent-primary);
+    padding: 10px var(--space-sm);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    font-weight: 999;
+    font-family: var(monospace);
+    white-space: nowrap;
+    letter-spacing: 0.12em;
+}
+
+.point-date {
+  font-size: 0.65rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  margin-bottom: 2px;
+}
+
+.point-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.point-title {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.point-feedback {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.point-footer {
+  flex-shrink: 0;
+  margin-left: var(--space-sm);
+  min-width: 80px;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.point-author {
+  font-size: 0.65rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+  white-space: nowrap;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .coaching-points-flyout.expanded {
+    height: 50vh;
+    max-height: 400px;
+  }
+  
+  .flyout-content {
+    height: calc(50vh - 60px);
+    max-height: 340px;
+    padding: var(--space-sm);
+  }
+  
+  .coaching-point-item {
+    padding: var(--space-xs);
+    min-height: 50px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-xs);
+  }
+  
+  .point-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin-right: 0;
+    min-width: auto;
+  }
+  
+  .point-timestamp {
+    font-size: 0.65rem;
+  }
+  
+  .point-title {
+    font-size: 0.8rem;
+  }
+  
+  .point-feedback {
+    font-size: 0.7rem;
+  }
+  
+  .point-footer {
+    margin-left: 0;
+    min-width: auto;
+    text-align: left;
+  }
+  
+  .point-author {
+    font-size: 0.6rem;
+  }
+}
+
+/* Scrollbar Styling */
+.flyout-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.flyout-content::-webkit-scrollbar-track {
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-sm);
+}
+
+.flyout-content::-webkit-scrollbar-thumb {
+  background: var(--color-text-muted);
+  border-radius: var(--radius-sm);
+}
+
+.flyout-content::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-secondary);
+}

@@ -2,9 +2,12 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useDrawingCanvas } from '../../hooks/useDrawingCanvas';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { useYouTubePlayer } from '../../hooks/useYouTubePlayer';
+import { CoachingPointModal } from '../CoachingPointModal/CoachingPointModal';
+import { CoachingPointsFlyout } from '../CoachingPointsFlyout/CoachingPointsFlyout';
 import DrawingCanvas from '../DrawingCanvas/DrawingCanvas';
 import Toolbar from '../Toolbar/Toolbar';
 import YouTubePlayer from '../YouTubePlayer/YouTubePlayer';
+import type { Drawing } from '../../types/drawing';
 import './GameAnalysis.css';
 
 interface Game {
@@ -33,6 +36,7 @@ interface GameAnalysisProps {
 export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
+  const [showCoachingPointModal, setShowCoachingPointModal] = useState(false);
 
   // YouTube player functionality - initialize with the game's video ID
   const {
@@ -57,6 +61,8 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
     changeColor,
     changeMode,
     undoLastDrawing,
+    getDrawingData,
+    setDrawingData,
   } = useDrawingCanvas();
 
   // Load the game video when component mounts or video_id changes
@@ -92,11 +98,16 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
   const handleCreateCoachingPoint = useCallback(() => {
     if (!player) return;
 
+    // Only allow creating coaching points when video is paused
+    if (isPlaying) {
+      alert('Please pause the video to add a coaching point.');
+      return;
+    }
+
     const timestamp = player.getCurrentTime();
     console.log('Creating coaching point at:', timestamp);
-    // TODO: Implement coaching point creation
-    // This would open a modal or form to add title, feedback, tag players, etc.
-  }, [player]);
+    setShowCoachingPointModal(true);
+  }, [player, isPlaying]);
 
   // Handle starting/stopping recording
   const handleToggleRecording = useCallback(() => {
@@ -110,6 +121,29 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
     }
   }, [isRecording]);
 
+  // Handle seeking to a coaching point timestamp
+  const handleSeekToPoint = useCallback((timestampMs: string) => {
+    if (!player) return;
+
+    const timestamp = parseInt(timestampMs, 10) / 1000;
+    console.log('Seeking to timestamp:', timestamp);
+    // Use seekTo with allowSeekAhead set to true
+    player.seekTo(timestamp, true);
+  }, [player]);
+
+  // Handle showing drawings from a coaching point
+  const handleShowDrawings = useCallback((drawings: Drawing[]) => {
+    setDrawingData(drawings);
+  }, [setDrawingData]);
+
+  // Handle pausing the video
+  const handlePauseVideo = useCallback(() => {
+    if (!player || !isPlaying) return;
+
+    console.log('Pausing video');
+    player.pauseVideo();
+  }, [player, isPlaying]);
+
   // Keyboard shortcuts
   useKeyboardShortcuts({
     player,
@@ -120,6 +154,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
     changeMode,
     clearCanvas,
     undoLastDrawing,
+    disabled: showCoachingPointModal, // Disable shortcuts when modal is open
   });
 
   const formatTime = (seconds: number): string => {
@@ -172,7 +207,8 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
           <button
             onClick={handleCreateCoachingPoint}
             className="btn btn-primary"
-            disabled={!isReady}
+            disabled={!isReady || isPlaying}
+            title={isPlaying ? 'Pause video to add coaching point' : 'Add coaching point'}
           >
             Add Coaching Point
           </button>
@@ -219,6 +255,23 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
           Recording Session
         </div>
       )}
+
+      {/* Coaching Point Modal */}
+      <CoachingPointModal
+        isOpen={showCoachingPointModal}
+        onClose={() => setShowCoachingPointModal(false)}
+        gameId={game.id}
+        timestamp={currentTime}
+        drawingData={getDrawingData()}
+      />
+
+      {/* Coaching Points Flyout */}
+      <CoachingPointsFlyout
+        gameId={game.id}
+        onSeekToPoint={handleSeekToPoint}
+        onShowDrawings={handleShowDrawings}
+        onPauseVideo={handlePauseVideo}
+      />
     </div>
   );
 };

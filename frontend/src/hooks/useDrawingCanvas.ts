@@ -569,6 +569,29 @@ export const useDrawingCanvas = () =>
     redrawCanvas();
   }, [redrawCanvas]);
 
+  /**
+   * Gets a copy of the current drawing data for saving or export.
+   * Returns a snapshot of all drawing elements stored in the canvas.
+   *
+   * @returns Array of drawing elements with normalized coordinates
+   */
+  const getDrawingData = useCallback((): Drawing[] =>
+  {
+    return [...drawingElementsRef.current];
+  }, []);
+
+  /**
+   * Sets the drawing data on the canvas.
+   * Replaces all current drawings with the provided drawings and redraws the canvas.
+   *
+   * @param drawings - Array of drawing elements to display
+   */
+  const setDrawingData = useCallback((drawings: Drawing[]) =>
+  {
+    drawingElementsRef.current = [...drawings];
+    redrawCanvas();
+  }, [redrawCanvas]);
+
   return {
     canvasRef,
     currentColor,
@@ -580,5 +603,7 @@ export const useDrawingCanvas = () =>
     changeColor,
     changeMode,
     undoLastDrawing,
+    getDrawingData,
+    setDrawingData,
   };
 };

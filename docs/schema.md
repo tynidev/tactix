@@ -83,7 +83,7 @@
 | `author_id`   | UUID (FK) | References `user_profiles.id` (coach) |
 | `title`       | Text      | Short summary                         |
 | `feedback`    | Text      | Detailed feedback                     |
-| `timestamp`   | Time      | Time in video (e.g., 12:34)           |
+| `timestamp`   | Integer   | Time in video in milliseconds         |
 | `audio_url`   | Text      | URL to stored audio file              |
 | `duration`    | Integer   | Total duration in milliseconds        |
 | `created_at`  | Timestamp | When it was added                     |
@@ -209,7 +209,7 @@ erDiagram
         UUID author_id FK
         Text title
         Text feedback
-        Time timestamp
+        Integer timestamp
         Text audio_url
         Integer duration
         Timestamp created_at

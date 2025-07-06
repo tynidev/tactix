@@ -4,13 +4,13 @@ import './GameForm.css';
 interface GameFormData {
   opponent: string;
   date: string;
-  location: string;
-  video_id: string;
+  location: string | null;
+  video_id: string | null;
   team_score: number | null;
   opp_score: number | null;
   game_type: 'regular' | 'tournament' | 'scrimmage';
   home_away: 'home' | 'away' | 'neutral';
-  notes: string;
+  notes: string | null;
 }
 
 interface GameFormProps {
@@ -31,13 +31,13 @@ export const GameForm: React.FC<GameFormProps> = ({
   const [formData, setFormData] = useState<GameFormData>({
     opponent: initialData.opponent || '',
     date: initialData.date || '',
-    location: initialData.location || '',
-    video_id: initialData.video_id || '',
+    location: initialData.location || null,
+    video_id: initialData.video_id || null,
     team_score: initialData.team_score || null,
     opp_score: initialData.opp_score || null,
     game_type: initialData.game_type || 'regular',
     home_away: initialData.home_away || 'home',
-    notes: initialData.notes || ''
+    notes: initialData.notes || null
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -55,9 +55,9 @@ export const GameForm: React.FC<GameFormProps> = ({
       // Convert empty strings to null for API
       const apiData = {
         ...formData,
-        location: formData.location.trim() || null,
-        video_id: formData.video_id.trim() || null,
-        notes: formData.notes.trim() || null,
+        location: formData.location?.trim() || null,
+        video_id: formData.video_id?.trim() || null,
+        notes: formData.notes?.trim() || null,
         team_id: teamId
       };
       await onSubmit(apiData as any);
@@ -178,7 +178,7 @@ export const GameForm: React.FC<GameFormProps> = ({
               id="location"
               name="location"
               type="text"
-              value={formData.location}
+              value={formData.location || ''}
               onChange={handleInputChange}
               className="form-input"
               placeholder="Field name or address"
@@ -227,7 +227,7 @@ export const GameForm: React.FC<GameFormProps> = ({
               id="video_id"
               name="video_id"
               type="url"
-              value={formData.video_id}
+              value={formData.video_id || ''}
               onChange={handleInputChange}
               className="form-input"
               placeholder="https://www.youtube.com/watch?v=..."
@@ -244,7 +244,7 @@ export const GameForm: React.FC<GameFormProps> = ({
             <textarea
               id="notes"
               name="notes"
-              value={formData.notes}
+              value={formData.notes || ''}
               onChange={handleInputChange}
               className="form-textarea"
               placeholder="Game notes, key moments, etc."

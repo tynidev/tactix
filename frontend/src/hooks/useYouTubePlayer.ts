@@ -270,6 +270,7 @@ export const useYouTubePlayer = (videoId?: string) =>
       const currentTime = playerRef.current.getCurrentTime();
       const duration = playerRef.current.getDuration();
       const newTime = Math.max(0, Math.min(duration, currentTime + seconds));
+      console.log('Seeking video to:', newTime);
       playerRef.current.seekTo(newTime, true);
     }
     catch (error)

@@ -8,6 +8,8 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import { errorHandler } from './middleware/errorHandler.js';
 import authRoutes from './routes/auth.js';
+import coachingPointRoutes from './routes/coachingPoints.js';
+import coachingPointEventRoutes from './routes/coachingPointEvents.js';
 import gameRoutes from './routes/games.js';
 import teamRoutes from './routes/teams.js';
 
@@ -47,6 +49,8 @@ app.get('/health', (req: Request, res: Response) =>
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/coaching-points', coachingPointRoutes);
+app.use('/api/coaching-point-events', coachingPointEventRoutes);
 app.use('/api/games', gameRoutes);
 app.use('/api/teams', teamRoutes);
 
