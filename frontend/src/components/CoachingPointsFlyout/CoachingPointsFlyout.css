@@ -61,6 +61,7 @@
   position: relative;
   top: 0px;
   transition: color var(--transition-normal);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); /* Add shadow for depth */
 }
 
 .expand-button {
@@ -76,8 +77,8 @@
 .header-right:hover h3,
 .header-right:hover .expand-button {
   cursor: pointer;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); /* Add shadow for depth */
-  transform: scale(1.0); /* Slightly enlarge text */
+  color: #efefef;
+  text-shadow: none;
 }
 
 .flyout-content {
