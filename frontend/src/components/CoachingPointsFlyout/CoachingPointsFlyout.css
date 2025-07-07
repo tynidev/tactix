@@ -8,7 +8,7 @@
   border: none;
   box-shadow: none;
   z-index: 100;
-  transition: all var(--transition-normal);
+  transition: height var(--transition-normal), backdrop-filter var(--transition-normal);
   backdrop-filter: blur(4px);
 }
 
@@ -246,15 +246,14 @@
     padding: 10px var(--space-sm);
     border-radius: var(--radius-sm);
     font-size: 0.85rem;
-    font-weight: 999;
-    font-family: var(monospace);
+    font-weight: 900;
+    font-family: monospace;
     white-space: nowrap;
     letter-spacing: 0.12em;
     display: flex;
     align-items: center;
     justify-content: center;
     flex: 1;
-    min-height: 100%;
 }
 
 .delete-point-btn {
@@ -281,7 +280,7 @@
 }
 
 .delete-point-btn:hover {
-  background: #DC2626; /* Darker red for hover */
+  background: var(--color-error);
   transform: scale(1);
   box-shadow: var(--shadow-md);
 }
@@ -428,8 +427,9 @@
   }
 
   .filters-grid {
-    gap: var(--space-sm);
-    grid-template-columns: 1fr;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--space-md);
   }
 
   .clear-filter-group {
