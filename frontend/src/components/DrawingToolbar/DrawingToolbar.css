@@ -53,11 +53,35 @@
   box-shadow: var(--shadow-lg);
 }
 
-/* Color buttons */
-.color-btn.active {
-  outline: 1px solid white;
+.drawing-btn:focus,
+.drawing-btn:focus-visible {
+  outline: 2px solid white;
   outline-offset: 2px;
-  box-shadow: 0 0 8px var(--color-accent-light);
+}
+
+/* Don't show focus outline on color buttons that are active */
+.color-btn.color-active:focus,
+.color-btn.color-active:focus-visible {
+  outline: 2px solid white;
+  outline-offset: 2px;
+}
+
+/* Color buttons */
+.color-btn {
+  position: relative;
+  opacity: 0.6;
+  transition: opacity var(--transition-normal);
+}
+
+.color-btn:hover {
+  opacity: 0.8;
+}
+
+.color-btn.color-active {
+  opacity: 1;
+  outline: 2px solid white;
+  outline-offset: 2px;
+  box-shadow: 0 0 8px var(--white-glow);
 }
 
 .color1-btn {
@@ -84,27 +108,28 @@
   color: white;
 }
 
-.mode-btn.active {
-  background-color: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 0 10px white;
+.mode-btn.active,
+.mode-btn.tool-active {
+  background-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
   color: white;
 }
 
 /* Action buttons */
 .action-btn {
-  background: rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.3);
   font-size: 18px;
   color: white;
 }
 
 .action-btn:hover {
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.5);
   color: white;
 }
 
 /* Collapse button */
 .collapse-btn {
-  background: rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.3);
   font-size: 16px;
   font-weight: bold;
   color: white;

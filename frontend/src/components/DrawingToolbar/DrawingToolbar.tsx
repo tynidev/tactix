@@ -61,21 +61,21 @@ const DrawingToolbar: React.FC<DrawingToolbarProps> = ({
           <div className="drawing-group">
             <button
               className={`drawing-btn color-btn color1-btn ${
-                currentColor === CONFIG.drawing.colors.color1 ? 'active' : ''
+                currentColor === CONFIG.drawing.colors.color1 ? 'color-active' : ''
               }`}
               onClick={() => handleColorChange(CONFIG.drawing.colors.color1)}
               title="Color 1 (1)"
             />
             <button
               className={`drawing-btn color-btn color2-btn ${
-                currentColor === CONFIG.drawing.colors.color2 ? 'active' : ''
+                currentColor === CONFIG.drawing.colors.color2 ? 'color-active' : ''
               }`}
               onClick={() => handleColorChange(CONFIG.drawing.colors.color2)}
               title="Color 2 (2)"
             />
             <button
               className={`drawing-btn color-btn color3-btn ${
-                currentColor === CONFIG.drawing.colors.color3 ? 'active' : ''
+                currentColor === CONFIG.drawing.colors.color3 ? 'color-active' : ''
               }`}
               onClick={() => handleColorChange(CONFIG.drawing.colors.color3)}
               title="Color 3 (3)"
@@ -87,28 +87,28 @@ const DrawingToolbar: React.FC<DrawingToolbarProps> = ({
           {/* Tools Group */}
           <div className="drawing-group">
             <button
-              className={`drawing-btn mode-btn ${currentMode === 'arrow' ? 'active' : ''}`}
+              className={`drawing-btn mode-btn ${currentMode === 'arrow' ? 'tool-active' : ''}`}
               onClick={() => handleModeChange('arrow')}
               title="Arrow Line (4)"
             >
               <FaLongArrowAltUp />
             </button>
             <button
-              className={`drawing-btn mode-btn ${currentMode === 'line' ? 'active' : ''}`}
+              className={`drawing-btn mode-btn ${currentMode === 'line' ? 'tool-active' : ''}`}
               onClick={() => handleModeChange('line')}
               title="Simple Line (5)"
             >
               <FaPen />
             </button>
             <button
-              className={`drawing-btn mode-btn ${currentMode === 'rectangle' ? 'active' : ''}`}
+              className={`drawing-btn mode-btn ${currentMode === 'rectangle' ? 'tool-active' : ''}`}
               onClick={() => handleModeChange('rectangle')}
               title="Rectangle (6)"
             >
               <FaRegSquare />
             </button>
             <button
-              className={`drawing-btn mode-btn ${currentMode === 'ellipse' ? 'active' : ''}`}
+              className={`drawing-btn mode-btn ${currentMode === 'ellipse' ? 'tool-active' : ''}`}
               onClick={() => handleModeChange('ellipse')}
               title="Ellipse (7)"
             >
