@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { useDrawingCanvas } from '../../hooks/useDrawingCanvas';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { useYouTubePlayer } from '../../hooks/useYouTubePlayer';
@@ -78,6 +78,9 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
     recordingEvents: any[];
     recordingDuration: number;
   } | null>(null);
+
+  // Add this ref to track previous drawings
+  const lastDrawingsRef = useRef<Drawing[]>([]);
 
   // Audio recording functionality
   const audioRecording = useAudioRecording();
@@ -235,9 +238,9 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
       // Stop recording
       console.log('🛑 Stopping recording session from GameAnalysis...');
       
-      // Stop audio recording
+      // Stop audio recording and get the blob
       console.log('⏹️ Stopping audio recording...');
-      audioRecording.stopRecording();
+      const audioBlob = await audioRecording.stopRecording();
       
       // Stop recording session and get events
       console.log('📊 Collecting recording events...');
@@ -245,26 +248,22 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
       
       setIsRecording(false);
       
-      // Wait a bit for the audio blob to be ready
-      console.log('⏳ Waiting for audio blob to finalize...');
-      setTimeout(() => {
-        // Prepare recording data for modal
-        const recordingData = {
-          audioBlob: audioRecording.audioBlob,
-          recordingEvents: capturedEvents,
-          recordingDuration: audioRecording.recordingTime,
-        };
-        
-        console.log('💾 Recording data prepared for modal:', {
-          hasAudio: !!recordingData.audioBlob,
-          audioSize: recordingData.audioBlob?.size,
-          eventCount: recordingData.recordingEvents.length,
-          duration: recordingData.recordingDuration
-        });
-        
-        setRecordingData(recordingData);
-        setShowCoachingPointModal(true);
-      }, 100); // Give audio recording time to finalize
+      // Prepare recording data
+      const recordingData = {
+        audioBlob: audioBlob,
+        recordingEvents: capturedEvents,
+        recordingDuration: audioRecording.recordingTime,
+      };
+      
+      console.log('💾 Recording data prepared for modal:', {
+        hasAudio: !!recordingData.audioBlob,
+        audioSize: recordingData.audioBlob?.size,
+        eventCount: recordingData.recordingEvents.length,
+        duration: recordingData.recordingDuration
+      });
+      
+      setRecordingData(recordingData);
+      setShowCoachingPointModal(true);
     }
   }, [isRecording, isPlaying, player, audioRecording, recordingSession]);
 
@@ -314,10 +313,15 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
     const interval = setInterval(() => {
       const currentDrawings = getDrawingData();
       if (currentDrawings.length > 0 && videoDimensions) {
-        recordingSession.recordDrawEvent(currentDrawings, {
-          width: videoDimensions.width,
-          height: videoDimensions.height,
-        });
+        // Only record if drawings have changed
+        const drawingsChanged = JSON.stringify(currentDrawings) !== JSON.stringify(lastDrawingsRef.current);
+        if (drawingsChanged) {
+          recordingSession.recordDrawEvent(currentDrawings, {
+            width: videoDimensions.width,
+            height: videoDimensions.height,
+          });
+          lastDrawingsRef.current = [...currentDrawings];
+        }
       }
     }, 50); // Capture every 50ms
 

@@ -10,7 +10,7 @@ export interface AudioRecordingState {
 
 export interface UseAudioRecordingReturn extends AudioRecordingState {
   startRecording: () => Promise<boolean>;
-  stopRecording: () => void;
+  stopRecording: () => Promise<Blob | null>;  // Changed to return a Promise
   pauseRecording: () => void;
   resumeRecording: () => void;
   clearRecording: () => void;
@@ -191,19 +191,43 @@ export const useAudioRecording = (): UseAudioRecordingReturn => {
   }, [startTimer, stopTimer, cleanupMedia]);
 
   /**
-   * Stops audio recording
+   * Stops audio recording and returns the audio blob
    */
-  const stopRecording = useCallback(() => {
+  const stopRecording = useCallback((): Promise<Blob | null> => {
     console.log('⏹️ Stopping audio recording...');
     
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      console.log('📤 MediaRecorder stop signal sent');
-      // The onstop event will handle state updates and cleanup
-    } else {
-      console.warn('⚠️ Cannot stop recording - no active MediaRecorder or not recording');
-    }
-  }, [isRecording]);
+    return new Promise((resolve) => {
+      if (mediaRecorderRef.current && isRecording) {
+        // Set up a one-time listener for when the recording stops
+        const originalOnStop = mediaRecorderRef.current.onstop;
+        
+        mediaRecorderRef.current.onstop = () => {
+          const audioBlob = new Blob(audioChunksRef.current, { 
+            type: mediaRecorderRef.current!.mimeType 
+          });
+          console.log('🎵 Audio recording completed:', {
+            finalSize: audioBlob.size,
+            mimeType: audioBlob.type,
+            chunks: audioChunksRef.current.length
+          });
+          setAudioBlob(audioBlob);
+          setIsRecording(false);
+          setIsPaused(false);
+          stopTimer();
+          cleanupMedia();
+          
+          // Resolve with the blob
+          resolve(audioBlob);
+        };
+        
+        mediaRecorderRef.current.stop();
+        console.log('📤 MediaRecorder stop signal sent');
+      } else {
+        console.warn('⚠️ Cannot stop recording - no active MediaRecorder or not recording');
+        resolve(null);
+      }
+    });
+  }, [isRecording, stopTimer, cleanupMedia]);
 
   /**
    * Pauses audio recording
