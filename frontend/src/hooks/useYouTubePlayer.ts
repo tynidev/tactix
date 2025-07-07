@@ -176,15 +176,19 @@ export const useYouTubePlayer = (videoId?: string) =>
    * Updates the current time and duration from the player
    * Called periodically to keep the time state in sync
    */
-  const updateTimeState = useCallback(() => {
+  const updateTimeState = useCallback(() =>
+  {
     if (!playerRef.current || !isReady) return;
 
-    try {
+    try
+    {
       const time = playerRef.current.getCurrentTime();
       const dur = playerRef.current.getDuration();
       setCurrentTime(time);
       setDuration(dur);
-    } catch (error) {
+    }
+    catch (error)
+    {
       console.error('Error updating time state:', error);
     }
   }, [isReady]);
@@ -194,14 +198,18 @@ export const useYouTubePlayer = (videoId?: string) =>
    *
    * @param time - Time in seconds to seek to
    */
-  const seekToTime = useCallback((time: number) => {
+  const seekToTime = useCallback((time: number) =>
+  {
     if (!playerRef.current) return;
 
-    try {
+    try
+    {
       const duration = playerRef.current.getDuration();
       const newTime = Math.max(0, Math.min(duration, time));
       playerRef.current.seekTo(newTime, true);
-    } catch (error) {
+    }
+    catch (error)
+    {
       console.error('Error seeking to time:', error);
     }
   }, []);
@@ -258,7 +266,8 @@ export const useYouTubePlayer = (videoId?: string) =>
     window.addEventListener('resize', handleResize);
 
     // Update dimensions and time periodically to handle dynamic changes
-    const interval = setInterval(() => {
+    const interval = setInterval(() =>
+    {
       updateVideoDimensions();
       updateTimeState();
     }, 250); // Update every 250ms for smooth timeline
@@ -340,13 +349,19 @@ export const useYouTubePlayer = (videoId?: string) =>
     }
   }, []);
 
-  useEffect(() => {
-    return () => {
+  useEffect(() =>
+  {
+    return () =>
+    {
       // Clean up player on unmount
-      if (playerRef.current) {
-        try {
+      if (playerRef.current)
+      {
+        try
+        {
           playerRef.current.destroy();
-        } catch (error) {
+        }
+        catch (error)
+        {
           console.error('Error destroying YouTube player:', error);
         }
         playerRef.current = null;

@@ -130,7 +130,17 @@ export const useKeyboardShortcuts = ({
         }
         break;
     }
-  }, [disabled, player, togglePlayPause, seekVideo, setPlaybackRate, changeColor, changeMode, clearCanvas, undoLastDrawing]);
+  }, [
+    disabled,
+    player,
+    togglePlayPause,
+    seekVideo,
+    setPlaybackRate,
+    changeColor,
+    changeMode,
+    clearCanvas,
+    undoLastDrawing,
+  ]);
 
   useEffect(() =>
   {

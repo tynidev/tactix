@@ -1,23 +1,27 @@
 import express, { Response } from 'express';
-import { authenticateUser, type AuthenticatedRequest } from '../middleware/auth.js';
+import { type AuthenticatedRequest, authenticateUser } from '../middleware/auth.js';
 import { supabase } from '../utils/supabase.js';
 
 const router = express.Router();
 
 // POST /api/coaching-point-labels - Assign a label to a coaching point
-router.post('/', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
+router.post('/', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> =>
+{
+  try
+  {
     const userId = req.user?.id;
-    if (!userId) {
+    if (!userId)
+    {
       res.status(401).json({ message: 'User ID not found' });
       return;
     }
 
     const { point_id, label_id } = req.body;
 
-    if (!point_id || !label_id) {
-      res.status(400).json({ 
-        message: 'Missing required fields: point_id, label_id' 
+    if (!point_id || !label_id)
+    {
+      res.status(400).json({
+        message: 'Missing required fields: point_id, label_id',
       });
       return;
     }
@@ -41,16 +45,18 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res: Respon
       .eq('games.teams.team_memberships.user_id', userId)
       .single();
 
-    if (pointError || !pointData) {
+    if (pointError || !pointData)
+    {
       res.status(404).json({ message: 'Coaching point not found or access denied' });
       return;
     }
 
     // Check if user is a coach or admin
     const userRole = pointData.games.teams.team_memberships[0]?.role;
-    if (!userRole || !['coach', 'admin'].includes(userRole)) {
-      res.status(403).json({ 
-        message: 'Only coaches and admins can assign labels to coaching points' 
+    if (!userRole || !['coach', 'admin'].includes(userRole))
+    {
+      res.status(403).json({
+        message: 'Only coaches and admins can assign labels to coaching points',
       });
       return;
     }
@@ -64,7 +70,8 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res: Respon
       .eq('team_id', teamId)
       .single();
 
-    if (labelError || !labelData) {
+    if (labelError || !labelData)
+    {
       res.status(404).json({ message: 'Label not found or does not belong to this team' });
       return;
     }
@@ -79,8 +86,10 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res: Respon
       .select('*')
       .single();
 
-    if (error) {
-      if (error.code === '23505') { // Unique constraint violation
+    if (error)
+    {
+      if (error.code === '23505')
+      { // Unique constraint violation
         res.status(409).json({ message: 'Label already assigned to this coaching point' });
         return;
       }
@@ -90,17 +99,22 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res: Respon
     }
 
     res.status(201).json(assignment);
-  } catch (error) {
+  }
+  catch (error)
+  {
     console.error('Error in POST /coaching-point-labels:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
 
 // DELETE /api/coaching-point-labels/:id - Remove a label assignment
-router.delete('/:id', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
+router.delete('/:id', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> =>
+{
+  try
+  {
     const userId = req.user?.id;
-    if (!userId) {
+    if (!userId)
+    {
       res.status(401).json({ message: 'User ID not found' });
       return;
     }
@@ -127,16 +141,18 @@ router.delete('/:id', authenticateUser, async (req: AuthenticatedRequest, res: R
       .eq('coaching_points.games.teams.team_memberships.user_id', userId)
       .single();
 
-    if (fetchError || !assignment) {
+    if (fetchError || !assignment)
+    {
       res.status(404).json({ message: 'Label assignment not found or access denied' });
       return;
     }
 
     // Check if user is a coach or admin
     const userRole = assignment.coaching_points.games.teams.team_memberships[0]?.role;
-    if (!userRole || !['coach', 'admin'].includes(userRole)) {
-      res.status(403).json({ 
-        message: 'Only coaches and admins can remove label assignments' 
+    if (!userRole || !['coach', 'admin'].includes(userRole))
+    {
+      res.status(403).json({
+        message: 'Only coaches and admins can remove label assignments',
       });
       return;
     }
@@ -147,14 +163,17 @@ router.delete('/:id', authenticateUser, async (req: AuthenticatedRequest, res: R
       .delete()
       .eq('id', id);
 
-    if (deleteError) {
+    if (deleteError)
+    {
       console.error('Error removing label assignment:', deleteError);
       res.status(500).json({ message: 'Failed to remove label assignment' });
       return;
     }
 
     res.status(204).send();
-  } catch (error) {
+  }
+  catch (error)
+  {
     console.error('Error in DELETE /coaching-point-labels/:id:', error);
     res.status(500).json({ message: 'Internal server error' });
   }

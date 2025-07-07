@@ -1,23 +1,27 @@
 import express, { Response } from 'express';
-import { authenticateUser, type AuthenticatedRequest } from '../middleware/auth.js';
+import { type AuthenticatedRequest, authenticateUser } from '../middleware/auth.js';
 import { supabase } from '../utils/supabase.js';
 
 const router = express.Router();
 
 // POST /api/coaching-point-tagged-players - Tag a player to a coaching point
-router.post('/', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
+router.post('/', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> =>
+{
+  try
+  {
     const userId = req.user?.id;
-    if (!userId) {
+    if (!userId)
+    {
       res.status(401).json({ message: 'User ID not found' });
       return;
     }
 
     const { point_id, player_id } = req.body;
 
-    if (!point_id || !player_id) {
-      res.status(400).json({ 
-        message: 'Missing required fields: point_id, player_id' 
+    if (!point_id || !player_id)
+    {
+      res.status(400).json({
+        message: 'Missing required fields: point_id, player_id',
       });
       return;
     }
@@ -41,16 +45,18 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res: Respon
       .eq('games.teams.team_memberships.user_id', userId)
       .single();
 
-    if (pointError || !pointData) {
+    if (pointError || !pointData)
+    {
       res.status(404).json({ message: 'Coaching point not found or access denied' });
       return;
     }
 
     // Check if user is a coach or admin
     const userRole = pointData.games.teams.team_memberships[0]?.role;
-    if (!userRole || !['coach', 'admin'].includes(userRole)) {
-      res.status(403).json({ 
-        message: 'Only coaches and admins can tag players to coaching points' 
+    if (!userRole || !['coach', 'admin'].includes(userRole))
+    {
+      res.status(403).json({
+        message: 'Only coaches and admins can tag players to coaching points',
       });
       return;
     }
@@ -64,7 +70,8 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res: Respon
       .eq('team_id', teamId)
       .single();
 
-    if (playerError || !playerData) {
+    if (playerError || !playerData)
+    {
       res.status(404).json({ message: 'Player not found or does not belong to this team' });
       return;
     }
@@ -79,8 +86,10 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res: Respon
       .select('*')
       .single();
 
-    if (error) {
-      if (error.code === '23505') { // Unique constraint violation
+    if (error)
+    {
+      if (error.code === '23505')
+      { // Unique constraint violation
         res.status(409).json({ message: 'Player already tagged to this coaching point' });
         return;
       }
@@ -90,17 +99,22 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res: Respon
     }
 
     res.status(201).json(tag);
-  } catch (error) {
+  }
+  catch (error)
+  {
     console.error('Error in POST /coaching-point-tagged-players:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
 
 // DELETE /api/coaching-point-tagged-players/:id - Remove a player tag
-router.delete('/:id', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
+router.delete('/:id', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> =>
+{
+  try
+  {
     const userId = req.user?.id;
-    if (!userId) {
+    if (!userId)
+    {
       res.status(401).json({ message: 'User ID not found' });
       return;
     }
@@ -127,16 +141,18 @@ router.delete('/:id', authenticateUser, async (req: AuthenticatedRequest, res: R
       .eq('coaching_points.games.teams.team_memberships.user_id', userId)
       .single();
 
-    if (fetchError || !tag) {
+    if (fetchError || !tag)
+    {
       res.status(404).json({ message: 'Player tag not found or access denied' });
       return;
     }
 
     // Check if user is a coach or admin
     const userRole = tag.coaching_points.games.teams.team_memberships[0]?.role;
-    if (!userRole || !['coach', 'admin'].includes(userRole)) {
-      res.status(403).json({ 
-        message: 'Only coaches and admins can remove player tags' 
+    if (!userRole || !['coach', 'admin'].includes(userRole))
+    {
+      res.status(403).json({
+        message: 'Only coaches and admins can remove player tags',
       });
       return;
     }
@@ -147,14 +163,17 @@ router.delete('/:id', authenticateUser, async (req: AuthenticatedRequest, res: R
       .delete()
       .eq('id', id);
 
-    if (deleteError) {
+    if (deleteError)
+    {
       console.error('Error removing player tag:', deleteError);
       res.status(500).json({ message: 'Failed to remove player tag' });
       return;
     }
 
     res.status(204).send();
-  } catch (error) {
+  }
+  catch (error)
+  {
     console.error('Error in DELETE /coaching-point-tagged-players/:id:', error);
     res.status(500).json({ message: 'Internal server error' });
   }

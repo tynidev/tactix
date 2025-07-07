@@ -98,8 +98,10 @@ export const apiRequest = async (
  * @param audioBlob - The audio blob to upload
  * @returns Promise resolving to the public URL or null if failed
  */
-export const uploadAudioFile = async (audioBlob: Blob): Promise<string | null> => {
-  try {
+export const uploadAudioFile = async (audioBlob: Blob): Promise<string | null> =>
+{
+  try
+  {
     // Create a proper filename without special characters
     const timestamp = Date.now();
     // Extract just the main type (e.g., "webm" from "audio/webm;codecs=opus")
@@ -109,17 +111,18 @@ export const uploadAudioFile = async (audioBlob: Blob): Promise<string | null> =
 
     // Create a new File object with the proper name and type
     const audioFile = new File([audioBlob], fileName, {
-      type: mimeTypeParts // Use cleaned mime type without codec info
+      type: mimeTypeParts, // Use cleaned mime type without codec info
     });
 
     const { data, error } = await supabase.storage
       .from('coaching-audio')
       .upload(fileName, audioFile, {
         cacheControl: '3600', // Cache for 1 hour
-        upsert: false // Don't overwrite existing files
+        upsert: false, // Don't overwrite existing files
       });
 
-    if (error) {
+    if (error)
+    {
       console.error('❌ Error uploading audio:', error);
       return null;
     }
@@ -130,7 +133,9 @@ export const uploadAudioFile = async (audioBlob: Blob): Promise<string | null> =
       .getPublicUrl(data.path);
 
     return urlData.publicUrl;
-  } catch (error) {
+  }
+  catch (error)
+  {
     console.error('❌ Upload error:', error);
     return null;
   }
@@ -140,22 +145,26 @@ export const uploadAudioFile = async (audioBlob: Blob): Promise<string | null> =
  * Compress drawing data by reducing precision and removing redundant data
  * Helps reduce payload size for large drawing datasets
  */
-const compressDrawingData = (drawings: any[]): any[] => {
-  return drawings.map(drawing => {
-    if (drawing.points && Array.isArray(drawing.points)) {
+const compressDrawingData = (drawings: any[]): any[] =>
+{
+  return drawings.map(drawing =>
+  {
+    if (drawing.points && Array.isArray(drawing.points))
+    {
       // Reduce point precision to 2 decimal places
       const compressedPoints = drawing.points.map((point: any) => ({
         x: Math.round(point.x * 100) / 100,
-        y: Math.round(point.y * 100) / 100
+        y: Math.round(point.y * 100) / 100,
       }));
-      
+
       // Remove consecutive duplicate points
-      const filteredPoints = compressedPoints.filter((point: any, index: number) => {
+      const filteredPoints = compressedPoints.filter((point: any, index: number) =>
+      {
         if (index === 0) return true;
         const prevPoint = compressedPoints[index - 1];
         return point.x !== prevPoint.x || point.y !== prevPoint.y;
       });
-      
+
       return { ...drawing, points: filteredPoints };
     }
     return drawing;
@@ -165,7 +174,7 @@ const compressDrawingData = (drawings: any[]): any[] => {
 /**
  * Create a comprehensive coaching point with optional audio recording, events, player tags, and labels
  * This is the main function for creating coaching points with all associated data
- * 
+ *
  * @param gameId - ID of the game this coaching point belongs to
  * @param title - Title/name of the coaching point
  * @param feedback - Detailed feedback text
@@ -188,13 +197,16 @@ export const createCoachingPointWithRecording = async (
   selectedLabels: string[],
   audioBlob?: Blob,
   recordingEvents?: any[],
-  recordingDuration?: number
-): Promise<any> => {
-  try {
+  recordingDuration?: number,
+): Promise<any> =>
+{
+  try
+  {
     let audioUrl = '';
-    
+
     // Upload audio if provided
-    if (audioBlob) {
+    if (audioBlob)
+    {
       audioUrl = await uploadAudioFile(audioBlob) || '';
     }
 
@@ -213,12 +225,13 @@ export const createCoachingPointWithRecording = async (
       body: JSON.stringify(coachingPointData),
     });
 
-    if (!response.ok) {
+    if (!response.ok)
+    {
       const errorText = await response.text();
       console.error('❌ Failed to create coaching point:', {
         status: response.status,
         statusText: response.statusText,
-        error: errorText
+        error: errorText,
       });
       throw new Error('Failed to create coaching point');
     }
@@ -226,21 +239,24 @@ export const createCoachingPointWithRecording = async (
     const coachingPoint = await response.json();
 
     // Create coaching point events if provided using batch endpoint for efficiency
-    if (recordingEvents && recordingEvents.length > 0) {
-      const eventsData = recordingEvents.map(event => {
+    if (recordingEvents && recordingEvents.length > 0)
+    {
+      const eventsData = recordingEvents.map(event =>
+      {
         // Compress drawing data if present
-        if (event.type === 'draw' && event.data?.drawings) {
+        if (event.type === 'draw' && event.data?.drawings)
+        {
           return {
             point_id: coachingPoint.id,
             event_type: event.type,
             timestamp: event.timestamp,
             event_data: {
               ...event.data,
-              drawings: compressDrawingData(event.data.drawings)
+              drawings: compressDrawingData(event.data.drawings),
             },
           };
         }
-        
+
         return {
           point_id: coachingPoint.id,
           event_type: event.type,
@@ -254,21 +270,25 @@ export const createCoachingPointWithRecording = async (
         body: JSON.stringify({ events: eventsData }),
       });
 
-      if (!batchResponse.ok) {
+      if (!batchResponse.ok)
+      {
         const errorText = await batchResponse.text();
         console.error('❌ Failed to save recording events:', {
           status: batchResponse.status,
           statusText: batchResponse.statusText,
-          error: errorText
+          error: errorText,
         });
         console.warn('⚠️ Recording events not saved, but coaching point was created');
       }
     }
 
     // Associate players with this coaching point (many-to-many relationship)
-    if (selectedPlayers.length > 0) {
-      const playerPromises = selectedPlayers.map(async (playerId, index) => {
-        try {
+    if (selectedPlayers.length > 0)
+    {
+      const playerPromises = selectedPlayers.map(async (playerId, index) =>
+      {
+        try
+        {
           const response = await apiRequest('/api/coaching-point-tagged-players', {
             method: 'POST',
             body: JSON.stringify({
@@ -276,9 +296,11 @@ export const createCoachingPointWithRecording = async (
               player_id: playerId,
             }),
           });
-                    
+
           return response;
-        } catch (error) {
+        }
+        catch (error)
+        {
           console.error(`❌ Error tagging player ${index + 1}:`, error);
           throw error;
         }
@@ -288,9 +310,12 @@ export const createCoachingPointWithRecording = async (
     }
 
     // Associate labels with this coaching point (many-to-many relationship)
-    if (selectedLabels.length > 0) {
-      const labelPromises = selectedLabels.map(async (labelId) => {
-        try {
+    if (selectedLabels.length > 0)
+    {
+      const labelPromises = selectedLabels.map(async (labelId) =>
+      {
+        try
+        {
           const response = await apiRequest('/api/coaching-point-labels', {
             method: 'POST',
             body: JSON.stringify({
@@ -298,9 +323,11 @@ export const createCoachingPointWithRecording = async (
               label_id: labelId,
             }),
           });
-                    
+
           return response;
-        } catch (error) {
+        }
+        catch (error)
+        {
           throw error;
         }
       });
@@ -309,7 +336,9 @@ export const createCoachingPointWithRecording = async (
     }
 
     return coachingPoint;
-  } catch (error) {
+  }
+  catch (error)
+  {
     console.error('❌ Error creating coaching point with recording:', error);
     throw error;
   }

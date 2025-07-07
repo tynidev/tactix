@@ -467,8 +467,8 @@ router.post(
         // guardians must specify a team_role
         if (!team_role)
         {
-          res.status(400).json({ 
-            error: 'guardians must specify a team_role when creating join codes' 
+          res.status(400).json({
+            error: 'guardians must specify a team_role when creating join codes',
           });
           return;
         }
@@ -476,8 +476,8 @@ router.post(
         // guardians can only create join codes for player or guardian roles
         if (![TeamRole.Player, TeamRole.Guardian].includes(team_role as TeamRole))
         {
-          res.status(400).json({ 
-            error: 'guardians can only create join codes for "player" or "guardian" roles' 
+          res.status(400).json({
+            error: 'guardians can only create join codes for "player" or "guardian" roles',
           });
           return;
         }
@@ -588,8 +588,8 @@ router.post(
 
       if (error)
       {
-        if (error.code === '23505') // Unique constraint violation
-        {
+        if (error.code === '23505')
+        { // Unique constraint violation
           res.status(409).json({ error: 'Label with this name already exists for this team' });
           return;
         }
