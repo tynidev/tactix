@@ -97,6 +97,7 @@ export const useAudioRecording = (): UseAudioRecordingReturn =>
       // Request microphone permission
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
+          channelCount: 1,
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
@@ -108,11 +109,9 @@ export const useAudioRecording = (): UseAudioRecordingReturn =>
 
       // Check for supported MIME types in order of preference
       const mimeTypes = [
-        'audio/webm;codecs=opus',
-        'audio/webm',
+        'audio/webm;codecs="opus"',
+        'audio/webm;codecs="vorbis"',
         'audio/mp4',
-        'audio/ogg;codecs=opus',
-        'audio/wav',
       ];
 
       let selectedMimeType = '';
@@ -130,11 +129,15 @@ export const useAudioRecording = (): UseAudioRecordingReturn =>
         throw new Error('No supported audio format found');
       }
 
-      // Create MediaRecorder
-      const mediaRecorder = new MediaRecorder(stream, {
+      console.log(`✅ Using MIME type: ${selectedMimeType}`);
+
+      // Create MediaRecorder with improved settings for mono audio
+      const mediaRecorderOptions: MediaRecorderOptions = {
         mimeType: selectedMimeType,
-        audioBitsPerSecond: 128000, // 128kbps for good quality
-      });
+        audioBitsPerSecond: 64000, // 64kbps for good quality mono audio
+      };
+
+      const mediaRecorder = new MediaRecorder(stream, mediaRecorderOptions);
 
       mediaRecorderRef.current = mediaRecorder;
 

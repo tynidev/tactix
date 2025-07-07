@@ -252,7 +252,8 @@ export const createCoachingPointWithRecording = async (
             timestamp: event.timestamp,
             event_data: {
               ...event.data,
-              drawings: compressDrawingData(event.data.drawings),
+              drawings: event.data.drawings,
+              // drawings: compressDrawingData(event.data.drawings),
             },
           };
         }

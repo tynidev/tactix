@@ -160,6 +160,13 @@ router.get('/game/:gameId', authenticateUser, async (req: AuthenticatedRequest, 
             id,
             name
           )
+        ),
+        coaching_point_events(
+          id,
+          event_type,
+          timestamp,
+          event_data,
+          created_at
         )
       `)
       .eq('game_id', gameId)

@@ -4,6 +4,7 @@ import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { useYouTubePlayer } from '../../hooks/useYouTubePlayer';
 import { useAudioRecording } from '../../hooks/useAudioRecording';
 import { useRecordingSession } from '../../hooks/useRecordingSession';
+import { useCoachingPointPlayback } from '../../hooks/useCoachingPointPlayback';
 import { CoachingPointModal } from '../CoachingPointModal/CoachingPointModal';
 import { CoachingPointsFlyout } from '../CoachingPointsFlyout/CoachingPointsFlyout';
 import DrawingCanvas from '../DrawingCanvas/DrawingCanvas';
@@ -28,6 +29,14 @@ interface Game {
     id: string;
     name: string;
   };
+}
+
+interface CoachingPointEvent {
+  id: string;
+  event_type: 'play' | 'pause' | 'seek' | 'draw' | 'change_speed';
+  timestamp: number;
+  event_data: any;
+  created_at: string;
 }
 
 interface CoachingPoint {
@@ -60,6 +69,7 @@ interface CoachingPoint {
       name: string;
     };
   }[];
+  coaching_point_events?: CoachingPointEvent[];
 }
 
 interface GameAnalysisProps {
@@ -88,6 +98,9 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
 
   // Recording session functionality  
   const recordingSession = useRecordingSession();
+
+  // Coaching point playback functionality
+  const playback = useCoachingPointPlayback();
 
   // Set body class for fullscreen and force dark theme
   useEffect(() => {
@@ -282,8 +295,72 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
 
   // Handle selecting a coaching point
   const handleSelectCoachingPoint = useCallback((point: CoachingPoint | null) => {
+    // Stop any current playback when switching coaching points
+    if (playback.isPlaying) {
+      playback.stopPlayback();
+    }
     setSelectedCoachingPoint(point);
-  }, []);
+  }, [playback]);
+
+  // Playback event handlers for synchronized events
+  const playbackEventHandlers = useCallback(() => ({
+    onPlayEvent: () => {
+      console.log('🎬 Playback event: Play video');
+      if (player && player.getPlayerState() !== 1) { // Not playing
+        player.playVideo();
+      }
+    },
+    onPauseEvent: () => {
+      console.log('🎬 Playback event: Pause video');
+      if (player && player.getPlayerState() === 1) { // Playing
+        player.pauseVideo();
+      }
+    },
+    onSeekEvent: (time: number) => {
+      console.log(`🎬 Playback event: Seek to ${time}s`);
+      if (player) {
+        player.seekTo(time, true);
+      }
+    },
+    onDrawEvent: (drawings: Drawing[]) => {
+      console.log(`🎬 Playback event: Update drawings (${drawings.length} items)`);
+      setDrawingData(drawings);
+    },
+    onSpeedEvent: (speed: number) => {
+      console.log(`🎬 Playback event: Change speed to ${speed}x`);
+      if (player) {
+        player.setPlaybackRate(speed);
+      }
+    },
+  }), [player, setDrawingData]);
+
+  // Handle starting playback of a coaching point
+  const handleStartPlayback = useCallback(() => {
+    if (!selectedCoachingPoint) return;
+    
+    const handlers = playbackEventHandlers();
+    playback.startPlayback(selectedCoachingPoint, handlers);
+  }, [selectedCoachingPoint, playback, playbackEventHandlers]);
+
+  // Handle toggling playback (play/pause)
+  const handleTogglePlayback = useCallback(() => {
+    if (playback.isPlaying) {
+      playback.pausePlayback();
+    } else if (playback.currentTime > 0 || playback.duration > 0) {
+      // Resume if already started
+      playback.resumePlayback();
+    } else {
+      // Start fresh playback
+      handleStartPlayback();
+    }
+  }, [playback, handleStartPlayback]);
+
+  // Handle stopping playback
+  const handleStopPlayback = useCallback(() => {
+    playback.stopPlayback();
+    // Clear any drawings that were set during playback
+    clearCanvas();
+  }, [playback, clearCanvas]);
 
   // Update video dimensions when sidebar state changes
   useEffect(() => {
@@ -302,8 +379,8 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
 
     const interval = setInterval(() => {
       const currentDrawings = getDrawingData();
-      if (currentDrawings.length > 0 && videoDimensions) {
-        // Only record if drawings have changed
+      if (videoDimensions) {
+        // Record if drawings have changed (including when cleared to empty array)
         const drawingsChanged = JSON.stringify(currentDrawings) !== JSON.stringify(lastDrawingsRef.current);
         if (drawingsChanged) {
           recordingSession.recordDrawEvent(currentDrawings, {
@@ -313,7 +390,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
           lastDrawingsRef.current = [...currentDrawings];
         }
       }
-    }, 50); // Capture every 50ms
+    }, 4); // Capture every 4ms
 
     return () => clearInterval(interval);
   }, [isRecording, getDrawingData, videoDimensions, recordingSession]);
@@ -328,7 +405,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
     changeMode,
     clearCanvas,
     undoLastDrawing,
-    disabled: showCoachingPointModal || isFlyoutExpanded, // Disable shortcuts when modal is open or flyout is expanded
+    disabled: showCoachingPointModal || isFlyoutExpanded || playback.isPlaying, // Disable shortcuts when modal is open, flyout is expanded, or playback is active
   });
 
   const formatTime = (seconds: number): string => {
@@ -418,7 +495,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
         </div>
 
         {selectedCoachingPoint && (
-          <div className="coaching-point-sidebar">
+          <div className={`coaching-point-sidebar ${playback.isPlaying ? 'playback-active' : ''}`}>
             <div className="sidebar-header">
               <h3>Coaching Point Details</h3>
               <button 
@@ -466,6 +543,95 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
                         </span>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {/* Playback Controls */}
+                {selectedCoachingPoint.audio_url && (
+                  <div className="playback-controls">
+                    <h5>Playback Controls:</h5>
+                    
+                    {/* Event Count Display */}
+                    {playback.totalEvents > 0 && (
+                      <div className="event-info">
+                        <span className="event-count">
+                          📽️ {playback.totalEvents} recorded events
+                        </span>
+                        {playback.activeEventIndex !== null && (
+                          <span className="active-event">
+                            ⚡ Executing event #{playback.activeEventIndex + 1}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Error Display */}
+                    {playback.error && (
+                      <div className="playback-error">
+                        ❌ {playback.error}
+                      </div>
+                    )}
+
+                    {/* Loading State */}
+                    {playback.isLoading && (
+                      <div className="playback-loading">
+                        ⏳ Loading audio...
+                      </div>
+                    )}
+
+                    {/* Progress Bar */}
+                    {playback.duration > 0 && (
+                      <div className="progress-container">
+                        <div className="progress-bar">
+                          <div 
+                            className="progress-fill" 
+                            style={{ width: `${playback.progress}%` }}
+                          />
+                        </div>
+                        <div className="time-display">
+                          {formatTime(playback.currentTime)} / {formatTime(playback.duration)}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Control Buttons */}
+                    <div className="playback-buttons">
+                      <button
+                        onClick={handleTogglePlayback}
+                        className={`btn ${playback.isPlaying ? 'btn-warning' : 'btn-success'}`}
+                        disabled={playback.isLoading || !selectedCoachingPoint.audio_url}
+                        title={playback.isPlaying ? 'Pause playback' : 'Start/Resume playback'}
+                      >
+                        {playback.isLoading ? '⏳' : playback.isPlaying ? '⏸️ Pause' : '▶️ Play'}
+                      </button>
+                      
+                      <button
+                        onClick={handleStopPlayback}
+                        className="btn btn-error"
+                        disabled={!playback.isPlaying && playback.currentTime === 0}
+                        title="Stop playback and reset"
+                      >
+                        ⏹️ Stop
+                      </button>
+                    </div>
+
+                    {/* Playback Status */}
+                    {(playback.isPlaying || playback.currentTime > 0) && (
+                      <div className="playback-status">
+                        {playback.isPlaying ? (
+                          <span className="status-playing">🎵 Playing coaching session...</span>
+                        ) : playback.currentTime > 0 ? (
+                          <span className="status-paused">⏸️ Playback paused</span>
+                        ) : null}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* No Audio Message */}
+                {!selectedCoachingPoint.audio_url && (
+                  <div className="no-audio-message">
+                    <p>💭 This coaching point has no audio recording to play back.</p>
                   </div>
                 )}
               </div>
