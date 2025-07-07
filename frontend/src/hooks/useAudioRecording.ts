@@ -90,7 +90,6 @@ export const useAudioRecording = (): UseAudioRecordingReturn =>
    */
   const startRecording = useCallback(async (): Promise<boolean> =>
   {
-
     try
     {
       setError(null);
@@ -130,7 +129,6 @@ export const useAudioRecording = (): UseAudioRecordingReturn =>
       {
         throw new Error('No supported audio format found');
       }
-
 
       // Create MediaRecorder
       const mediaRecorder = new MediaRecorder(stream, {
@@ -213,7 +211,6 @@ export const useAudioRecording = (): UseAudioRecordingReturn =>
    */
   const stopRecording = useCallback((): Promise<Blob | null> =>
   {
-
     return new Promise((resolve) =>
     {
       if (mediaRecorderRef.current && isRecording)
