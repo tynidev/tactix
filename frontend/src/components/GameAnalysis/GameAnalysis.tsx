@@ -1,7 +1,9 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { useDrawingCanvas } from '../../hooks/useDrawingCanvas';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { useYouTubePlayer } from '../../hooks/useYouTubePlayer';
+import { useAudioRecording } from '../../hooks/useAudioRecording';
+import { useRecordingSession } from '../../hooks/useRecordingSession';
 import { CoachingPointModal } from '../CoachingPointModal/CoachingPointModal';
 import { CoachingPointsFlyout } from '../CoachingPointsFlyout/CoachingPointsFlyout';
 import DrawingCanvas from '../DrawingCanvas/DrawingCanvas';
@@ -71,6 +73,20 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
   const [coachingPointsRefresh, setCoachingPointsRefresh] = useState(0);
   const [selectedCoachingPoint, setSelectedCoachingPoint] = useState<CoachingPoint | null>(null);
   const [isFlyoutExpanded, setIsFlyoutExpanded] = useState(false);
+  const [recordingData, setRecordingData] = useState<{
+    audioBlob: Blob | null;
+    recordingEvents: any[];
+    recordingDuration: number;
+  } | null>(null);
+
+  // Add this ref to track previous drawings
+  const lastDrawingsRef = useRef<Drawing[]>([]);
+
+  // Audio recording functionality
+  const audioRecording = useAudioRecording();
+
+  // Recording session functionality  
+  const recordingSession = useRecordingSession();
 
   // Set body class for fullscreen and force dark theme
   useEffect(() => {
@@ -95,12 +111,39 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
     currentTime: playerCurrentTime,
     duration,
     videoDimensions,
-    togglePlayPause,
-    seekVideo,
-    seekToTime,
+    togglePlayPause: originalTogglePlayPause,
+    seekVideo: originalSeekVideo,
+    seekToTime: originalSeekToTime,
     setPlaybackRate,
     updateVideoDimensions,
   } = useYouTubePlayer(game.video_id || undefined);
+
+  // Wrapped YouTube player controls to capture events during recording
+  const togglePlayPause = useCallback(() => {
+    if (isRecording && player) {
+      const currentVideoTime = player.getCurrentTime();
+      const action = isPlaying ? 'pause' : 'play';
+      recordingSession.recordPlayPauseEvent(action, currentVideoTime);
+    }
+    originalTogglePlayPause();
+  }, [isRecording, player, isPlaying, recordingSession, originalTogglePlayPause]);
+
+  const seekVideo = useCallback((seconds: number) => {
+    if (isRecording && player) {
+      const fromTime = player.getCurrentTime();
+      const toTime = fromTime + seconds;
+      recordingSession.recordSeekEvent(fromTime, toTime);
+    }
+    originalSeekVideo(seconds);
+  }, [isRecording, player, recordingSession, originalSeekVideo]);
+
+  const seekToTime = useCallback((time: number) => {
+    if (isRecording && player) {
+      const fromTime = player.getCurrentTime();
+      recordingSession.recordSeekEvent(fromTime, time);
+    }
+    originalSeekToTime(time);
+  }, [isRecording, player, recordingSession, originalSeekToTime]);
 
   // Drawing canvas functionality
   const {
@@ -135,7 +178,12 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
   // Handle playback rate changes
   const handlePlaybackRateChange = useCallback((rate: number) => {
     setPlaybackRate(rate);
-  }, [setPlaybackRate]);
+    
+    // Record speed change event if recording
+    if (isRecording) {
+      recordingSession.recordChangeSpeedEvent(rate);
+    }
+  }, [setPlaybackRate, isRecording, recordingSession]);
 
   // Handle creating a coaching point
   const handleCreateCoachingPoint = useCallback(() => {
@@ -149,6 +197,9 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
 
     const timestamp = player.getCurrentTime();
     console.log('Creating coaching point at:', timestamp);
+    
+    // Don't pass recording data for manual coaching points
+    setRecordingData(null);
     setShowCoachingPointModal(true);
   }, [player, isPlaying]);
 
@@ -159,16 +210,62 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
   }, []);
 
   // Handle starting/stopping recording
-  const handleToggleRecording = useCallback(() => {
-    setIsRecording(!isRecording);
+  const handleToggleRecording = useCallback(async () => {
     if (!isRecording) {
-      console.log('Started recording session');
-      // TODO: Implement recording session start
+      // Start recording
+      console.log('🎬 Starting recording session from GameAnalysis...');
+      
+      // Pause video if playing
+      if (isPlaying && player) {
+        console.log('⏸️ Pausing video for recording...');
+        player.pauseVideo();
+      }
+      
+      // Start audio recording
+      console.log('🎤 Initiating audio recording...');
+      const audioStarted = await audioRecording.startRecording();
+      if (!audioStarted) {
+        console.error('❌ Failed to start audio recording');
+        return;
+      }
+      
+      // Start recording session
+      console.log('📹 Starting event recording session...');
+      recordingSession.startRecordingSession();
+      setIsRecording(true);
+      console.log('✅ Recording session fully started');
     } else {
-      console.log('Stopped recording session');
-      // TODO: Implement recording session save
+      // Stop recording
+      console.log('🛑 Stopping recording session from GameAnalysis...');
+      
+      // Stop audio recording and get the blob
+      console.log('⏹️ Stopping audio recording...');
+      const audioBlob = await audioRecording.stopRecording();
+      
+      // Stop recording session and get events
+      console.log('📊 Collecting recording events...');
+      const capturedEvents = recordingSession.stopRecordingSession();
+      
+      setIsRecording(false);
+      
+      // Prepare recording data
+      const recordingData = {
+        audioBlob: audioBlob,
+        recordingEvents: capturedEvents,
+        recordingDuration: audioRecording.recordingTime,
+      };
+      
+      console.log('💾 Recording data prepared for modal:', {
+        hasAudio: !!recordingData.audioBlob,
+        audioSize: recordingData.audioBlob?.size,
+        eventCount: recordingData.recordingEvents.length,
+        duration: recordingData.recordingDuration
+      });
+      
+      setRecordingData(recordingData);
+      setShowCoachingPointModal(true);
     }
-  }, [isRecording]);
+  }, [isRecording, isPlaying, player, audioRecording, recordingSession]);
 
   // Handle seeking to a coaching point timestamp
   const handleSeekToPoint = useCallback((timestampMs: string) => {
@@ -208,6 +305,28 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
       return () => clearTimeout(timer);
     }
   }, [selectedCoachingPoint, isReady, updateVideoDimensions]);
+
+  // Capture drawing changes during recording
+  useEffect(() => {
+    if (!isRecording) return;
+
+    const interval = setInterval(() => {
+      const currentDrawings = getDrawingData();
+      if (currentDrawings.length > 0 && videoDimensions) {
+        // Only record if drawings have changed
+        const drawingsChanged = JSON.stringify(currentDrawings) !== JSON.stringify(lastDrawingsRef.current);
+        if (drawingsChanged) {
+          recordingSession.recordDrawEvent(currentDrawings, {
+            width: videoDimensions.width,
+            height: videoDimensions.height,
+          });
+          lastDrawingsRef.current = [...currentDrawings];
+        }
+      }
+    }, 50); // Capture every 50ms
+
+    return () => clearInterval(interval);
+  }, [isRecording, getDrawingData, videoDimensions, recordingSession]);
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
@@ -365,21 +484,34 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
         )}
       </div>
 
-      {isRecording && (
+      {(isRecording || audioRecording.isRecording) && (
         <div className="recording-indicator">
           <div className="recording-dot"></div>
-          Recording Session
+          <span>Recording Session</span>
+          {audioRecording.recordingTime > 0 && (
+            <span className="recording-time">
+              {Math.floor(audioRecording.recordingTime / 1000 / 60)}:
+              {Math.floor((audioRecording.recordingTime / 1000) % 60).toString().padStart(2, '0')}
+            </span>
+          )}
+          {audioRecording.error && (
+            <span className="recording-error">{audioRecording.error}</span>
+          )}
         </div>
       )}
 
       {/* Coaching Point Modal */}
       <CoachingPointModal
         isOpen={showCoachingPointModal}
-        onClose={() => setShowCoachingPointModal(false)}
+        onClose={() => {
+          setShowCoachingPointModal(false);
+          setRecordingData(null);
+        }}
         gameId={game.id}
         timestamp={playerCurrentTime}
         drawingData={getDrawingData()}
         onCoachingPointCreated={handleCoachingPointCreated}
+        recordingData={recordingData}
       />
 
       {/* Coaching Points Flyout */}

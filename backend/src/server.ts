@@ -8,9 +8,9 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import { errorHandler } from './middleware/errorHandler.js';
 import authRoutes from './routes/auth.js';
-import coachingPointRoutes from './routes/coachingPoints.js';
 import coachingPointEventRoutes from './routes/coachingPointEvents.js';
 import coachingPointLabelRoutes from './routes/coachingPointLabels.js';
+import coachingPointRoutes from './routes/coachingPoints.js';
 import coachingPointTaggedPlayerRoutes from './routes/coachingPointTaggedPlayers.js';
 import gameRoutes from './routes/games.js';
 import teamRoutes from './routes/teams.js';
@@ -40,8 +40,8 @@ app.use(cors({
   },
   credentials: true,
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Health check
 app.get('/health', (req: Request, res: Response) =>

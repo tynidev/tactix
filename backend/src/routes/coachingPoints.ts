@@ -1,14 +1,17 @@
 import express, { Response } from 'express';
-import { authenticateUser, type AuthenticatedRequest } from '../middleware/auth.js';
+import { type AuthenticatedRequest, authenticateUser } from '../middleware/auth.js';
 import { supabase } from '../utils/supabase.js';
 
 const router = express.Router();
 
 // POST /api/coaching-points - Create a new coaching point
-router.post('/', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
+router.post('/', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> =>
+{
+  try
+  {
     const userId = req.user?.id;
-    if (!userId) {
+    if (!userId)
+    {
       res.status(401).json({ message: 'User ID not found' });
       return;
     }
@@ -24,9 +27,10 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res: Respon
     } = req.body;
 
     // Validate required fields
-    if (!game_id || !title || !feedback || !timestamp) {
-      res.status(400).json({ 
-        message: 'Missing required fields: game_id, title, feedback, timestamp' 
+    if (!game_id || !title || !feedback || !timestamp)
+    {
+      res.status(400).json({
+        message: 'Missing required fields: game_id, title, feedback, timestamp',
       });
       return;
     }
@@ -48,16 +52,18 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res: Respon
       .eq('teams.team_memberships.user_id', userId)
       .single();
 
-    if (gameError || !gameData) {
+    if (gameError || !gameData)
+    {
       res.status(404).json({ message: 'Game not found or access denied' });
       return;
     }
 
     // Check if user is a coach or admin
     const userRole = gameData.teams.team_memberships[0]?.role;
-    if (!userRole || !['coach', 'admin'].includes(userRole)) {
-      res.status(403).json({ 
-        message: 'Only coaches and admins can create coaching points' 
+    if (!userRole || !['coach', 'admin'].includes(userRole))
+    {
+      res.status(403).json({
+        message: 'Only coaches and admins can create coaching points',
       });
       return;
     }
@@ -77,24 +83,30 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res: Respon
       .select('*')
       .single();
 
-    if (error) {
+    if (error)
+    {
       console.error('Error creating coaching point:', error);
       res.status(500).json({ message: 'Failed to create coaching point' });
       return;
     }
 
     res.status(201).json(coachingPoint);
-  } catch (error) {
+  }
+  catch (error)
+  {
     console.error('Error in POST /coaching-points:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
 
 // GET /api/coaching-points/game/:gameId - Get coaching points for a game
-router.get('/game/:gameId', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
+router.get('/game/:gameId', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> =>
+{
+  try
+  {
     const userId = req.user?.id;
-    if (!userId) {
+    if (!userId)
+    {
       res.status(401).json({ message: 'User ID not found' });
       return;
     }
@@ -118,7 +130,8 @@ router.get('/game/:gameId', authenticateUser, async (req: AuthenticatedRequest, 
       .eq('teams.team_memberships.user_id', userId)
       .single();
 
-    if (gameError || !gameData) {
+    if (gameError || !gameData)
+    {
       res.status(404).json({ message: 'Game not found or access denied' });
       return;
     }
@@ -152,24 +165,30 @@ router.get('/game/:gameId', authenticateUser, async (req: AuthenticatedRequest, 
       .eq('game_id', gameId)
       .order('created_at', { ascending: false });
 
-    if (error) {
+    if (error)
+    {
       console.error('Error fetching coaching points:', error);
       res.status(500).json({ message: 'Failed to fetch coaching points' });
       return;
     }
 
     res.json(coachingPoints || []);
-  } catch (error) {
+  }
+  catch (error)
+  {
     console.error('Error in GET /coaching-points/game/:gameId:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
 
 // DELETE /api/coaching-points/:id - Delete a coaching point
-router.delete('/:id', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
+router.delete('/:id', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> =>
+{
+  try
+  {
     const userId = req.user?.id;
-    if (!userId) {
+    if (!userId)
+    {
       res.status(401).json({ message: 'User ID not found' });
       return;
     }
@@ -194,7 +213,8 @@ router.delete('/:id', authenticateUser, async (req: AuthenticatedRequest, res: R
       .eq('games.teams.team_memberships.user_id', userId)
       .single();
 
-    if (fetchError || !coachingPoint) {
+    if (fetchError || !coachingPoint)
+    {
       res.status(404).json({ message: 'Coaching point not found or access denied' });
       return;
     }
@@ -204,9 +224,10 @@ router.delete('/:id', authenticateUser, async (req: AuthenticatedRequest, res: R
     const isAuthor = coachingPoint.author_id === userId;
     const hasPermission = isAuthor || ['coach', 'admin'].includes(userRole);
 
-    if (!hasPermission) {
-      res.status(403).json({ 
-        message: 'Only the author, coaches, or admins can delete coaching points' 
+    if (!hasPermission)
+    {
+      res.status(403).json({
+        message: 'Only the author, coaches, or admins can delete coaching points',
       });
       return;
     }
@@ -217,14 +238,17 @@ router.delete('/:id', authenticateUser, async (req: AuthenticatedRequest, res: R
       .delete()
       .eq('id', id);
 
-    if (deleteError) {
+    if (deleteError)
+    {
       console.error('Error deleting coaching point:', deleteError);
       res.status(500).json({ message: 'Failed to delete coaching point' });
       return;
     }
 
     res.status(204).send();
-  } catch (error) {
+  }
+  catch (error)
+  {
     console.error('Error in DELETE /coaching-points/:id:', error);
     res.status(500).json({ message: 'Internal server error' });
   }

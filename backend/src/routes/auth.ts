@@ -19,7 +19,7 @@ router.post('/signup', async (req: Request, res: Response): Promise<void> =>
 
     // Create user in Supabase Auth using signUp with anon key client
     console.log('Attempting signup for:', email);
-    
+
     const { data: authData, error: authError } = await supabaseAuth.auth.signUp({
       email,
       password,
@@ -84,7 +84,8 @@ router.get('/me', authenticateUser, async (req: AuthenticatedRequest, res: Respo
   {
     const userId = req.user?.id;
 
-    if (!userId) {
+    if (!userId)
+    {
       res.status(401).json({ error: 'User not authenticated' });
       return;
     }
@@ -126,12 +127,14 @@ router.put('/profile', authenticateUser, async (req: AuthenticatedRequest, res: 
     const userId = req.user?.id;
     const { name } = req.body;
 
-    if (!userId) {
+    if (!userId)
+    {
       res.status(401).json({ error: 'User not authenticated' });
       return;
     }
 
-    if (!name || typeof name !== 'string' || !name.trim()) {
+    if (!name || typeof name !== 'string' || !name.trim())
+    {
       res.status(400).json({ error: 'Name is required and must be a valid string' });
       return;
     }
@@ -167,57 +170,67 @@ router.put('/profile', authenticateUser, async (req: AuthenticatedRequest, res: 
 });
 
 // Test Supabase connection
-router.get('/test-connection', async (req: Request, res: Response): Promise<void> => {
-  try {
+router.get('/test-connection', async (req: Request, res: Response): Promise<void> =>
+{
+  try
+  {
     // Test if we can reach Supabase
     const { data, error } = await supabase.from('user_profiles').select('count').limit(1);
-    
-    if (error) {
-      res.status(500).json({ 
-        error: 'Supabase connection failed', 
+
+    if (error)
+    {
+      res.status(500).json({
+        error: 'Supabase connection failed',
         details: error.message,
-        supabaseUrl: process.env.SUPABASE_URL 
+        supabaseUrl: process.env.SUPABASE_URL,
       });
       return;
     }
-    
-    res.json({ 
+
+    res.json({
       message: 'Supabase connection successful',
-      supabaseUrl: process.env.SUPABASE_URL 
+      supabaseUrl: process.env.SUPABASE_URL,
     });
-  } catch (error) {
-    res.status(500).json({ 
-      error: 'Connection test failed', 
-      details: error instanceof Error ? error.message : String(error) 
+  }
+  catch (error)
+  {
+    res.status(500).json({
+      error: 'Connection test failed',
+      details: error instanceof Error ? error.message : String(error),
     });
   }
 });
 
 // Test Supabase Auth connection
-router.get('/test-auth', async (req: Request, res: Response): Promise<void> => {
-  try {
+router.get('/test-auth', async (req: Request, res: Response): Promise<void> =>
+{
+  try
+  {
     // Try to get the current session (should be null if not logged in)
     const { data: { session }, error } = await supabase.auth.getSession();
-    
-    if (error) {
-      res.status(500).json({ 
-        error: 'Supabase Auth test failed', 
+
+    if (error)
+    {
+      res.status(500).json({
+        error: 'Supabase Auth test failed',
         details: error.message,
-        errorObject: error
+        errorObject: error,
       });
       return;
     }
-    
-    res.json({ 
+
+    res.json({
       message: 'Supabase Auth connection successful',
       hasSession: !!session,
-      supabaseUrl: process.env.SUPABASE_URL 
+      supabaseUrl: process.env.SUPABASE_URL,
     });
-  } catch (error) {
-    res.status(500).json({ 
-      error: 'Auth test failed', 
+  }
+  catch (error)
+  {
+    res.status(500).json({
+      error: 'Auth test failed',
       details: error instanceof Error ? error.message : String(error),
-      errorType: error?.constructor?.name
+      errorType: error?.constructor?.name,
     });
   }
 });

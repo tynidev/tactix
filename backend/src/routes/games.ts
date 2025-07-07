@@ -10,8 +10,10 @@ const router = Router();
 router.use(authenticateUser);
 
 // Create a new game for a team
-router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
+router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void> =>
+{
+  try
+  {
     const {
       team_id,
       opponent,
@@ -22,16 +24,18 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
       opp_score,
       game_type,
       home_away,
-      notes
+      notes,
     } = req.body;
     const userId = req.user?.id;
 
-    if (!userId) {
+    if (!userId)
+    {
       res.status(401).json({ error: 'User not authenticated' });
       return;
     }
 
-    if (!team_id || !opponent || !date) {
+    if (!team_id || !opponent || !date)
+    {
       res.status(400).json({ error: 'Team ID, opponent, and date are required' });
       return;
     }
@@ -44,21 +48,25 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
       .eq('user_id', userId)
       .single();
 
-    if (membershipError || !membership) {
+    if (membershipError || !membership)
+    {
       res.status(403).json({ error: 'User is not a member of this team' });
       return;
     }
 
-    if (!['coach', 'admin'].includes(membership.role)) {
+    if (!['coach', 'admin'].includes(membership.role))
+    {
       res.status(403).json({ error: 'Only coaches and admins can create games' });
       return;
     }
 
     // Extract YouTube video ID from URL if full URL is provided
     let processedVideoId = video_id;
-    if (video_id && (video_id.includes('youtube.com') || video_id.includes('youtu.be'))) {
+    if (video_id && (video_id.includes('youtube.com') || video_id.includes('youtu.be')))
+    {
       const urlMatch = video_id.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-      if (urlMatch) {
+      if (urlMatch)
+      {
         processedVideoId = urlMatch[1];
       }
     }
@@ -76,33 +84,39 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
         opp_score: opp_score || null,
         game_type: game_type || 'regular',
         home_away: home_away || 'home',
-        notes: notes || null
+        notes: notes || null,
       })
       .select()
       .single();
 
-    if (gameError) {
+    if (gameError)
+    {
       res.status(400).json({ error: gameError.message });
       return;
     }
 
     res.status(201).json({
       message: 'Game created successfully',
-      game: gameData
+      game: gameData,
     });
-  } catch (error) {
+  }
+  catch (error)
+  {
     console.error('Create game error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Get games for a team
-router.get('/team/:teamId', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
+router.get('/team/:teamId', async (req: AuthenticatedRequest, res: Response): Promise<void> =>
+{
+  try
+  {
     const { teamId } = req.params;
     const userId = req.user?.id;
 
-    if (!userId) {
+    if (!userId)
+    {
       res.status(401).json({ error: 'User not authenticated' });
       return;
     }
@@ -115,7 +129,8 @@ router.get('/team/:teamId', async (req: AuthenticatedRequest, res: Response): Pr
       .eq('user_id', userId)
       .single();
 
-    if (membershipError || !membership) {
+    if (membershipError || !membership)
+    {
       res.status(403).json({ error: 'User is not a member of this team' });
       return;
     }
@@ -139,25 +154,31 @@ router.get('/team/:teamId', async (req: AuthenticatedRequest, res: Response): Pr
       .eq('team_id', teamId)
       .order('date', { ascending: false });
 
-    if (gamesError) {
+    if (gamesError)
+    {
       res.status(400).json({ error: gamesError.message });
       return;
     }
 
     res.json(games);
-  } catch (error) {
+  }
+  catch (error)
+  {
     console.error('Get games error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Get a specific game with coaching points count
-router.get('/:gameId', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
+router.get('/:gameId', async (req: AuthenticatedRequest, res: Response): Promise<void> =>
+{
+  try
+  {
     const { gameId } = req.params;
     const userId = req.user?.id;
 
-    if (!userId) {
+    if (!userId)
+    {
       res.status(401).json({ error: 'User not authenticated' });
       return;
     }
@@ -183,7 +204,8 @@ router.get('/:gameId', async (req: AuthenticatedRequest, res: Response): Promise
       .eq('id', gameId)
       .single();
 
-    if (gameError || !game) {
+    if (gameError || !game)
+    {
       res.status(404).json({ error: 'Game not found' });
       return;
     }
@@ -196,7 +218,8 @@ router.get('/:gameId', async (req: AuthenticatedRequest, res: Response): Promise
       .eq('user_id', userId)
       .single();
 
-    if (membershipError || !membership) {
+    if (membershipError || !membership)
+    {
       res.status(403).json({ error: 'Access denied' });
       return;
     }
@@ -209,17 +232,21 @@ router.get('/:gameId', async (req: AuthenticatedRequest, res: Response): Promise
 
     res.json({
       ...game,
-      coaching_points_count: coachingPointsCount || 0
+      coaching_points_count: coachingPointsCount || 0,
     });
-  } catch (error) {
+  }
+  catch (error)
+  {
     console.error('Get game error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Update a game (coaches and admins only)
-router.put('/:gameId', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
+router.put('/:gameId', async (req: AuthenticatedRequest, res: Response): Promise<void> =>
+{
+  try
+  {
     const { gameId } = req.params;
     const {
       opponent,
@@ -230,11 +257,12 @@ router.put('/:gameId', async (req: AuthenticatedRequest, res: Response): Promise
       opp_score,
       game_type,
       home_away,
-      notes
+      notes,
     } = req.body;
     const userId = req.user?.id;
 
-    if (!userId) {
+    if (!userId)
+    {
       res.status(401).json({ error: 'User not authenticated' });
       return;
     }
@@ -246,7 +274,8 @@ router.put('/:gameId', async (req: AuthenticatedRequest, res: Response): Promise
       .eq('id', gameId)
       .single();
 
-    if (gameError || !game) {
+    if (gameError || !game)
+    {
       res.status(404).json({ error: 'Game not found' });
       return;
     }
@@ -259,21 +288,25 @@ router.put('/:gameId', async (req: AuthenticatedRequest, res: Response): Promise
       .eq('user_id', userId)
       .single();
 
-    if (membershipError || !membership) {
+    if (membershipError || !membership)
+    {
       res.status(403).json({ error: 'Access denied' });
       return;
     }
 
-    if (!['coach', 'admin'].includes(membership.role)) {
+    if (!['coach', 'admin'].includes(membership.role))
+    {
       res.status(403).json({ error: 'Only coaches and admins can update games' });
       return;
     }
 
     // Extract YouTube video ID from URL if full URL is provided
     let processedVideoId = video_id;
-    if (video_id && (video_id.includes('youtube.com') || video_id.includes('youtu.be'))) {
+    if (video_id && (video_id.includes('youtube.com') || video_id.includes('youtu.be')))
+    {
       const urlMatch = video_id.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-      if (urlMatch) {
+      if (urlMatch)
+      {
         processedVideoId = urlMatch[1];
       }
     }
@@ -290,34 +323,40 @@ router.put('/:gameId', async (req: AuthenticatedRequest, res: Response): Promise
         opp_score: opp_score || null,
         game_type: game_type || 'regular',
         home_away: home_away || 'home',
-        notes: notes || null
+        notes: notes || null,
       })
       .eq('id', gameId)
       .select()
       .single();
 
-    if (updateError) {
+    if (updateError)
+    {
       res.status(400).json({ error: updateError.message });
       return;
     }
 
     res.json({
       message: 'Game updated successfully',
-      game: updatedGame
+      game: updatedGame,
     });
-  } catch (error) {
+  }
+  catch (error)
+  {
     console.error('Update game error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Delete a game (coaches and admins only)
-router.delete('/:gameId', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
+router.delete('/:gameId', async (req: AuthenticatedRequest, res: Response): Promise<void> =>
+{
+  try
+  {
     const { gameId } = req.params;
     const userId = req.user?.id;
 
-    if (!userId) {
+    if (!userId)
+    {
       res.status(401).json({ error: 'User not authenticated' });
       return;
     }
@@ -329,7 +368,8 @@ router.delete('/:gameId', async (req: AuthenticatedRequest, res: Response): Prom
       .eq('id', gameId)
       .single();
 
-    if (gameError || !game) {
+    if (gameError || !game)
+    {
       res.status(404).json({ error: 'Game not found' });
       return;
     }
@@ -342,12 +382,14 @@ router.delete('/:gameId', async (req: AuthenticatedRequest, res: Response): Prom
       .eq('user_id', userId)
       .single();
 
-    if (membershipError || !membership) {
+    if (membershipError || !membership)
+    {
       res.status(403).json({ error: 'Access denied' });
       return;
     }
 
-    if (!['coach', 'admin'].includes(membership.role)) {
+    if (!['coach', 'admin'].includes(membership.role))
+    {
       res.status(403).json({ error: 'Only coaches and admins can delete games' });
       return;
     }
@@ -358,13 +400,16 @@ router.delete('/:gameId', async (req: AuthenticatedRequest, res: Response): Prom
       .delete()
       .eq('id', gameId);
 
-    if (deleteError) {
+    if (deleteError)
+    {
       res.status(400).json({ error: deleteError.message });
       return;
     }
 
     res.json({ message: 'Game deleted successfully' });
-  } catch (error) {
+  }
+  catch (error)
+  {
     console.error('Delete game error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
