@@ -78,6 +78,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
     recordingEvents: any[];
     recordingDuration: number;
   } | null>(null);
+  const [recordingStartTimestamp, setRecordingStartTimestamp] = useState<number | null>(null);
 
   // Add this ref to track previous drawings
   const lastDrawingsRef = useRef<Drawing[]>([]);
@@ -197,6 +198,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
 
     // Don't pass recording data for manual coaching points
     setRecordingData(null);
+    setRecordingStartTimestamp(null); // Reset recording start timestamp for manual points
     setShowCoachingPointModal(true);
   }, [player, isPlaying]);
 
@@ -211,15 +213,22 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
     if (!isRecording) {
       // Start recording
       
+      // Capture the current video timestamp before pausing
+      const recordingStartTime = player ? player.getCurrentTime() : playerCurrentTime;
+      
       // Pause video if playing
       if (isPlaying && player) {
         player.pauseVideo();
       }
       
+      // Store the recording start timestamp
+      setRecordingStartTimestamp(recordingStartTime);
+      
       // Start audio recording
       const audioStarted = await audioRecording.startRecording();
       if (!audioStarted) {
         console.error('❌ Failed to start audio recording');
+        setRecordingStartTimestamp(null); // Reset on failure
         return;
       }
       
@@ -247,7 +256,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
       setRecordingData(recordingData);
       setShowCoachingPointModal(true);
     }
-  }, [isRecording, isPlaying, player, audioRecording, recordingSession]);
+  }, [isRecording, isPlaying, player, playerCurrentTime, audioRecording, recordingSession]);
 
   // Handle seeking to a coaching point timestamp
   const handleSeekToPoint = useCallback((timestampMs: string) => {
@@ -487,9 +496,10 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
         onClose={() => {
           setShowCoachingPointModal(false);
           setRecordingData(null);
+          setRecordingStartTimestamp(null); // Reset recording start timestamp
         }}
         gameId={game.id}
-        timestamp={playerCurrentTime}
+        timestamp={recordingStartTimestamp !== null ? recordingStartTimestamp : playerCurrentTime}
         drawingData={getDrawingData()}
         onCoachingPointCreated={handleCoachingPointCreated}
         recordingData={recordingData}
