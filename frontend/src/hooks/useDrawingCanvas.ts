@@ -551,7 +551,7 @@ export const useDrawingCanvas = () =>
     }
 
     // Remove the last drawing command
-    const removedCommand = drawingElementsRef.current.pop();
+    drawingElementsRef.current.pop();
 
     // Redraw the canvas without the removed command
     redrawCanvas();
