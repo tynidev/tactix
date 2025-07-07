@@ -53,23 +53,10 @@
   box-shadow: var(--shadow-lg);
 }
 
-.drawing-btn:focus,
-.drawing-btn:focus-visible {
-  outline: 2px solid white;
-  outline-offset: 2px;
-}
-
-/* Don't show focus outline on color buttons that are active */
-.color-btn.color-active:focus,
-.color-btn.color-active:focus-visible {
-  outline: 2px solid white;
-  outline-offset: 2px;
-}
-
 /* Color buttons */
 .color-btn {
   position: relative;
-  opacity: 0.6;
+  opacity: 0.4;
   transition: opacity var(--transition-normal);
 }
 
@@ -79,8 +66,6 @@
 
 .color-btn.color-active {
   opacity: 1;
-  outline: 2px solid white;
-  outline-offset: 2px;
   box-shadow: 0 0 8px var(--white-glow);
 }
 
@@ -101,11 +86,13 @@
   background: rgba(0, 0, 0, 0.3);
   font-size: 20px;
   color: white;
+  opacity: 0.8;
 }
 
 .mode-btn:hover {
   background: rgba(0, 0, 0, 0.5);
   color: white;
+  opacity: 0.9;
 }
 
 .mode-btn.active,
@@ -113,6 +100,7 @@
   background-color: rgba(255, 255, 255, 0.2);
   box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
   color: white;
+  opacity: 1;
 }
 
 /* Action buttons */
