@@ -28,6 +28,7 @@ const TransportControl: React.FC<TransportControlProps> = ({
   const [isSeekingFromClick, setIsSeekingFromClick] = useState(false);
   const [lastSeekTime, setLastSeekTime] = useState(0);
   const timelineRef = useRef<HTMLDivElement>(null);
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Store the drag time in a ref to avoid stale closures
   const dragTimeRef = useRef(dragTime);
@@ -88,7 +89,21 @@ const TransportControl: React.FC<TransportControlProps> = ({
   const handleGlobalMouseMove = useCallback((e: MouseEvent) => {
     if (isDragging && duration > 0) {
       const newTime = calculateTimeFromPosition(e.clientX);
+      
+      // Clear previous debounce timeout
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+      
+      // Update dragTime immediately for smooth visual feedback
       setDragTime(newTime);
+      
+      // Debounce expensive operations or additional updates
+      debounceTimeoutRef.current = setTimeout(() => {
+        // Any additional operations that should be debounced can go here
+        // For now, we just ensure the dragTimeRef is updated
+        dragTimeRef.current = newTime;
+      }, 16); // ~60fps
     }
   }, [isDragging, duration, calculateTimeFromPosition]);
 
@@ -105,6 +120,12 @@ const TransportControl: React.FC<TransportControlProps> = ({
         document.removeEventListener('mouseup', handleMouseUp);
         document.removeEventListener('mousemove', handleGlobalMouseMove);
         document.body.style.userSelect = '';
+        
+        // Clear any pending debounce timeout
+        if (debounceTimeoutRef.current) {
+          clearTimeout(debounceTimeoutRef.current);
+          debounceTimeoutRef.current = null;
+        }
       };
     }
   }, [isDragging, handleMouseUp, handleGlobalMouseMove]);
@@ -122,6 +143,15 @@ const TransportControl: React.FC<TransportControlProps> = ({
       setIsSeekingFromClick(false);
     }
   }, [currentTime, isSeekingFromClick, lastSeekTime]);
+
+  // Cleanup debounce timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Memoize computed values
   const displayTime = useMemo(() => 
