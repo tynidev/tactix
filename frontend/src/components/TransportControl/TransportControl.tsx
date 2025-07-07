@@ -28,7 +28,6 @@ const TransportControl: React.FC<TransportControlProps> = ({
   const [isSeekingFromClick, setIsSeekingFromClick] = useState(false);
   const [lastSeekTime, setLastSeekTime] = useState(0);
   const timelineRef = useRef<HTMLDivElement>(null);
-  const seekTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -48,16 +47,6 @@ const TransportControl: React.FC<TransportControlProps> = ({
     setIsSeekingFromClick(true);
     setLastSeekTime(newTime);
     setDragTime(newTime);
-    
-    // Clear any existing timeout
-    if (seekTimeoutRef.current) {
-      clearTimeout(seekTimeoutRef.current);
-    }
-    
-    // Set a timeout to clear the seeking state
-    seekTimeoutRef.current = setTimeout(() => {
-      setIsSeekingFromClick(false);
-    }, 300); // Give YouTube player time to complete the seek
     
     // Immediately seek
     onSeekTo(newTime);
@@ -99,16 +88,6 @@ const TransportControl: React.FC<TransportControlProps> = ({
       // Set seeking state for drag completion
       setIsSeekingFromClick(true);
       setLastSeekTime(seekTime);
-      
-      // Clear any existing timeout
-      if (seekTimeoutRef.current) {
-        clearTimeout(seekTimeoutRef.current);
-      }
-      
-      // Set a timeout to clear the seeking state
-      seekTimeoutRef.current = setTimeout(() => {
-        setIsSeekingFromClick(false);
-      }, 300);
       
       onSeekTo(seekTime);
       setIsDragging(false);
@@ -152,21 +131,8 @@ const TransportControl: React.FC<TransportControlProps> = ({
     // If we're seeking from a click and the currentTime has caught up to our target, stop seeking
     if (isSeekingFromClick && Math.abs(currentTime - lastSeekTime) < 0.5) {
       setIsSeekingFromClick(false);
-      if (seekTimeoutRef.current) {
-        clearTimeout(seekTimeoutRef.current);
-        seekTimeoutRef.current = null;
-      }
     }
   }, [currentTime, isSeekingFromClick, lastSeekTime]);
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (seekTimeoutRef.current) {
-        clearTimeout(seekTimeoutRef.current);
-      }
-    };
-  }, []);
 
   // Use dragTime for display when dragging or seeking, otherwise use currentTime
   const displayTime = (isDragging || isSeekingFromClick) ? dragTime : currentTime;
