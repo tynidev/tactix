@@ -33,7 +33,6 @@ export const useKeyboardShortcuts = ({
     if (disabled) return;
 
     const key = e.key.toLowerCase();
-    console.log('Key pressed:', key);
 
     // Prevent default for specific keys
     if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(e.key))
@@ -44,40 +43,31 @@ export const useKeyboardShortcuts = ({
     switch (key)
     {
       case '1':
-        console.log('Changing to color1');
         changeColor(CONFIG.drawing.colors.color1);
         break;
       case '2':
-        console.log('Changing to color2');
         changeColor(CONFIG.drawing.colors.color2);
         break;
       case '3':
-        console.log('Changing to color3');
         changeColor(CONFIG.drawing.colors.color3);
         break;
       case '4':
-        console.log('Changing to arrow mode');
         changeMode('arrow');
         break;
       case '5':
-        console.log('Changing to line mode');
         changeMode('line');
         break;
       case '6':
-        console.log('Changing to rectangle mode');
         changeMode('rectangle');
         break;
       case '7':
-        console.log('Changing to ellipse mode');
         changeMode('ellipse');
         break;
       case 'e':
       case 'c':
-        console.log('Clearing canvas via keyboard');
         clearCanvas();
         break;
       case 'z':
-        console.log('Undoing last drawing via keyboard');
         undoLastDrawing();
         break;
       case ' ':

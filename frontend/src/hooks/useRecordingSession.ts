@@ -82,14 +82,7 @@ export const useRecordingSession = (): UseRecordingSessionReturn =>
 
     setRecordingEvents(prev =>
     {
-      const newEvents = [...prev, event];
-      console.log('📹 Recording event captured:', {
-        type,
-        timestamp,
-        dataSize: JSON.stringify(data).length,
-        totalEvents: newEvents.length,
-      });
-      return newEvents;
+      return [...prev, event];
     });
   }, [isRecording, createTimestamp]);
 
@@ -151,11 +144,6 @@ export const useRecordingSession = (): UseRecordingSessionReturn =>
     setRecordingEvents([]);
     lastDrawingsRef.current = [];
     lastCanvasDimensionsRef.current = null;
-
-    console.log('🎬 Recording session started:', {
-      startTime: new Date(startTime).toISOString(),
-      timestamp: startTime,
-    });
   }, []);
 
   /**
@@ -166,18 +154,6 @@ export const useRecordingSession = (): UseRecordingSessionReturn =>
     setIsRecording(false);
 
     const events = [...recordingEvents];
-    const eventSummary = events.reduce((acc, event) =>
-    {
-      acc[event.type] = (acc[event.type] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    console.log('🛑 Recording session stopped:', {
-      totalEvents: events.length,
-      eventBreakdown: eventSummary,
-      duration: recordingStartTime ? Date.now() - recordingStartTime : 0,
-      endTime: new Date().toISOString(),
-    });
 
     // Reset state
     setRecordingStartTime(null);

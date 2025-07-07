@@ -195,9 +195,6 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
       return;
     }
 
-    const timestamp = player.getCurrentTime();
-    console.log('Creating coaching point at:', timestamp);
-    
     // Don't pass recording data for manual coaching points
     setRecordingData(null);
     setShowCoachingPointModal(true);
@@ -213,16 +210,13 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
   const handleToggleRecording = useCallback(async () => {
     if (!isRecording) {
       // Start recording
-      console.log('🎬 Starting recording session from GameAnalysis...');
       
       // Pause video if playing
       if (isPlaying && player) {
-        console.log('⏸️ Pausing video for recording...');
         player.pauseVideo();
       }
       
       // Start audio recording
-      console.log('🎤 Initiating audio recording...');
       const audioStarted = await audioRecording.startRecording();
       if (!audioStarted) {
         console.error('❌ Failed to start audio recording');
@@ -230,20 +224,15 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
       }
       
       // Start recording session
-      console.log('📹 Starting event recording session...');
       recordingSession.startRecordingSession();
       setIsRecording(true);
-      console.log('✅ Recording session fully started');
     } else {
       // Stop recording
-      console.log('🛑 Stopping recording session from GameAnalysis...');
       
       // Stop audio recording and get the blob
-      console.log('⏹️ Stopping audio recording...');
       const audioBlob = await audioRecording.stopRecording();
       
       // Stop recording session and get events
-      console.log('📊 Collecting recording events...');
       const capturedEvents = recordingSession.stopRecordingSession();
       
       setIsRecording(false);
@@ -255,13 +244,6 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
         recordingDuration: audioRecording.recordingTime,
       };
       
-      console.log('💾 Recording data prepared for modal:', {
-        hasAudio: !!recordingData.audioBlob,
-        audioSize: recordingData.audioBlob?.size,
-        eventCount: recordingData.recordingEvents.length,
-        duration: recordingData.recordingDuration
-      });
-      
       setRecordingData(recordingData);
       setShowCoachingPointModal(true);
     }
@@ -272,7 +254,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
     if (!player) return;
 
     const timestamp = parseInt(timestampMs, 10) / 1000;
-    console.log('Seeking to timestamp:', timestamp);
+
     // Use seekTo with allowSeekAhead set to true
     player.seekTo(timestamp, true);
   }, [player]);
@@ -286,7 +268,6 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
   const handlePauseVideo = useCallback(() => {
     if (!player || !isPlaying) return;
 
-    console.log('Pausing video');
     player.pauseVideo();
   }, [player, isPlaying]);
 

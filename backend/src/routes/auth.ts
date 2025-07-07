@@ -18,8 +18,6 @@ router.post('/signup', async (req: Request, res: Response): Promise<void> =>
     }
 
     // Create user in Supabase Auth using signUp with anon key client
-    console.log('Attempting signup for:', email);
-
     const { data: authData, error: authError } = await supabaseAuth.auth.signUp({
       email,
       password,

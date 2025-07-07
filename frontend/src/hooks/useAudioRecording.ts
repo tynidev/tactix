@@ -90,14 +90,12 @@ export const useAudioRecording = (): UseAudioRecordingReturn =>
    */
   const startRecording = useCallback(async (): Promise<boolean> =>
   {
-    console.log('🎤 Starting audio recording...');
 
     try
     {
       setError(null);
 
       // Request microphone permission
-      console.log('🔒 Requesting microphone permission...');
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
@@ -106,7 +104,6 @@ export const useAudioRecording = (): UseAudioRecordingReturn =>
         },
       });
 
-      console.log('✅ Microphone access granted');
       audioStreamRef.current = stream;
       audioChunksRef.current = [];
 
@@ -134,7 +131,6 @@ export const useAudioRecording = (): UseAudioRecordingReturn =>
         throw new Error('No supported audio format found');
       }
 
-      console.log('🎵 Selected audio format:', selectedMimeType);
 
       // Create MediaRecorder
       const mediaRecorder = new MediaRecorder(stream, {
@@ -150,7 +146,6 @@ export const useAudioRecording = (): UseAudioRecordingReturn =>
         if (event.data.size > 0)
         {
           audioChunksRef.current.push(event.data);
-          console.log('📦 Audio chunk received:', event.data.size, 'bytes');
         }
       };
 
@@ -158,11 +153,6 @@ export const useAudioRecording = (): UseAudioRecordingReturn =>
       {
         const audioBlob = new Blob(audioChunksRef.current, {
           type: selectedMimeType,
-        });
-        console.log('🎵 Audio recording completed:', {
-          finalSize: audioBlob.size,
-          mimeType: audioBlob.type,
-          chunks: audioChunksRef.current.length,
         });
         setAudioBlob(audioBlob);
         setIsRecording(false);
@@ -182,13 +172,11 @@ export const useAudioRecording = (): UseAudioRecordingReturn =>
       };
 
       // Start recording
-      console.log('▶️ Starting MediaRecorder...');
       mediaRecorder.start(100); // Collect data every 100ms
       setIsRecording(true);
       setIsPaused(false);
       startTimer();
 
-      console.log('✅ Audio recording started successfully');
       return true;
     }
     catch (err)
@@ -225,24 +213,15 @@ export const useAudioRecording = (): UseAudioRecordingReturn =>
    */
   const stopRecording = useCallback((): Promise<Blob | null> =>
   {
-    console.log('⏹️ Stopping audio recording...');
 
     return new Promise((resolve) =>
     {
       if (mediaRecorderRef.current && isRecording)
       {
-        // Set up a one-time listener for when the recording stops
-        const originalOnStop = mediaRecorderRef.current.onstop;
-
         mediaRecorderRef.current.onstop = () =>
         {
           const audioBlob = new Blob(audioChunksRef.current, {
             type: mediaRecorderRef.current!.mimeType,
-          });
-          console.log('🎵 Audio recording completed:', {
-            finalSize: audioBlob.size,
-            mimeType: audioBlob.type,
-            chunks: audioChunksRef.current.length,
           });
           setAudioBlob(audioBlob);
           setIsRecording(false);
@@ -255,7 +234,6 @@ export const useAudioRecording = (): UseAudioRecordingReturn =>
         };
 
         mediaRecorderRef.current.stop();
-        console.log('📤 MediaRecorder stop signal sent');
       }
       else
       {

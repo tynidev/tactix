@@ -83,8 +83,6 @@ export const useDrawingCanvas = () =>
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
-    console.log('Redrawing canvas with', drawingElementsRef.current.length, 'elements');
-
     // Redraw all stored elements using the new drawing system
     drawingElementsRef.current.forEach((element) =>
     {
@@ -142,7 +140,6 @@ export const useDrawingCanvas = () =>
     ctx.lineWidth = getScaledLineWidth(canvas);
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    console.log('Canvas properties updated. Current color:', currentColor, 'Stroke style:', ctx.strokeStyle);
   }, [currentColor]);
 
   /**
@@ -413,7 +410,6 @@ export const useDrawingCanvas = () =>
       };
 
       drawingElementsRef.current.push(command);
-      console.log('Rectangle saved:', command, 'Total commands:', drawingElementsRef.current.length);
       setRectangleStartPoint(null);
     }
     // ELLIPSE:
@@ -433,7 +429,6 @@ export const useDrawingCanvas = () =>
       };
 
       drawingElementsRef.current.push(command);
-      console.log('Ellipse saved:', command, 'Total commands:', drawingElementsRef.current.length);
       setEllipseStartPoint(null);
     }
     // LINE:
@@ -499,12 +494,10 @@ export const useDrawingCanvas = () =>
    */
   const clearCanvas = useCallback(() =>
   {
-    console.log('Clearing canvas');
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx)
     {
-      console.log('Canvas or context not available');
       return;
     }
 
@@ -518,7 +511,6 @@ export const useDrawingCanvas = () =>
 
     // Clear visual canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    console.log('Canvas cleared');
   }, []);
 
   /**
@@ -530,7 +522,6 @@ export const useDrawingCanvas = () =>
    */
   const changeColor = useCallback((color: string) =>
   {
-    console.log('Changing color to:', color);
     currentColorRef.current = color; // Update ref immediately
     setCurrentColor(color);
     // Canvas properties will be updated automatically by the useEffect
@@ -544,7 +535,6 @@ export const useDrawingCanvas = () =>
    */
   const changeMode = useCallback((mode: DrawingMode) =>
   {
-    console.log('Changing mode to:', mode);
     currentModeRef.current = mode; // Update ref immediately
     setCurrentMode(mode);
   }, []);
@@ -557,13 +547,11 @@ export const useDrawingCanvas = () =>
   {
     if (drawingElementsRef.current.length === 0)
     {
-      console.log('No drawings to undo');
       return;
     }
 
     // Remove the last drawing command
     const removedCommand = drawingElementsRef.current.pop();
-    console.log('Undoing last drawing:', removedCommand, 'Remaining commands:', drawingElementsRef.current.length);
 
     // Redraw the canvas without the removed command
     redrawCanvas();

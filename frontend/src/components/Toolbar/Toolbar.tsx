@@ -99,7 +99,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
           }`}
           onClick={() =>
           {
-            console.log('Color1 button clicked');
             onColorChange(CONFIG.drawing.colors.color1);
           }}
           title='Color1 (1)'
@@ -110,7 +109,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
           }`}
           onClick={() =>
           {
-            console.log('Color2 button clicked');
             onColorChange(CONFIG.drawing.colors.color2);
           }}
           title='Color2 (2)'
@@ -121,7 +119,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
           }`}
           onClick={() =>
           {
-            console.log('Color3 button clicked');
             onColorChange(CONFIG.drawing.colors.color3);
           }}
           title='Color3 (3)'
@@ -130,7 +127,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
           className={`toolbar-btn btn-circular mode-btn ${currentMode === 'arrow' ? 'active' : ''}`}
           onClick={() =>
           {
-            console.log('Arrow mode button clicked');
             onModeChange('arrow');
           }}
           title='Arrow Line (4)'
@@ -141,7 +137,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
           className={`toolbar-btn btn-circular mode-btn ${currentMode === 'line' ? 'active' : ''}`}
           onClick={() =>
           {
-            console.log('Line mode button clicked');
             onModeChange('line');
           }}
           title='Simple Line (5)'
@@ -152,7 +147,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
           className={`toolbar-btn btn-circular mode-btn ${currentMode === 'rectangle' ? 'active' : ''}`}
           onClick={() =>
           {
-            console.log('Rectangle mode button clicked');
             onModeChange('rectangle');
           }}
           title='Rectangle (6)'
@@ -163,7 +157,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
           className={`toolbar-btn btn-circular mode-btn ${currentMode === 'ellipse' ? 'active' : ''}`}
           onClick={() =>
           {
-            console.log('Ellipse mode button clicked');
             onModeChange('ellipse');
           }}
           title='Ellipse (7)'
@@ -174,7 +167,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
           className='toolbar-btn btn-circular control-btn'
           onClick={() =>
           {
-            console.log('Clear button clicked');
             onClearCanvas();
           }}
           title='Clear (E/C)'
