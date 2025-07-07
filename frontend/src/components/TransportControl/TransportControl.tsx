@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { CONFIG } from '../../types/config';
 import './TransportControl.css';
 
@@ -28,115 +28,125 @@ const TransportControl: React.FC<TransportControlProps> = ({
   const [isSeekingFromClick, setIsSeekingFromClick] = useState(false);
   const [lastSeekTime, setLastSeekTime] = useState(0);
   const timelineRef = useRef<HTMLDivElement>(null);
+  
+  // Store the drag time in a ref to avoid stale closures
+  const dragTimeRef = useRef(dragTime);
+  dragTimeRef.current = dragTime;
 
-  const formatTime = (seconds: number): string => {
+  const formatTime = useCallback((seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+  }, []);
 
-  const handleTimelineClick = (e: React.MouseEvent) => {
-    if (!timelineRef.current || duration === 0) return;
+  const calculateTimeFromPosition = useCallback((clientX: number): number => {
+    if (!timelineRef.current || duration === 0) return 0;
     
     const rect = timelineRef.current.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const percentage = clickX / rect.width;
-    const newTime = Math.max(0, Math.min(duration, percentage * duration));
+    const clickX = clientX - rect.left;
+    const percentage = Math.max(0, Math.min(1, clickX / rect.width));
+    return percentage * duration;
+  }, [duration]);
+
+  const handleTimelineClick = useCallback((e: React.MouseEvent) => {
+    if (isDragging || duration === 0) return;
     
-    // Set the seeking state and target time
+    const newTime = calculateTimeFromPosition(e.clientX);
+    
+    // Batch state updates
     setIsSeekingFromClick(true);
     setLastSeekTime(newTime);
     setDragTime(newTime);
     
-    // Immediately seek
     onSeekTo(newTime);
-  };
+  }, [isDragging, duration, calculateTimeFromPosition, onSeekTo]);
 
-  const handleTimelineDrag = (e: React.MouseEvent) => {
-    if (!isDragging || !timelineRef.current || duration === 0) return;
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (duration === 0) return;
     
-    const rect = timelineRef.current.getBoundingClientRect();
-    // Only care about horizontal position (clientX), ignore vertical position (clientY)
-    const clickX = e.clientX - rect.left;
-    const percentage = Math.max(0, Math.min(1, clickX / rect.width));
-    const newTime = percentage * duration;
-    
-    setDragTime(newTime);
-  };
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (!timelineRef.current || duration === 0) return;
-    
-    // Calculate initial drag position
-    const rect = timelineRef.current.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const percentage = clickX / rect.width;
-    const newTime = percentage * duration;
+    const newTime = calculateTimeFromPosition(e.clientX);
     
     setDragTime(newTime);
     setIsDragging(true);
     
-    // Don't immediately seek on mousedown - wait for mouseup
     e.preventDefault();
-  };
+  }, [duration, calculateTimeFromPosition]);
 
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
     if (isDragging && duration > 0) {
-      // Use the current dragTime which should be updated by mouse move events
-      const seekTime = Math.max(0, Math.min(duration, dragTime));
+      const seekTime = Math.max(0, Math.min(duration, dragTimeRef.current));
       
-      // Set seeking state for drag completion
+      // Batch state updates
       setIsSeekingFromClick(true);
       setLastSeekTime(seekTime);
+      setIsDragging(false);
       
       onSeekTo(seekTime);
-      setIsDragging(false);
     }
-  };
+  }, [isDragging, duration, onSeekTo]);
 
+  const handleGlobalMouseMove = useCallback((e: MouseEvent) => {
+    if (isDragging && duration > 0) {
+      const newTime = calculateTimeFromPosition(e.clientX);
+      setDragTime(newTime);
+    }
+  }, [isDragging, duration, calculateTimeFromPosition]);
+
+  // Handle global mouse events for dragging
   useEffect(() => {
-    const handleGlobalMouseUp = () => handleMouseUp();
-    const handleGlobalMouseMove = (e: MouseEvent) => {
-      if (isDragging && timelineRef.current && duration > 0) {
-        const rect = timelineRef.current.getBoundingClientRect();
-        // Only care about horizontal position, ignore vertical
-        const clickX = e.clientX - rect.left;
-        const percentage = Math.max(0, Math.min(1, clickX / rect.width));
-        const newTime = percentage * duration;
-        setDragTime(newTime);
-      }
-    };
-
     if (isDragging) {
-      document.addEventListener('mouseup', handleGlobalMouseUp);
+      document.addEventListener('mouseup', handleMouseUp);
       document.addEventListener('mousemove', handleGlobalMouseMove);
+      
+      // Prevent text selection while dragging
+      document.body.style.userSelect = 'none';
+      
+      return () => {
+        document.removeEventListener('mouseup', handleMouseUp);
+        document.removeEventListener('mousemove', handleGlobalMouseMove);
+        document.body.style.userSelect = '';
+      };
     }
+  }, [isDragging, handleMouseUp, handleGlobalMouseMove]);
 
-    return () => {
-      document.removeEventListener('mouseup', handleGlobalMouseUp);
-      document.removeEventListener('mousemove', handleGlobalMouseMove);
-    };
-  }, [isDragging, duration]);
-
-  // Update dragTime when currentTime changes, but only if not dragging and not seeking from a click
+  // Update dragTime when currentTime changes
   useEffect(() => {
-    // Only update dragTime with currentTime if we're not actively dragging or seeking
     if (!isDragging && !isSeekingFromClick) {
       setDragTime(currentTime);
     }
   }, [currentTime, isDragging, isSeekingFromClick]);
 
-  // Separate effect to handle seek completion detection
+  // Handle seek completion detection
   useEffect(() => {
-    // If we're seeking from a click and the currentTime has caught up to our target, stop seeking
     if (isSeekingFromClick && Math.abs(currentTime - lastSeekTime) < 0.5) {
       setIsSeekingFromClick(false);
     }
   }, [currentTime, isSeekingFromClick, lastSeekTime]);
 
-  // Use dragTime for display when dragging or seeking, otherwise use currentTime
-  const displayTime = (isDragging || isSeekingFromClick) ? dragTime : currentTime;
-  const progressPercentage = duration > 0 ? (displayTime / duration) * 100 : 0;
+  // Memoize computed values
+  const displayTime = useMemo(() => 
+    (isDragging || isSeekingFromClick) ? dragTime : currentTime,
+    [isDragging, isSeekingFromClick, dragTime, currentTime]
+  );
+  
+  const progressPercentage = useMemo(() => 
+    duration > 0 ? (displayTime / duration) * 100 : 0,
+    [displayTime, duration]
+  );
+
+  // Memoize button click handlers
+  const handleRewind = useCallback(() => onSeek(-CONFIG.video.seekAmount), [onSeek]);
+  const handleForward = useCallback(() => onSeek(CONFIG.video.seekAmount), [onSeek]);
+  
+  const handleSlowSpeed = useCallback(() => 
+    onPlaybackRateChange(CONFIG.video.playbackRates.slow), [onPlaybackRateChange]
+  );
+  const handleNormalSpeed = useCallback(() => 
+    onPlaybackRateChange(CONFIG.video.playbackRates.normal), [onPlaybackRateChange]
+  );
+  const handleFastSpeed = useCallback(() => 
+    onPlaybackRateChange(CONFIG.video.playbackRates.fast), [onPlaybackRateChange]
+  );
 
   return (
     <div className="transport-control">
@@ -145,7 +155,7 @@ const TransportControl: React.FC<TransportControlProps> = ({
         <div className="transport-buttons">
           <button
             className="transport-btn"
-            onClick={() => onSeek(-CONFIG.video.seekAmount)}
+            onClick={handleRewind}
             title="Rewind (A/←)"
           >
             ⏮
@@ -159,7 +169,7 @@ const TransportControl: React.FC<TransportControlProps> = ({
           </button>
           <button
             className="transport-btn"
-            onClick={() => onSeek(CONFIG.video.seekAmount)}
+            onClick={handleForward}
             title="Forward (D/→)"
           >
             ⏭
@@ -172,9 +182,14 @@ const TransportControl: React.FC<TransportControlProps> = ({
           <div
             ref={timelineRef}
             className="timeline"
-            onClick={!isDragging ? handleTimelineClick : undefined}
+            onClick={handleTimelineClick}
             onMouseDown={handleMouseDown}
-            onMouseMove={handleTimelineDrag}
+            role="slider"
+            aria-label="Video timeline"
+            aria-valuemin={0}
+            aria-valuemax={duration}
+            aria-valuenow={displayTime}
+            tabIndex={0}
           >
             <div className="timeline-track">
               <div 
@@ -194,21 +209,21 @@ const TransportControl: React.FC<TransportControlProps> = ({
         <div className="speed-controls">
           <button
             className={`speed-btn ${currentPlaybackRate === CONFIG.video.playbackRates.slow ? 'active' : ''}`}
-            onClick={() => onPlaybackRateChange(CONFIG.video.playbackRates.slow)}
+            onClick={handleSlowSpeed}
             title="0.5x Speed"
           >
             0.5x
           </button>
           <button
             className={`speed-btn ${currentPlaybackRate === CONFIG.video.playbackRates.normal ? 'active' : ''}`}
-            onClick={() => onPlaybackRateChange(CONFIG.video.playbackRates.normal)}
+            onClick={handleNormalSpeed}
             title="Normal Speed"
           >
             1x
           </button>
           <button
             className={`speed-btn ${currentPlaybackRate === CONFIG.video.playbackRates.fast ? 'active' : ''}`}
-            onClick={() => onPlaybackRateChange(CONFIG.video.playbackRates.fast)}
+            onClick={handleFastSpeed}
             title="2x Speed"
           >
             2x
