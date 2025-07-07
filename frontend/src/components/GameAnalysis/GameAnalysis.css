@@ -193,6 +193,23 @@
   gap: var(--space-sm);
   z-index: 1000;
   box-shadow: var(--shadow-lg);
+  max-width: 300px;
+}
+
+.recording-time {
+  font-family: monospace;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.recording-error {
+  font-size: 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .recording-dot {

@@ -89,6 +89,91 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res: Respon
   }
 });
 
+// POST /api/coaching-point-events/batch - Create multiple coaching point events
+router.post('/batch', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ message: 'User ID not found' });
+      return;
+    }
+
+    const { events } = req.body;
+
+    // Validate input
+    if (!Array.isArray(events) || events.length === 0) {
+      res.status(400).json({ message: 'Events array is required and must not be empty' });
+      return;
+    }
+
+    // Validate all events have required fields
+    for (const event of events) {
+      if (!event.point_id || !event.event_type || event.timestamp === undefined || !event.event_data) {
+        res.status(400).json({ 
+          message: 'All events must have: point_id, event_type, timestamp, event_data' 
+        });
+        return;
+      }
+    }
+
+    // Get the first point_id to verify permissions (assuming all events are for the same coaching point)
+    const pointId = events[0].point_id;
+    
+    // Verify the user has permission to add events to this coaching point
+    const { data: coachingPoint, error: pointError } = await supabase
+      .from('coaching_points')
+      .select(`
+        id,
+        author_id,
+        games!inner(
+          teams!inner(
+            team_memberships!inner(
+              user_id,
+              role
+            )
+          )
+        )
+      `)
+      .eq('id', pointId)
+      .eq('games.teams.team_memberships.user_id', userId)
+      .single();
+
+    if (pointError || !coachingPoint) {
+      res.status(404).json({ message: 'Coaching point not found or access denied' });
+      return;
+    }
+
+    // Check if user has permission (author, coach, or admin)
+    const userRole = coachingPoint.games.teams.team_memberships[0]?.role;
+    const isAuthor = coachingPoint.author_id === userId;
+    const hasPermission = isAuthor || ['coach', 'admin'].includes(userRole);
+
+    if (!hasPermission) {
+      res.status(403).json({ 
+        message: 'Only the author, coaches, or admins can add events to coaching points' 
+      });
+      return;
+    }
+
+    // Create all coaching point events
+    const { data: createdEvents, error } = await supabase
+      .from('coaching_point_events')
+      .insert(events)
+      .select('*');
+
+    if (error) {
+      console.error('Error creating coaching point events:', error);
+      res.status(500).json({ message: 'Failed to create coaching point events' });
+      return;
+    }
+
+    res.status(201).json(createdEvents);
+  } catch (error) {
+    console.error('Error in POST /coaching-point-events/batch:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 // GET /api/coaching-point-events/point/:pointId - Get events for a coaching point
 router.get('/point/:pointId', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
