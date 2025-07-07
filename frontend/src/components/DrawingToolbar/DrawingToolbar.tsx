@@ -1,6 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { CONFIG, type DrawingMode } from '../../types/config';
 import './DrawingToolbar.css';
+import { 
+  FaPalette, 
+  FaRegSquare, 
+  FaRegCircle, 
+  FaEraser,
+  FaMinus,
+  FaPen,
+  FaLongArrowAltUp
+} from 'react-icons/fa';
 
 interface DrawingToolbarProps {
   currentColor: string;
@@ -19,9 +28,17 @@ const DrawingToolbar: React.FC<DrawingToolbarProps> = ({
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  const toggleCollapse = () => {
-    setIsCollapsed(!isCollapsed);
-  };
+  const toggleCollapse = useCallback(() => {
+    setIsCollapsed(prev => !prev);
+  }, []);
+
+  const handleColorChange = useCallback((color: string) => {
+    onColorChange(color);
+  }, [onColorChange]);
+
+  const handleModeChange = useCallback((mode: DrawingMode) => {
+    onModeChange(mode);
+  }, [onModeChange]);
 
   return (
     <div className={`drawing-toolbar ${isCollapsed ? 'collapsed' : ''}`}>
@@ -32,7 +49,7 @@ const DrawingToolbar: React.FC<DrawingToolbarProps> = ({
           onClick={toggleCollapse}
           title={isCollapsed ? 'Expand toolbar' : 'Collapse toolbar'}
         >
-          {isCollapsed ? '🎨' : '━'}
+          {isCollapsed ? <FaPalette /> : <FaMinus />}
         </button>
       </div>
 
@@ -46,21 +63,21 @@ const DrawingToolbar: React.FC<DrawingToolbarProps> = ({
               className={`drawing-btn color-btn color1-btn ${
                 currentColor === CONFIG.drawing.colors.color1 ? 'active' : ''
               }`}
-              onClick={() => onColorChange(CONFIG.drawing.colors.color1)}
+              onClick={() => handleColorChange(CONFIG.drawing.colors.color1)}
               title="Color 1 (1)"
             />
             <button
               className={`drawing-btn color-btn color2-btn ${
                 currentColor === CONFIG.drawing.colors.color2 ? 'active' : ''
               }`}
-              onClick={() => onColorChange(CONFIG.drawing.colors.color2)}
+              onClick={() => handleColorChange(CONFIG.drawing.colors.color2)}
               title="Color 2 (2)"
             />
             <button
               className={`drawing-btn color-btn color3-btn ${
                 currentColor === CONFIG.drawing.colors.color3 ? 'active' : ''
               }`}
-              onClick={() => onColorChange(CONFIG.drawing.colors.color3)}
+              onClick={() => handleColorChange(CONFIG.drawing.colors.color3)}
               title="Color 3 (3)"
             />
           </div>
@@ -71,31 +88,31 @@ const DrawingToolbar: React.FC<DrawingToolbarProps> = ({
           <div className="drawing-group">
             <button
               className={`drawing-btn mode-btn ${currentMode === 'arrow' ? 'active' : ''}`}
-              onClick={() => onModeChange('arrow')}
+              onClick={() => handleModeChange('arrow')}
               title="Arrow Line (4)"
             >
-              ↗️
+              <FaLongArrowAltUp />
             </button>
             <button
               className={`drawing-btn mode-btn ${currentMode === 'line' ? 'active' : ''}`}
-              onClick={() => onModeChange('line')}
+              onClick={() => handleModeChange('line')}
               title="Simple Line (5)"
             >
-              📏
+              <FaPen />
             </button>
             <button
               className={`drawing-btn mode-btn ${currentMode === 'rectangle' ? 'active' : ''}`}
-              onClick={() => onModeChange('rectangle')}
+              onClick={() => handleModeChange('rectangle')}
               title="Rectangle (6)"
             >
-              ⬜
+              <FaRegSquare />
             </button>
             <button
               className={`drawing-btn mode-btn ${currentMode === 'ellipse' ? 'active' : ''}`}
-              onClick={() => onModeChange('ellipse')}
+              onClick={() => handleModeChange('ellipse')}
               title="Ellipse (7)"
             >
-              ⭕
+              <FaRegCircle />
             </button>
           </div>
 
@@ -108,7 +125,7 @@ const DrawingToolbar: React.FC<DrawingToolbarProps> = ({
               onClick={onClearCanvas}
               title="Clear (E/C)"
             >
-              🗑️
+              <FaEraser />
             </button>
           </div>
         </>

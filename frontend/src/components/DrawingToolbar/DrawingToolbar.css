@@ -76,25 +76,30 @@
 .mode-btn {
   background: rgba(0, 0, 0, 0.3);
   font-size: 20px;
+  color: white;
 }
 
 .mode-btn:hover {
   background: rgba(0, 0, 0, 0.5);
+  color: white;
 }
 
 .mode-btn.active {
   background-color: rgba(255, 255, 255, 0.1);
   box-shadow: 0 0 10px white;
+  color: white;
 }
 
 /* Action buttons */
 .action-btn {
   background: rgba(0, 0, 0, 0.1);
   font-size: 18px;
+  color: white;
 }
 
 .action-btn:hover {
   background: rgba(0, 0, 0, 0.3);
+  color: white;
 }
 
 /* Collapse button */
@@ -102,10 +107,12 @@
   background: rgba(0, 0, 0, 0.1);
   font-size: 16px;
   font-weight: bold;
+  color: white;
 }
 
 .collapse-btn:hover {
   background-color: var(--white-glow);
+  color: white;
 }
 
 /* Mobile responsive adjustments */
