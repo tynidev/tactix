@@ -70,6 +70,7 @@ interface CoachingPointsFlyoutProps {
   onSeek: (seconds: number) => void;
   onSeekTo: (time: number) => void;
   onPlaybackRateChange: (rate: number) => void;
+  isCoachingPointPlaybackActive?: boolean; // Disable transport controls during coaching point playback
 }
 
 export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
@@ -90,6 +91,7 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
     onSeek,
     onSeekTo,
     onPlaybackRateChange,
+    isCoachingPointPlaybackActive = false,
   }) => {
     const { user } = useAuth();
     const [isExpanded, setIsExpanded] = useState(false);
@@ -409,6 +411,7 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
               onSeek={onSeek}
               onSeekTo={onSeekTo}
               onPlaybackRateChange={onPlaybackRateChange}
+              disabled={isCoachingPointPlaybackActive}
             />
 
             <div className="header-right" onClick={() => setIsExpanded(!isExpanded)}>

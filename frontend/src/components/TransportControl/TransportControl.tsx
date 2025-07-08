@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import { MdLock } from 'react-icons/md';
 import { CONFIG } from '../../types/config';
 import './TransportControl.css';
 
@@ -11,6 +12,7 @@ interface TransportControlProps {
   onSeek: (seconds: number) => void;
   onSeekTo: (time: number) => void;
   onPlaybackRateChange: (rate: number) => void;
+  disabled?: boolean; // Disable all transport controls
 }
 
 const TransportControl: React.FC<TransportControlProps> = ({
@@ -22,6 +24,7 @@ const TransportControl: React.FC<TransportControlProps> = ({
   onSeek,
   onSeekTo,
   onPlaybackRateChange,
+  disabled = false,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragTime, setDragTime] = useState(0);
@@ -50,7 +53,7 @@ const TransportControl: React.FC<TransportControlProps> = ({
   }, [duration]);
 
   const handleTimelineClick = useCallback((e: React.MouseEvent) => {
-    if (isDragging || duration === 0) return;
+    if (disabled || isDragging || duration === 0) return;
     
     const newTime = calculateTimeFromPosition(e.clientX);
     
@@ -60,10 +63,10 @@ const TransportControl: React.FC<TransportControlProps> = ({
     setDragTime(newTime);
     
     onSeekTo(newTime);
-  }, [isDragging, duration, calculateTimeFromPosition, onSeekTo]);
+  }, [disabled, isDragging, duration, calculateTimeFromPosition, onSeekTo]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (duration === 0) return;
+    if (disabled || duration === 0) return;
     
     const newTime = calculateTimeFromPosition(e.clientX);
     
@@ -71,7 +74,7 @@ const TransportControl: React.FC<TransportControlProps> = ({
     setIsDragging(true);
     
     e.preventDefault();
-  }, [duration, calculateTimeFromPosition]);
+  }, [disabled, duration, calculateTimeFromPosition]);
 
   const handleMouseUp = useCallback(() => {
     if (isDragging && duration > 0) {
@@ -179,28 +182,31 @@ const TransportControl: React.FC<TransportControlProps> = ({
   );
 
   return (
-    <div className="transport-control">
+    <div className={`transport-control ${disabled ? 'disabled' : ''}`}>
       <div className="transport-main">
         {/* Transport Controls - Left */}
         <div className="transport-buttons">
           <button
             className="transport-btn"
             onClick={handleRewind}
-            title="Rewind (A/←)"
+            disabled={disabled}
+            title={disabled ? "Transport controls disabled during coaching point playback" : "Rewind (A/←)"}
           >
             ⏮
           </button>
           <button
             className="transport-btn play-pause"
             onClick={onTogglePlayPause}
-            title="Play/Pause (S/Space)"
+            disabled={disabled}
+            title={disabled ? "Transport controls disabled during coaching point playback" : "Play/Pause (S/Space)"}
           >
             {isPlaying ? '⏸' : '▶'}
           </button>
           <button
             className="transport-btn"
             onClick={handleForward}
-            title="Forward (D/→)"
+            disabled={disabled}
+            title={disabled ? "Transport controls disabled during coaching point playback" : "Forward (D/→)"}
           >
             ⏭
           </button>
@@ -211,15 +217,16 @@ const TransportControl: React.FC<TransportControlProps> = ({
           <span className="time-display">{formatTime(displayTime)}</span>
           <div
             ref={timelineRef}
-            className="timeline"
-            onClick={handleTimelineClick}
-            onMouseDown={handleMouseDown}
+            className={`timeline ${disabled ? 'disabled' : ''}`}
+            onClick={disabled ? undefined : handleTimelineClick}
+            onMouseDown={disabled ? undefined : handleMouseDown}
             role="slider"
             aria-label="Video timeline"
             aria-valuemin={0}
             aria-valuemax={duration}
             aria-valuenow={displayTime}
-            tabIndex={0}
+            tabIndex={disabled ? -1 : 0}
+            style={{ cursor: disabled ? 'not-allowed' : 'pointer' }}
           >
             <div className="timeline-track">
               <div 
@@ -231,6 +238,11 @@ const TransportControl: React.FC<TransportControlProps> = ({
                 style={{ left: `${progressPercentage}%` }}
               />
             </div>
+            {disabled && (
+              <div className="timeline-locked-icon">
+                <MdLock />
+              </div>
+            )}
           </div>
           <span className="time-display">{formatTime(duration)}</span>
         </div>
@@ -240,21 +252,24 @@ const TransportControl: React.FC<TransportControlProps> = ({
           <button
             className={`speed-btn ${currentPlaybackRate === CONFIG.video.playbackRates.slow ? 'active' : ''}`}
             onClick={handleSlowSpeed}
-            title="0.5x Speed"
+            disabled={disabled}
+            title={disabled ? "Transport controls disabled during coaching point playback" : "0.5x Speed"}
           >
             0.5x
           </button>
           <button
             className={`speed-btn ${currentPlaybackRate === CONFIG.video.playbackRates.normal ? 'active' : ''}`}
             onClick={handleNormalSpeed}
-            title="Normal Speed"
+            disabled={disabled}
+            title={disabled ? "Transport controls disabled during coaching point playback" : "Normal Speed"}
           >
             1x
           </button>
           <button
             className={`speed-btn ${currentPlaybackRate === CONFIG.video.playbackRates.fast ? 'active' : ''}`}
             onClick={handleFastSpeed}
-            title="2x Speed"
+            disabled={disabled}
+            title={disabled ? "Transport controls disabled during coaching point playback" : "2x Speed"}
           >
             2x
           </button>
