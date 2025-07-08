@@ -218,17 +218,17 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
     if (audioRef.current)
     {
       const audio = audioRef.current;
-      
+
       // Set cleanup flag to ignore error events during cleanup
       isCleaningUpRef.current = true;
-      
+
       // Pause the audio first
       audio.pause();
-      
+
       // Clear the source safely without triggering errors
       audio.removeAttribute('src');
       audio.load(); // Reset the audio element
-      
+
       audioRef.current = null;
       isCleaningUpRef.current = false;
     }
@@ -355,10 +355,11 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
     audio.addEventListener('error', (e) =>
     {
       // Ignore errors during cleanup to prevent spurious error messages
-      if (isCleaningUpRef.current) {
+      if (isCleaningUpRef.current)
+      {
         return;
       }
-      
+
       console.error('❌ Audio error event:', e);
       console.error('❌ Audio error details:', {
         error: audio.error,
