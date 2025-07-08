@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { GamesList } from '../components/GamesList/GamesList'
+import { GamesList, GamesListRef } from '../components/GamesList/GamesList'
 import { GameForm } from '../components/GameForm/GameForm'
 import { getApiUrl } from '../utils/api'
 
@@ -34,6 +34,7 @@ interface Game {
 export const GamesPage: React.FC = () => {
   const { teamId } = useParams<{ teamId: string }>()
   const navigate = useNavigate()
+  const gamesListRef = useRef<GamesListRef>(null)
   const [teams, setTeams] = useState<Team[]>([])
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null)
   const [loading, setLoading] = useState(true)
@@ -133,7 +134,8 @@ export const GamesPage: React.FC = () => {
 
       setShowGameForm(false)
       setEditingGame(null)
-      // The GamesList component will refresh automatically
+      // Refresh the games list
+      gamesListRef.current?.refresh()
     } catch (err) {
       alert('Failed to save game')
       console.error('Error saving game:', err)
@@ -171,9 +173,9 @@ export const GamesPage: React.FC = () => {
   return (
     <main className="dashboard-main">
       {/* Game Form Modal */}
-      {showGameForm && selectedTeam && (
+      {showGameForm && (selectedTeam || editingGame) && (
         <GameForm
-          teamId={selectedTeam.teams.id}
+          teamId={editingGame?.teams?.id || selectedTeam?.teams.id || ''}
           onSubmit={handleGameFormSubmit}
           onCancel={handleCancelGameForm}
           initialData={editingGame || undefined}
@@ -194,6 +196,7 @@ export const GamesPage: React.FC = () => {
 
       {/* Games List */}
       <GamesList
+        ref={gamesListRef}
         teamId={selectedTeam?.teams.id}
         userRole={selectedTeam?.role}
         teams={teams}

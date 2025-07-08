@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useImperativeHandle, forwardRef } from 'react';
 import DatePicker from 'react-datepicker';
 import { getApiUrl, getValidAccessToken } from '../../utils/api';
 import './GamesList.css';
@@ -43,7 +43,11 @@ interface GamesListProps {
   onAnalyzeGame: (game: Game) => void;
 }
 
-export const GamesList: React.FC<GamesListProps> = ({
+export interface GamesListRef {
+  refresh: () => void;
+}
+
+export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
   teamId,
   userRole,
   teams,
@@ -51,7 +55,7 @@ export const GamesList: React.FC<GamesListProps> = ({
   onTeamChange,
   onEditGame,
   onAnalyzeGame
-}) => {
+}, ref) => {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -66,6 +70,11 @@ export const GamesList: React.FC<GamesListProps> = ({
   useEffect(() => {
     fetchGames();
   }, [teamId]);
+
+  // Expose refresh function to parent component
+  useImperativeHandle(ref, () => ({
+    refresh: fetchGames
+  }));
 
   const fetchGames = async () => {
     try {
@@ -424,4 +433,4 @@ export const GamesList: React.FC<GamesListProps> = ({
       )}
     </div>
   );
-};
+});

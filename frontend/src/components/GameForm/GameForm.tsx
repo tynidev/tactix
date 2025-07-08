@@ -28,11 +28,22 @@ export const GameForm: React.FC<GameFormProps> = ({
   initialData = {},
   isEditing = false
 }) => {
+  // Helper function to convert YouTube ID back to full URL for editing
+  const getVideoUrlForEditing = (videoId: string | null | undefined): string | null => {
+    if (!videoId) return null;
+    // If it's already a full URL, return as is
+    if (videoId.includes('youtube.com') || videoId.includes('youtu.be')) {
+      return videoId;
+    }
+    // If it's just an ID, convert to full URL
+    return `https://www.youtube.com/watch?v=${videoId}`;
+  };
+
   const [formData, setFormData] = useState<GameFormData>({
     opponent: initialData.opponent || '',
     date: initialData.date || '',
     location: initialData.location || null,
-    video_id: initialData.video_id || null,
+    video_id: isEditing ? getVideoUrlForEditing(initialData.video_id) : (initialData.video_id || null),
     team_score: initialData.team_score || null,
     opp_score: initialData.opp_score || null,
     game_type: initialData.game_type || 'regular',
@@ -41,6 +52,29 @@ export const GameForm: React.FC<GameFormProps> = ({
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Helper function to extract YouTube video ID from URL
+  const extractYouTubeId = (url: string): string => {
+    if (!url) return '';
+    
+    // If it's already just an ID (11 characters), return as is
+    if (url.length === 11 && !url.includes('/') && !url.includes('=')) {
+      return url;
+    }
+    
+    // Extract ID from various YouTube URL formats
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/)([^&\n?#]+)/,
+      /youtube\.com\/watch\?.*v=([^&\n?#]+)/
+    ];
+    
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) return match[1];
+    }
+    
+    return url; // Return original if no pattern matches
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,11 +86,11 @@ export const GameForm: React.FC<GameFormProps> = ({
 
     setIsSubmitting(true);
     try {
-      // Convert empty strings to null for API
+      // Convert empty strings to null for API and extract YouTube ID
       const apiData = {
         ...formData,
         location: formData.location?.trim() || null,
-        video_id: formData.video_id?.trim() || null,
+        video_id: formData.video_id?.trim() ? extractYouTubeId(formData.video_id.trim()) : null,
         notes: formData.notes?.trim() || null,
         team_id: teamId
       };
