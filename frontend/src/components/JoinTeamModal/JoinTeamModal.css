@@ -1,0 +1,92 @@
+/* Join Team Modal Styles */
+.join-team-modal {
+  width: 100%;
+  max-width: 500px;
+}
+
+.team-info {
+  background: var(--color-bg-secondary);
+  padding: var(--space-lg);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-lg);
+  border: 1px solid var(--border-color);
+}
+
+.team-info h3 {
+  margin: 0 0 var(--space-md) 0;
+  color: var(--color-text-primary);
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.team-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.team-details p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.team-details strong {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-accent-primary);
+  color: white;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  margin-left: var(--space-xs);
+}
+
+.form-help {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-top: var(--space-xs);
+  line-height: 1.4;
+}
+
+/* Override form input styles for join code */
+.join-team-modal .form-input {
+  text-align: center;
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+}
+
+.join-team-modal .form-input:focus {
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+}
+
+/* Loading states */
+.join-team-modal .btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .join-team-modal {
+    max-width: 95vw;
+  }
+  
+  .team-info {
+    padding: var(--space-md);
+  }
+  
+  .team-details {
+    gap: var(--space-xs);
+  }
+}

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getApiUrl } from '../../utils/api';
+import { JoinTeamModal } from '../JoinTeamModal/JoinTeamModal';
 
 interface UserProfile
 {
@@ -27,6 +28,7 @@ export const UserProfilePage: React.FC = () =>
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState('');
+  const [showJoinTeamModal, setShowJoinTeamModal] = useState(false);
 
   useEffect(() =>
   {
@@ -136,6 +138,12 @@ export const UserProfilePage: React.FC = () =>
       alert('Failed to update profile');
       console.error('Error updating profile:', err);
     }
+  };
+
+  const handleJoinTeamSuccess = () =>
+  {
+    // Refresh the user profile to update team count
+    fetchUserProfile();
   };
 
   const getInitials = () =>
@@ -302,21 +310,33 @@ export const UserProfilePage: React.FC = () =>
                     Loading stats...
                   </div>
                 )}
+
+              {/* Join Team Button */}
+              <div style={{ textAlign: 'center', marginTop: 'var(--space-lg)' }}>
+              </div>
             </div>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 'var(--space-lg)' }}>
             <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
-              <button className='btn btn-secondary btn-md'>
-                Change Password
-              </button>
-              <button className='btn btn-error btn-md'>
-                Delete Account
+              <button
+                onClick={() => setShowJoinTeamModal(true)}
+                className='btn btn-primary btn-md'
+                style={{ minWidth: '150px' }}
+              >
+                Join Team
               </button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Join Team Modal */}
+      <JoinTeamModal
+        isOpen={showJoinTeamModal}
+        onClose={() => setShowJoinTeamModal(false)}
+        onSuccess={handleJoinTeamSuccess}
+      />
     </div>
   );
 };

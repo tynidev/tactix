@@ -8,7 +8,7 @@ import UserProfilePage from '../UserProfile/UserProfile';
 export const AppRouter: React.FC = () =>
 {
   const location = useLocation();
-  
+
   // Hide navigation when viewing a specific game for analysis
   const hideNavigation = location.pathname.startsWith('/review/') && location.pathname.split('/').length > 2;
 

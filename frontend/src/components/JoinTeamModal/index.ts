@@ -1,0 +1,1 @@
+export { JoinTeamModal } from './JoinTeamModal';
