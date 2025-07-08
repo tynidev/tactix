@@ -348,7 +348,6 @@ export const TeamDetailPage: React.FC = () =>
     setSearchTerm: (term: string) => void,
     sortOption: SortOption,
     setSortOption: (sort: SortOption) => void,
-    role: string,
   ) =>
   {
     const filteredMembers = filterMembers(members, searchTerm);
@@ -601,7 +600,6 @@ export const TeamDetailPage: React.FC = () =>
           setPlayerSearch,
           playerSort,
           setPlayerSort,
-          'player',
         )}
 
         {renderMemberSection(
@@ -611,7 +609,6 @@ export const TeamDetailPage: React.FC = () =>
           setCoachSearch,
           coachSort,
           setCoachSort,
-          'coach',
         )}
 
         {renderMemberSection(
@@ -621,7 +618,6 @@ export const TeamDetailPage: React.FC = () =>
           setAdminSearch,
           adminSort,
           setAdminSort,
-          'admin',
         )}
 
         {renderMemberSection(
@@ -631,7 +627,6 @@ export const TeamDetailPage: React.FC = () =>
           setGuardianSearch,
           guardianSort,
           setGuardianSort,
-          'guardian',
         )}
       </div>
     </main>
