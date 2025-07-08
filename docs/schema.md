@@ -93,10 +93,23 @@
 | ------------- | --------- | ------------------------------------------------- |
 | `id`          | UUID (PK) | Unique event ID                                   |
 | `point_id`    | UUID (FK) | References `coaching_points.id`                   |
-| `event_type`  | Enum      | (`play`, `pause`, `seek`, `draw`, `change_speed`) |
+| `event_type`  | Enum      | (`play`, `pause`, `seek`, `draw`, `change_speed`, `recording_start`) |
 | `timestamp`   | Integer   | Milliseconds from recording start                 |
 | `event_data`  | JSONB     | Event-specific data                               |
 | `created_at`  | Timestamp | When event was recorded                           |
+
+### Event Data Formats
+
+#### `recording_start` event_data format:
+```json
+{
+  "playbackSpeed": 1.0,
+  "videoTimestamp": 0,
+  "existingDrawings": []
+}
+```
+
+This event captures the initial state when a coaching point recording begins, allowing playback to restore the correct video speed, position, and canvas drawings.
 
 ## coaching_point_tagged_players
 | Column        | Type      | Description                           |

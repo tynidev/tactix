@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Drawing } from '../types/drawing';
+import type { Drawing, RecordingStartEventData } from '../types/drawing';
 
 export interface CoachingPointEvent
 {
   id: string;
-  event_type: 'play' | 'pause' | 'seek' | 'draw' | 'change_speed';
+  event_type: 'play' | 'pause' | 'seek' | 'draw' | 'change_speed' | 'recording_start';
   timestamp: number;
   event_data: any;
   created_at: string;
@@ -31,6 +31,7 @@ export interface PlaybackEventHandlers
   onSeekEvent?: (time: number) => void;
   onDrawEvent?: (drawings: Drawing[]) => void;
   onSpeedEvent?: (speed: number) => void;
+  onRecordingStartEvent?: (initialState: RecordingStartEventData) => void;
 }
 
 export interface UseCoachingPointPlaybackReturn
@@ -82,23 +83,11 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
   {
     if (!audioRef.current || eventsRef.current.length === 0)
     {
-      console.log('🔍 processEvents: Early return - no audio or no events');
       return;
     }
 
     const audioTime = audioRef.current.currentTime * 1000; // Convert to milliseconds
     const tolerance = 100; // 100ms tolerance for event execution
-
-    // DEBUG: Log timing info every few calls to avoid spam
-    if (Math.floor(audioTime / 1000) % 5 === 0 && audioTime % 1000 < 200)
-    {
-      console.log('🔍 processEvents called:', {
-        audioCurrentTime: audioRef.current.currentTime,
-        audioTimeMs: audioTime,
-        totalEvents: eventsRef.current.length,
-        nextEventTimestamp: eventsRef.current.find(e => !executedEventsRef.current.has(e.id))?.timestamp,
-      });
-    }
 
     eventsRef.current.forEach((event, index) =>
     {
@@ -109,19 +98,9 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
 
       const timeDiff = Math.abs(audioTime - event.timestamp);
 
-      // DEBUG: Log timing for events that are close
-      if (timeDiff < 500)
-      {
-        console.log(
-          `🔍 Event timing check: ${event.event_type} at ${event.timestamp}ms, audio at ${audioTime}ms, diff: ${timeDiff}ms`,
-        );
-      }
-
       // Check if event should be executed now
       if (timeDiff <= tolerance)
       {
-        console.log(`🎬 Executing event: ${event.event_type} at ${event.timestamp}ms (audio: ${audioTime}ms)`);
-
         // Mark as executed
         executedEventsRef.current.add(eventId);
         setActiveEventIndex(index);
@@ -156,6 +135,12 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
                 handlersRef.current.onSpeedEvent?.(event.event_data.speed);
               }
               break;
+            case 'recording_start':
+              if (event.event_data)
+              {
+                handlersRef.current.onRecordingStartEvent?.(event.event_data as RecordingStartEventData);
+              }
+              break;
           }
         }
         catch (err)
@@ -179,7 +164,6 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
   {
     if (!audioRef.current)
     {
-      console.log('🔍 animationLoop: No audio ref');
       return;
     }
 
@@ -209,17 +193,6 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
     {
       animationFrameRef.current = requestAnimationFrame(animationLoop);
     }
-    else
-    {
-      console.log('🔍 animationLoop stopping:', {
-        isPlaying,
-        paused: audio.paused,
-        ended: audio.ended,
-        duration: audio.duration,
-        networkState: audio.networkState,
-        readyState: audio.readyState,
-      });
-    }
   }, [isPlaying, processEvents, duration]);
 
   /**
@@ -227,8 +200,6 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
    */
   const stopPlayback = useCallback(() =>
   {
-    console.log('🛑 Stopping playback');
-
     if (audioRef.current)
     {
       audioRef.current.pause();
@@ -269,13 +240,6 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
     // Stop any current playback
     stopPlayback();
 
-    // DEBUG: Log coaching point data
-    console.log('🔍 Coaching point data:', coachingPoint);
-    console.log('🔍 Events array:', coachingPoint.coaching_point_events);
-    console.log('🔍 Events length:', coachingPoint.coaching_point_events?.length || 0);
-    console.log('🔍 Coaching point ID:', coachingPoint.id);
-    console.log('🔍 Audio URL:', coachingPoint.audio_url);
-
     // Validate audio URL
     if (!coachingPoint.audio_url)
     {
@@ -300,84 +264,47 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
     executedEventsRef.current.clear();
     setActiveEventIndex(null);
 
-    console.log(`🎵 Starting playback with ${events.length} events`);
-
-    // DEBUG: Log individual events if they exist
-    if (events.length > 0)
+    // Check for recording_start event and execute it immediately to set initial state
+    const recordingStartEvent = events.find(event => event.event_type === 'recording_start');
+    if (recordingStartEvent && handlers.onRecordingStartEvent)
     {
-      console.log(
-        '🔍 Individual events:',
-        events.map(e => ({
-          id: e.id,
-          type: e.event_type,
-          timestamp: e.timestamp,
-          data: e.event_data,
-        })),
-      );
-    }
-    else
-    {
-      console.log('🔍 No events found - checking raw data structure...');
-      console.log('🔍 Raw coaching_point_events:', JSON.stringify(coachingPoint.coaching_point_events, null, 2));
+      try
+      {
+        handlers.onRecordingStartEvent(recordingStartEvent.event_data as RecordingStartEventData);
+        // Mark as executed so it doesn't trigger again during playback
+        executedEventsRef.current.add(recordingStartEvent.id);
+      }
+      catch (err)
+      {
+        console.error('❌ Error executing recording_start event:', err);
+      }
     }
 
     // Create and configure audio element
     const audio = new Audio(coachingPoint.audio_url);
     audioRef.current = audio;
 
-    console.log('🔍 Created audio element, initial duration:', audio.duration);
-
-    // Audio event listeners
-    audio.addEventListener('loadstart', () =>
-    {
-      console.log('🎵 Audio loadstart event');
-    });
-
     audio.addEventListener('loadedmetadata', () =>
     {
-      console.log('🎵 Audio loadedmetadata event');
-      console.log('🔍 Audio duration:', audio.duration);
-      console.log('🔍 Audio readyState:', audio.readyState);
-
       // Handle Infinity duration by using database duration as fallback
       let actualDuration = audio.duration;
       if (!isFinite(audio.duration) || audio.duration === 0)
       {
         actualDuration = coachingPoint.duration / 1000; // Convert ms to seconds
-        console.log('🔧 Using fallback duration from database:', actualDuration, 'seconds');
       }
 
       setDuration(actualDuration);
-      setIsLoading(false);
-      console.log(`🎵 Audio loaded: ${actualDuration}s duration`);
-    });
-
-    audio.addEventListener('loadeddata', () =>
-    {
-      console.log('🎵 Audio loadeddata event');
-    });
-
-    audio.addEventListener('canplay', () =>
-    {
-      console.log('🎵 Audio canplay event');
-    });
-
-    audio.addEventListener('canplaythrough', () =>
-    {
-      console.log('🎵 Audio canplaythrough event');
       setIsLoading(false);
     });
 
     audio.addEventListener('play', () =>
     {
-      console.log('🎵 Audio play event');
       setIsPlaying(true);
       animationFrameRef.current = requestAnimationFrame(animationLoop);
     });
 
     audio.addEventListener('pause', () =>
     {
-      console.log('🎵 Audio pause event');
       setIsPlaying(false);
       if (animationFrameRef.current)
       {
@@ -388,7 +315,6 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
 
     audio.addEventListener('ended', () =>
     {
-      console.log('🎵 Audio ended event');
       setIsPlaying(false);
       setProgress(100);
       setActiveEventIndex(null);
@@ -397,7 +323,6 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
         cancelAnimationFrame(animationFrameRef.current);
         animationFrameRef.current = null;
       }
-      console.log('🎵 Playback ended');
     });
 
     audio.addEventListener('error', (e) =>
@@ -423,7 +348,6 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
       }
     });
 
-    console.log('🔍 About to call audio.play()');
     // Start playing
     audio.play().catch(err =>
     {

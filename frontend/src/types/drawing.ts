@@ -38,6 +38,16 @@ interface Ellipse extends Shape
 // Union type for all drawing elements
 export type Drawing = Line | Rectangle | Ellipse;
 
+// Type for recording start event data
+export interface RecordingStartEventData {
+  // Video transport controls
+  playbackSpeed: number;
+  videoTimestamp: number;
+  
+  // Canvas state
+  existingDrawings: Drawing[];
+}
+
 // Type guards for better type narrowing
 export const isShape = (element: Drawing): element is Rectangle | Ellipse =>
 {

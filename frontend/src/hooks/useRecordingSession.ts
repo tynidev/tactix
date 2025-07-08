@@ -1,9 +1,9 @@
 import { useCallback, useRef, useState } from 'react';
-import type { Drawing } from '../types/drawing';
+import type { Drawing, RecordingStartEventData } from '../types/drawing';
 
 export interface RecordingEvent
 {
-  type: 'play' | 'pause' | 'seek' | 'draw' | 'change_speed';
+  type: 'play' | 'pause' | 'seek' | 'draw' | 'change_speed' | 'recording_start';
   timestamp: number; // Milliseconds from recording start
   data: any; // Event-specific data
 }
@@ -36,7 +36,7 @@ export interface UseRecordingSessionReturn
   isRecording: boolean;
   recordingEvents: RecordingEvent[];
   recordingStartTime: number | null;
-  startRecordingSession: () => void;
+  startRecordingSession: (initialState?: RecordingStartEventData) => void;
   stopRecordingSession: () => RecordingEvent[];
   recordPlayPauseEvent: (action: 'play' | 'pause', videoTimestamp: number) => void;
   recordSeekEvent: (fromTime: number, toTime: number) => void;
@@ -136,14 +136,24 @@ export const useRecordingSession = (): UseRecordingSessionReturn =>
   /**
    * Starts a new recording session
    */
-  const startRecordingSession = useCallback(() =>
-  {
+  const startRecordingSession = useCallback((initialState?: RecordingStartEventData) => {
     const startTime = Date.now();
     setIsRecording(true);
     setRecordingStartTime(startTime);
     setRecordingEvents([]);
     lastDrawingsRef.current = [];
     lastCanvasDimensionsRef.current = null;
+
+    // If initial state is provided, create a recording_start event
+    if (initialState) {
+      const recordingStartEvent: RecordingEvent = {
+        type: 'recording_start',
+        timestamp: 0, // Always at the beginning
+        data: initialState,
+      };
+      
+      setRecordingEvents([recordingStartEvent]);
+    }
   }, []);
 
   /**

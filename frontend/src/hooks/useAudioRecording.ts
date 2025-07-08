@@ -129,8 +129,6 @@ export const useAudioRecording = (): UseAudioRecordingReturn =>
         throw new Error('No supported audio format found');
       }
 
-      console.log(`✅ Using MIME type: ${selectedMimeType}`);
-
       // Create MediaRecorder with improved settings for mono audio
       const mediaRecorderOptions: MediaRecorderOptions = {
         mimeType: selectedMimeType,

@@ -10,7 +10,7 @@ import { CoachingPointsFlyout } from '../CoachingPointsFlyout/CoachingPointsFlyo
 import DrawingCanvas from '../DrawingCanvas/DrawingCanvas';
 import DrawingToolbar from '../DrawingToolbar/DrawingToolbar';
 import YouTubePlayer from '../YouTubePlayer/YouTubePlayer';
-import type { Drawing } from '../../types/drawing';
+import type { Drawing, RecordingStartEventData } from '../../types/drawing';
 import './GameAnalysis.css';
 
 interface Game {
@@ -245,8 +245,15 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
         return;
       }
       
-      // Start recording session
-      recordingSession.startRecordingSession();
+      // Capture initial state for recording_start event
+      const initialState: RecordingStartEventData = {
+        playbackSpeed: player?.getPlaybackRate() ?? 1.0,
+        videoTimestamp: recordingStartTime * 1000, // Convert to milliseconds
+        existingDrawings: getDrawingData(), // Current canvas drawings
+      };
+      
+      // Start recording session with initial state
+      recordingSession.startRecordingSession(initialState);
       setIsRecording(true);
     } else {
       // Stop recording
@@ -269,7 +276,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
       setRecordingData(recordingData);
       setShowCoachingPointModal(true);
     }
-  }, [isRecording, isPlaying, player, playerCurrentTime, audioRecording, recordingSession]);
+  }, [isRecording, isPlaying, player, playerCurrentTime, audioRecording, recordingSession, getDrawingData]);
 
   // Handle seeking to a coaching point timestamp
   const handleSeekToPoint = useCallback((timestampMs: string) => {
@@ -305,31 +312,45 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
   // Playback event handlers for synchronized events
   const playbackEventHandlers = useCallback(() => ({
     onPlayEvent: () => {
-      console.log('🎬 Playback event: Play video');
       if (player && player.getPlayerState() !== 1) { // Not playing
         player.playVideo();
       }
     },
     onPauseEvent: () => {
-      console.log('🎬 Playback event: Pause video');
       if (player && player.getPlayerState() === 1) { // Playing
         player.pauseVideo();
       }
     },
     onSeekEvent: (time: number) => {
-      console.log(`🎬 Playback event: Seek to ${time}s`);
       if (player) {
         player.seekTo(time, true);
       }
     },
     onDrawEvent: (drawings: Drawing[]) => {
-      console.log(`🎬 Playback event: Update drawings (${drawings.length} items)`);
       setDrawingData(drawings);
     },
     onSpeedEvent: (speed: number) => {
-      console.log(`🎬 Playback event: Change speed to ${speed}x`);
       if (player) {
         player.setPlaybackRate(speed);
+      }
+    },
+    onRecordingStartEvent: (initialState: RecordingStartEventData) => {
+      console.log('🎬 Applying initial recording state:', initialState);
+      
+      // Set playback speed
+      if (player && initialState.playbackSpeed) {
+        player.setPlaybackRate(initialState.playbackSpeed);
+      }
+      
+      // Set video timestamp (convert milliseconds to seconds)
+      if (player && initialState.videoTimestamp !== undefined) {
+        const timestampInSeconds = initialState.videoTimestamp / 1000;
+        player.seekTo(timestampInSeconds, true);
+      }
+      
+      // Set existing drawings
+      if (initialState.existingDrawings) {
+        setDrawingData(initialState.existingDrawings);
       }
     },
   }), [player, setDrawingData]);

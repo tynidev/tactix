@@ -576,7 +576,7 @@ export type Database = {
       };
     };
     Enums: {
-      event_type: 'play' | 'pause' | 'seek' | 'draw' | 'change_speed';
+      event_type: 'play' | 'pause' | 'seek' | 'draw' | 'change_speed' | 'recording_start';
       game_type: 'regular' | 'tournament' | 'scrimmage';
       home_away: 'home' | 'away' | 'neutral';
       team_role: 'coach' | 'player' | 'admin' | 'guardian';
@@ -701,6 +701,7 @@ export enum EventType
   Seek = 'seek',
   Draw = 'draw',
   ChangeSpeed = 'change_speed',
+  RecordingStart = 'recording_start',
 }
 export enum GameType
 {
