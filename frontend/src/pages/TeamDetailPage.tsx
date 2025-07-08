@@ -176,25 +176,27 @@ export const TeamDetailPage: React.FC = () =>
     }
   };
 
-  const copyToClipboard = async (text: string) =>
+  const copyToClipboard = async (code: string) =>
   {
     try
     {
-      await navigator.clipboard.writeText(text);
+      const fullUrl = `${window.location.origin}/auth?teamCode=${code}`;
+      await navigator.clipboard.writeText(fullUrl);
       // Could show a temporary toast message here
-      alert('Join code copied to clipboard!');
+      alert('Join link copied to clipboard!');
     }
     catch (err)
     {
       console.error('Failed to copy to clipboard:', err);
       // Fallback for older browsers
+      const fullUrl = `${window.location.origin}/auth?teamCode=${code}`;
       const textArea = document.createElement('textarea');
-      textArea.value = text;
+      textArea.value = fullUrl;
       document.body.appendChild(textArea);
       textArea.select();
       document.execCommand('copy');
       document.body.removeChild(textArea);
-      alert('Join code copied to clipboard!');
+      alert('Join link copied to clipboard!');
     }
   };
 
