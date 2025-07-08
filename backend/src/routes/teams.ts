@@ -169,7 +169,8 @@ router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> 
 
     // Enhance each team with additional metadata
     const enhancedTeams = await Promise.all(
-      (teams || []).map(async (teamMembership) => {
+      (teams || []).map(async (teamMembership) =>
+      {
         const teamId = teamMembership.teams.id;
 
         // Get player count
@@ -207,8 +208,9 @@ router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> 
           .eq('role', 'coach');
 
         // Count unique reviewed games
-        const uniqueReviewedGames = reviewedGames ? 
-          [...new Set(reviewedGames.map(rg => rg.game_id))].length : 0;
+        const uniqueReviewedGames = reviewedGames ?
+          [...new Set(reviewedGames.map(rg => rg.game_id))].length :
+          0;
 
         return {
           ...teamMembership,
@@ -217,10 +219,10 @@ router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> 
             player_count: playerCount || 0,
             game_count: gameCount || 0,
             reviewed_games_count: uniqueReviewedGames,
-            coaches: coaches?.map(c => ({ name: c.user_profiles?.name || 'Unknown' })) || []
-          }
+            coaches: coaches?.map(c => ({ name: c.user_profiles?.name || 'Unknown' })) || [],
+          },
         };
-      })
+      }),
     );
 
     res.json(enhancedTeams);
@@ -818,21 +820,21 @@ router.get(
       const filteredJoinCodes = joinCodes?.filter(code =>
       {
         if (!code.team_role) return true; // Show codes without specific roles
-        
+
         const codeRole = code.team_role as TeamRole;
-        
+
         // Everyone can see player and guardian codes
         if (codeRole === TeamRole.Player || codeRole === TeamRole.Guardian)
         {
           return true;
         }
-        
+
         // Only coaches and admins can see coach and admin codes
         if (userRole === TeamRole.Coach || userRole === TeamRole.Admin)
         {
           return true;
         }
-        
+
         return false;
       }) || [];
 
@@ -939,7 +941,8 @@ router.get(
       };
 
       // Process regular memberships (coaches, admins, guardians, players with user accounts)
-      memberships?.forEach(membership => {
+      memberships?.forEach(membership =>
+      {
         const member = {
           id: membership.id,
           user_id: membership.user_profiles?.id,
@@ -950,7 +953,8 @@ router.get(
           user_created_at: membership.user_profiles?.created_at,
         };
 
-        switch (membership.role) {
+        switch (membership.role)
+        {
           case TeamRole.Coach:
             membersByRole.coaches.push(member);
             break;
@@ -967,9 +971,11 @@ router.get(
       });
 
       // Process players (including those without user accounts)
-      players?.forEach(teamPlayer => {
+      players?.forEach(teamPlayer =>
+      {
         const playerProfile = teamPlayer.player_profiles;
-        if (playerProfile) {
+        if (playerProfile)
+        {
           const player = {
             id: playerProfile.id,
             user_id: playerProfile.user_id,

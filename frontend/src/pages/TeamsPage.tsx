@@ -14,7 +14,7 @@ interface Team
     player_count: number;
     game_count: number;
     reviewed_games_count: number;
-    coaches: Array<{name: string}>;
+    coaches: Array<{ name: string; }>;
   };
 }
 
@@ -318,8 +318,7 @@ export const TeamsPage: React.FC = () =>
                           style={{ flex: 1 }}
                         />
                         <button
-                          onClick={() =>
-                            handleSaveTeamName(teamMembership.teams.id)}
+                          onClick={() => handleSaveTeamName(teamMembership.teams.id)}
                           className='btn btn-success btn-sm'
                           title='Save'
                         >

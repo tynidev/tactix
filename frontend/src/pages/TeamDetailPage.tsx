@@ -3,7 +3,8 @@ import { FaCopy, FaSearch, FaSortAlphaDown, FaSortAlphaUp, FaSortNumericDown, Fa
 import { Link, useParams } from 'react-router-dom';
 import { getApiUrl } from '../utils/api';
 
-interface TeamDetails {
+interface TeamDetails
+{
   id: string;
   name: string;
   created_at: string;
@@ -18,7 +19,8 @@ interface TeamDetails {
   join_codes: JoinCode[];
 }
 
-interface JoinCode {
+interface JoinCode
+{
   id: string;
   code: string;
   team_role: string;
@@ -27,14 +29,16 @@ interface JoinCode {
   is_active: boolean;
 }
 
-interface TeamMembers {
+interface TeamMembers
+{
   players: Player[];
   coaches: Member[];
   admins: Member[];
   guardians: Member[];
 }
 
-interface Player {
+interface Player
+{
   id: string;
   user_id: string | null;
   name: string;
@@ -45,7 +49,8 @@ interface Player {
   user_created_at: string | null;
 }
 
-interface Member {
+interface Member
+{
   id: string;
   user_id: string;
   name: string;
@@ -57,43 +62,50 @@ interface Member {
 
 type SortOption = 'name-asc' | 'name-desc' | 'date-newest' | 'date-oldest';
 
-export const TeamDetailPage: React.FC = () => {
-  const { teamId } = useParams<{ teamId: string }>();
+export const TeamDetailPage: React.FC = () =>
+{
+  const { teamId } = useParams<{ teamId: string; }>();
   const [teamDetails, setTeamDetails] = useState<TeamDetails | null>(null);
   const [teamMembers, setTeamMembers] = useState<TeamMembers | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
+
   // Search and filter states
   const [playerSearch, setPlayerSearch] = useState('');
   const [coachSearch, setCoachSearch] = useState('');
   const [adminSearch, setAdminSearch] = useState('');
   const [guardianSearch, setGuardianSearch] = useState('');
-  
+
   // Sort states
   const [playerSort, setPlayerSort] = useState<SortOption>('name-asc');
   const [coachSort, setCoachSort] = useState<SortOption>('name-asc');
   const [adminSort, setAdminSort] = useState<SortOption>('name-asc');
   const [guardianSort, setGuardianSort] = useState<SortOption>('name-asc');
 
-  useEffect(() => {
+  useEffect(() =>
+  {
     document.body.className = 'dashboard-mode';
-    if (teamId) {
+    if (teamId)
+    {
       fetchTeamDetails();
       fetchTeamMembers();
     }
 
-    return () => {
+    return () =>
+    {
       document.body.className = '';
     };
   }, [teamId]);
 
-  const fetchTeamDetails = async () => {
-    try {
+  const fetchTeamDetails = async () =>
+  {
+    try
+    {
       const token = (await import('../lib/supabase')).supabase.auth.getSession();
       const session = await token;
 
-      if (!session.data.session?.access_token) {
+      if (!session.data.session?.access_token)
+      {
         throw new Error('No access token');
       }
 
@@ -105,8 +117,10 @@ export const TeamDetailPage: React.FC = () => {
         },
       });
 
-      if (!response.ok) {
-        if (response.status === 403) {
+      if (!response.ok)
+      {
+        if (response.status === 403)
+        {
           setError('You are not a member of this team');
           return;
         }
@@ -115,18 +129,23 @@ export const TeamDetailPage: React.FC = () => {
 
       const data = await response.json();
       setTeamDetails(data);
-    } catch (err) {
+    }
+    catch (err)
+    {
       setError('Failed to load team details');
       console.error('Error fetching team details:', err);
     }
   };
 
-  const fetchTeamMembers = async () => {
-    try {
+  const fetchTeamMembers = async () =>
+  {
+    try
+    {
       const token = (await import('../lib/supabase')).supabase.auth.getSession();
       const session = await token;
 
-      if (!session.data.session?.access_token) {
+      if (!session.data.session?.access_token)
+      {
         throw new Error('No access token');
       }
 
@@ -138,26 +157,35 @@ export const TeamDetailPage: React.FC = () => {
         },
       });
 
-      if (!response.ok) {
+      if (!response.ok)
+      {
         throw new Error('Failed to fetch team members');
       }
 
       const data = await response.json();
       setTeamMembers(data);
-    } catch (err) {
+    }
+    catch (err)
+    {
       setError('Failed to load team members');
       console.error('Error fetching team members:', err);
-    } finally {
+    }
+    finally
+    {
       setLoading(false);
     }
   };
 
-  const copyToClipboard = async (text: string) => {
-    try {
+  const copyToClipboard = async (text: string) =>
+  {
+    try
+    {
       await navigator.clipboard.writeText(text);
       // Could show a temporary toast message here
       alert('Join code copied to clipboard!');
-    } catch (err) {
+    }
+    catch (err)
+    {
       console.error('Failed to copy to clipboard:', err);
       // Fallback for older browsers
       const textArea = document.createElement('textarea');
@@ -170,26 +198,31 @@ export const TeamDetailPage: React.FC = () => {
     }
   };
 
-  const getJoinCodesByRole = (role: string) => {
+  const getJoinCodesByRole = (role: string) =>
+  {
     return teamDetails?.join_codes.filter(code => code.team_role === role) || [];
   };
 
-  const isJoinCodeVisible = (role: string) => {
+  const isJoinCodeVisible = (role: string) =>
+  {
     if (!teamDetails) return false;
-    
+
     // Player & Guardian codes: Always visible to everyone
-    if (role === 'player' || role === 'guardian') {
+    if (role === 'player' || role === 'guardian')
+    {
       return true;
     }
-    
+
     // Coach & Admin codes: Only visible to coaches and admins
     return teamDetails.user_role === 'coach' || teamDetails.user_role === 'admin';
   };
 
-  const sortMembers = (members: (Player | Member)[], sortOption: SortOption): (Player | Member)[] => {
+  const sortMembers = (members: (Player | Member)[], sortOption: SortOption): (Player | Member)[] =>
+  {
     const sorted = [...members];
-    
-    switch (sortOption) {
+
+    switch (sortOption)
+    {
       case 'name-asc':
         return sorted.sort((a, b) => a.name.localeCompare(b.name));
       case 'name-desc':
@@ -203,9 +236,10 @@ export const TeamDetailPage: React.FC = () => {
     }
   };
 
-  const filterMembers = (members: (Player | Member)[], searchTerm: string): (Player | Member)[] => {
+  const filterMembers = (members: (Player | Member)[], searchTerm: string): (Player | Member)[] =>
+  {
     if (!searchTerm) return members;
-    
+
     return members.filter(member =>
       member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.email?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -213,27 +247,30 @@ export const TeamDetailPage: React.FC = () => {
   };
 
   const renderSortButton = (currentSort: SortOption, setSort: (sort: SortOption) => void) => (
-    <div className="sort-controls" style={{ display: 'flex', gap: 'var(--space-xs)' }}>
+    <div className='sort-controls' style={{ display: 'flex', gap: 'var(--space-xs)' }}>
       <button
         className={`btn btn-sm ${currentSort.startsWith('name') ? 'btn-primary' : 'btn-secondary'}`}
-        onClick={() => setSort(currentSort === 'name-asc' ? 'name-desc' : 'name-asc')}
-        title="Sort by name"
+        onClick={() =>
+          setSort(currentSort === 'name-asc' ? 'name-desc' : 'name-asc')}
+        title='Sort by name'
       >
         {currentSort === 'name-asc' ? <FaSortAlphaDown /> : <FaSortAlphaUp />}
       </button>
       <button
         className={`btn btn-sm ${currentSort.startsWith('date') ? 'btn-primary' : 'btn-secondary'}`}
-        onClick={() => setSort(currentSort === 'date-newest' ? 'date-oldest' : 'date-newest')}
-        title="Sort by join date"
+        onClick={() =>
+          setSort(currentSort === 'date-newest' ? 'date-oldest' : 'date-newest')}
+        title='Sort by join date'
       >
         {currentSort === 'date-newest' ? <FaSortNumericDown /> : <FaSortNumericUp />}
       </button>
     </div>
   );
 
-  const renderJoinCodes = (role: string) => {
+  const renderJoinCodes = (role: string) =>
+  {
     if (!isJoinCodeVisible(role)) return null;
-    
+
     const codes = getJoinCodesByRole(role);
     if (codes.length === 0) return null;
 
@@ -268,16 +305,15 @@ export const TeamDetailPage: React.FC = () => {
                 {code.code}
               </div>
               <small style={{ color: 'var(--color-text-secondary)' }}>
-                {code.expires_at ? 
-                  `Expires: ${new Date(code.expires_at).toLocaleDateString()}` : 
-                  'Never expires'
-                }
+                {code.expires_at ?
+                  `Expires: ${new Date(code.expires_at).toLocaleDateString()}` :
+                  'Never expires'}
               </small>
             </div>
             <button
               onClick={() => copyToClipboard(code.code)}
-              className="btn btn-secondary btn-sm"
-              title="Copy join code"
+              className='btn btn-secondary btn-sm'
+              title='Copy join code'
             >
               <FaCopy />
             </button>
@@ -294,41 +330,46 @@ export const TeamDetailPage: React.FC = () => {
     setSearchTerm: (term: string) => void,
     sortOption: SortOption,
     setSortOption: (sort: SortOption) => void,
-    role: string
-  ) => {
+    role: string,
+  ) =>
+  {
     const filteredMembers = filterMembers(members, searchTerm);
     const sortedMembers = sortMembers(filteredMembers, sortOption);
 
     return (
-      <div className="member-section" style={{ marginBottom: 'var(--space-xl)' }}>
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          marginBottom: 'var(--space-md)'
-        }}>
+      <div className='member-section' style={{ marginBottom: 'var(--space-xl)' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 'var(--space-md)',
+          }}
+        >
           <h3>{title} ({members.length})</h3>
           <div style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'center' }}>
             {renderSortButton(sortOption, setSortOption)}
             <div style={{ position: 'relative' }}>
-              <FaSearch style={{ 
-                position: 'absolute', 
-                left: 'var(--space-sm)', 
-                top: '50%', 
-                transform: 'translateY(-50%)',
-                color: 'var(--color-text-muted)',
-                fontSize: '14px'
-              }} />
+              <FaSearch
+                style={{
+                  position: 'absolute',
+                  left: 'var(--space-sm)',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--color-text-muted)',
+                  fontSize: '14px',
+                }}
+              />
               <input
-                type="text"
+                type='text'
                 placeholder={`Search ${title.toLowerCase()}...`}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="form-input"
-                style={{ 
+                className='form-input'
+                style={{
                   paddingLeft: 'var(--space-xl)',
                   width: '200px',
-                  fontSize: '14px'
+                  fontSize: '14px',
                 }}
               />
             </div>
@@ -337,94 +378,105 @@ export const TeamDetailPage: React.FC = () => {
 
         {renderJoinCodes(role)}
 
-        <div className="members-list">
-          {sortedMembers.length === 0 ? (
-            <div style={{ 
-              textAlign: 'center', 
-              padding: 'var(--space-lg)',
-              color: 'var(--color-text-secondary)'
-            }}>
-              {searchTerm ? `No ${title.toLowerCase()} match your search` : `No ${title.toLowerCase()} yet`}
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gap: 'var(--space-sm)' }}>
-              {sortedMembers.map((member) => (
-                <div
-                  key={member.id}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: 'var(--space-md)',
-                    backgroundColor: 'var(--color-bg-card)',
-                    borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--border-color)',
-                  }}
-                >
-                  <div>
-                    <div style={{ fontWeight: '600', marginBottom: 'var(--space-xs)' }}>
-                      {member.name}
-                      {'jersey_number' in member && member.jersey_number && (
-                        <span style={{ 
-                          marginLeft: 'var(--space-sm)',
-                          padding: '2px 6px',
-                          backgroundColor: 'var(--color-accent-primary)',
-                          color: 'white',
-                          borderRadius: 'var(--radius-sm)',
-                          fontSize: '12px',
-                          fontWeight: 'bold'
-                        }}>
-                          #{member.jersey_number}
-                        </span>
-                      )}
-                    </div>
-                    {member.email && (
-                      <div style={{ 
-                        fontSize: '14px', 
-                        color: 'var(--color-text-secondary)',
-                        marginBottom: 'var(--space-xs)'
-                      }}>
-                        {member.email}
+        <div className='members-list'>
+          {sortedMembers.length === 0 ?
+            (
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: 'var(--space-lg)',
+                  color: 'var(--color-text-secondary)',
+                }}
+              >
+                {searchTerm ? `No ${title.toLowerCase()} match your search` : `No ${title.toLowerCase()} yet`}
+              </div>
+            ) :
+            (
+              <div style={{ display: 'grid', gap: 'var(--space-sm)' }}>
+                {sortedMembers.map((member) => (
+                  <div
+                    key={member.id}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: 'var(--space-md)',
+                      backgroundColor: 'var(--color-bg-card)',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid var(--border-color)',
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: '600', marginBottom: 'var(--space-xs)' }}>
+                        {member.name}
+                        {'jersey_number' in member && member.jersey_number && (
+                          <span
+                            style={{
+                              marginLeft: 'var(--space-sm)',
+                              padding: '2px 6px',
+                              backgroundColor: 'var(--color-accent-primary)',
+                              color: 'white',
+                              borderRadius: 'var(--radius-sm)',
+                              fontSize: '12px',
+                              fontWeight: 'bold',
+                            }}
+                          >
+                            #{member.jersey_number}
+                          </span>
+                        )}
                       </div>
-                    )}
-                    <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                      Joined: {new Date(member.joined_at).toLocaleDateString()}
+                      {member.email && (
+                        <div
+                          style={{
+                            fontSize: '14px',
+                            color: 'var(--color-text-secondary)',
+                            marginBottom: 'var(--space-xs)',
+                          }}
+                        >
+                          {member.email}
+                        </div>
+                      )}
+                      <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                        Joined: {new Date(member.joined_at).toLocaleDateString()}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
         </div>
       </div>
     );
   };
 
-  if (loading) {
-    return <div className="loading">Loading team details...</div>;
+  if (loading)
+  {
+    return <div className='loading'>Loading team details...</div>;
   }
 
-  if (error) {
+  if (error)
+  {
     return (
-      <main className="dashboard-main">
-        <div className="alert alert-error">{error}</div>
-        <Link to="/teams" className="btn btn-primary">
+      <main className='dashboard-main'>
+        <div className='alert alert-error'>{error}</div>
+        <Link to='/teams' className='btn btn-primary'>
           Back to Teams
         </Link>
       </main>
     );
   }
 
-  if (!teamDetails || !teamMembers) {
-    return <div className="loading">Loading...</div>;
+  if (!teamDetails || !teamMembers)
+  {
+    return <div className='loading'>Loading...</div>;
   }
 
   return (
-    <main className="dashboard-main">
+    <main className='dashboard-main'>
       {/* Breadcrumb Navigation */}
       <div style={{ marginBottom: 'var(--space-lg)' }}>
         <nav style={{ fontSize: '14px', color: 'var(--color-text-secondary)' }}>
-          <Link to="/teams" style={{ color: 'var(--color-accent-primary)', textDecoration: 'none' }}>
+          <Link to='/teams' style={{ color: 'var(--color-accent-primary)', textDecoration: 'none' }}>
             Teams
           </Link>
           <span style={{ margin: '0 var(--space-sm)' }}>/</span>
@@ -433,79 +485,96 @@ export const TeamDetailPage: React.FC = () => {
       </div>
 
       {/* Team Header */}
-      <div className="section-header">
+      <div className='section-header'>
         <div>
-          <h1 className="section-title">{teamDetails.name}</h1>
+          <h1 className='section-title'>{teamDetails.name}</h1>
           <p style={{ margin: 0, color: 'var(--color-text-secondary)' }}>
-            Created: {new Date(teamDetails.created_at).toLocaleDateString()} • 
-            Your role: <span style={{ color: 'var(--color-accent-primary)', fontWeight: '600', textTransform: 'capitalize' }}>
+            Created: {new Date(teamDetails.created_at).toLocaleDateString()} • Your role:{' '}
+            <span style={{ color: 'var(--color-accent-primary)', fontWeight: '600', textTransform: 'capitalize' }}>
               {teamDetails.user_role}
             </span>
           </p>
         </div>
         <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
-          <Link to={`/games/${teamId}`} className="btn btn-primary">
+          <Link to={`/games/${teamId}`} className='btn btn-primary'>
             View Games
           </Link>
         </div>
       </div>
 
       {/* Team Stats */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-        gap: 'var(--space-lg)',
-        marginBottom: 'var(--space-2xl)'
-      }}>
-        <div className="stat" style={{ 
-          padding: 'var(--space-lg)',
-          backgroundColor: 'var(--color-bg-card)',
-          borderRadius: 'var(--radius-lg)',
-          border: '1px solid var(--border-color)'
-        }}>
-          <div className="stat-value">{teamMembers.players.length}</div>
-          <div className="stat-label">Players</div>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+          gap: 'var(--space-lg)',
+          marginBottom: 'var(--space-2xl)',
+        }}
+      >
+        <div
+          className='stat'
+          style={{
+            padding: 'var(--space-lg)',
+            backgroundColor: 'var(--color-bg-card)',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--border-color)',
+          }}
+        >
+          <div className='stat-value'>{teamMembers.players.length}</div>
+          <div className='stat-label'>Players</div>
         </div>
-        <div className="stat" style={{ 
-          padding: 'var(--space-lg)',
-          backgroundColor: 'var(--color-bg-card)',
-          borderRadius: 'var(--radius-lg)',
-          border: '1px solid var(--border-color)'
-        }}>
-          <div className="stat-value">{teamMembers.coaches.length}</div>
-          <div className="stat-label">Coaches</div>
+        <div
+          className='stat'
+          style={{
+            padding: 'var(--space-lg)',
+            backgroundColor: 'var(--color-bg-card)',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--border-color)',
+          }}
+        >
+          <div className='stat-value'>{teamMembers.coaches.length}</div>
+          <div className='stat-label'>Coaches</div>
         </div>
-        <div className="stat" style={{ 
-          padding: 'var(--space-lg)',
-          backgroundColor: 'var(--color-bg-card)',
-          borderRadius: 'var(--radius-lg)',
-          border: '1px solid var(--border-color)'
-        }}>
-          <div className="stat-value">{teamMembers.admins.length}</div>
-          <div className="stat-label">Admins</div>
+        <div
+          className='stat'
+          style={{
+            padding: 'var(--space-lg)',
+            backgroundColor: 'var(--color-bg-card)',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--border-color)',
+          }}
+        >
+          <div className='stat-value'>{teamMembers.admins.length}</div>
+          <div className='stat-label'>Admins</div>
         </div>
-        <div className="stat" style={{ 
-          padding: 'var(--space-lg)',
-          backgroundColor: 'var(--color-bg-card)',
-          borderRadius: 'var(--radius-lg)',
-          border: '1px solid var(--border-color)'
-        }}>
-          <div className="stat-value">{teamMembers.guardians.length}</div>
-          <div className="stat-label">Guardians</div>
+        <div
+          className='stat'
+          style={{
+            padding: 'var(--space-lg)',
+            backgroundColor: 'var(--color-bg-card)',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--border-color)',
+          }}
+        >
+          <div className='stat-value'>{teamMembers.guardians.length}</div>
+          <div className='stat-label'>Guardians</div>
         </div>
-        <div className="stat" style={{ 
-          padding: 'var(--space-lg)',
-          backgroundColor: 'var(--color-bg-card)',
-          borderRadius: 'var(--radius-lg)',
-          border: '1px solid var(--border-color)'
-        }}>
-          <div className="stat-value">{teamDetails.total_games}</div>
-          <div className="stat-label">Games</div>
+        <div
+          className='stat'
+          style={{
+            padding: 'var(--space-lg)',
+            backgroundColor: 'var(--color-bg-card)',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--border-color)',
+          }}
+        >
+          <div className='stat-value'>{teamDetails.total_games}</div>
+          <div className='stat-label'>Games</div>
         </div>
       </div>
 
       {/* Team Members Sections */}
-      <div className="team-members">
+      <div className='team-members'>
         {renderMemberSection(
           'Players',
           teamMembers.players,
@@ -513,7 +582,7 @@ export const TeamDetailPage: React.FC = () => {
           setPlayerSearch,
           playerSort,
           setPlayerSort,
-          'player'
+          'player',
         )}
 
         {renderMemberSection(
@@ -523,7 +592,7 @@ export const TeamDetailPage: React.FC = () => {
           setCoachSearch,
           coachSort,
           setCoachSort,
-          'coach'
+          'coach',
         )}
 
         {renderMemberSection(
@@ -533,7 +602,7 @@ export const TeamDetailPage: React.FC = () => {
           setAdminSearch,
           adminSort,
           setAdminSort,
-          'admin'
+          'admin',
         )}
 
         {renderMemberSection(
@@ -543,7 +612,7 @@ export const TeamDetailPage: React.FC = () => {
           setGuardianSearch,
           guardianSort,
           setGuardianSort,
-          'guardian'
+          'guardian',
         )}
       </div>
     </main>
