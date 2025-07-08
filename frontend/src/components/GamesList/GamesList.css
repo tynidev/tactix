@@ -29,11 +29,13 @@
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  padding: var(--space-lg);
+  padding: 0;
   transition: all 0.2s ease;
   display: flex;
   flex-direction: column;
-  height: 320px; /* Fixed height for all cards */
+  height: 380px; /* Increased height to accommodate thumbnail */
+  overflow: hidden;
+  position: relative;
 }
 
 .game-card:hover {
@@ -41,11 +43,120 @@
   border-color: var(--primary-300);
 }
 
+.game-card.clickable {
+  cursor: pointer;
+}
+
+.game-card.clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.game-card.disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.game-card.disabled:hover {
+  transform: none;
+  box-shadow: var(--shadow-md);
+}
+
+/* Floating Action Buttons */
+.floating-actions {
+  position: absolute;
+  top: var(--space-sm);
+  right: var(--space-sm);
+  display: flex;
+  gap: var(--space-xs);
+  z-index: 10;
+}
+
+.floating-action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
+  font-size: 0.875rem;
+}
+
+.floating-action-btn:hover {
+  background: rgba(0, 0, 0, 0.8);
+  transform: scale(1.1);
+}
+
+.floating-action-btn:focus {
+  outline: 2px solid var(--primary-300);
+  outline-offset: 2px;
+}
+
+.edit-btn:hover {
+  background: rgba(59, 130, 246, 0.8);
+}
+
+.delete-btn:hover {
+  background: rgba(239, 68, 68, 0.8);
+}
+
+/* YouTube Thumbnail Styles */
+.game-thumbnail {
+  position: relative;
+  width: 100%;
+  height: 120px;
+  overflow: hidden;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--bg-tertiary);
+}
+
+.thumbnail-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.2s ease;
+}
+
+.game-card:hover .thumbnail-image {
+  transform: scale(1.05);
+}
+
+.video-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.game-card:hover .video-overlay {
+  opacity: 1;
+}
+
+.play-icon {
+  color: white;
+  font-size: 2rem;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
 .game-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   margin-bottom: var(--space-md);
+  padding: var(--space-lg) var(--space-lg) 0 var(--space-lg);
 }
 
 .game-info {
@@ -60,6 +171,13 @@
   font-size: 1.125rem;
   font-weight: 600;
   color: var(--text-primary);
+}
+
+.game-opponent {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px; /* Adjust based on card layout */
 }
 
 .game-meta {
@@ -112,6 +230,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  padding: 0 var(--space-lg);
 }
 
 .game-notes {
@@ -154,6 +273,7 @@
   gap: var(--space-sm);
   flex-wrap: wrap;
   margin-top: auto; /* Push to bottom */
+  padding: 0 var(--space-lg) var(--space-lg) var(--space-lg);
 }
 
 .game-actions .btn {
@@ -222,22 +342,41 @@
     gap: var(--space-md);
   }
 
+  .game-card {
+    height: auto; /* Allow height to adjust on mobile */
+    min-height: 320px;
+  }
+
+  .game-thumbnail {
+    height: 100px; /* Smaller thumbnail on mobile */
+  }
+
   .game-header {
     flex-direction: column;
     gap: var(--space-sm);
+    padding: var(--space-md) var(--space-md) 0 var(--space-md);
   }
 
   .game-result {
     align-self: flex-start;
   }
 
+  .game-content {
+    padding: 0 var(--space-md);
+  }
+
   .game-actions {
     justify-content: center;
+    padding: 0 var(--space-md) var(--space-md) var(--space-md);
   }
 
   .game-actions .btn {
     flex: 0 1 auto;
     min-width: 70px;
+  }
+
+  .game-opponent {
+    max-width: 250px; /* Larger max-width on mobile */
   }
 }
 

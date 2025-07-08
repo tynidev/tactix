@@ -1,5 +1,6 @@
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import DatePicker from 'react-datepicker';
+import { FaPencilAlt, FaTrash } from 'react-icons/fa';
 import { getApiUrl, getValidAccessToken } from '../../utils/api';
 import './GamesList.css';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -203,6 +204,17 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
     {
       return 'result-tie';
     }
+  };
+
+  const getYouTubeThumbnailUrl = (videoId: string) =>
+  {
+    // Try maxresdefault first (highest quality), fallback to hqdefault if needed
+    return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+  };
+
+  const getYouTubeThumbnailFallback = (videoId: string) =>
+  {
+    return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
   };
 
   // Date range handlers
@@ -412,7 +424,57 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
         (
           <div className='games-grid'>
             {filteredGames.map((game) => (
-              <div key={game.id} className='game-card'>
+              <div 
+                key={game.id} 
+                className={`game-card ${game.video_id ? 'clickable' : 'disabled'}`}
+                onClick={() => game.video_id && onAnalyzeGame(game)}
+                title={game.video_id ? 'Click to analyze game' : 'Video required for analysis'}
+              >
+                {/* Floating Action Icons */}
+                {((game.user_role || userRole) === 'coach' || (game.user_role || userRole) === 'admin') && (
+                  <div className='floating-actions'>
+                    <button
+                      className='floating-action-btn edit-btn'
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEditGame(game);
+                      }}
+                      title='Edit game'
+                      aria-label='Edit game'
+                    >
+                      <FaPencilAlt />
+                    </button>
+                    <button
+                      className='floating-action-btn delete-btn'
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteGame(game.id);
+                      }}
+                      title='Delete game'
+                      aria-label='Delete game'
+                    >
+                      <FaTrash />
+                    </button>
+                  </div>
+                )}
+
+                {game.video_id && (
+                  <div className='game-thumbnail'>
+                    <img
+                      src={getYouTubeThumbnailUrl(game.video_id)}
+                      alt={`Thumbnail for ${game.opponent} game`}
+                      className='thumbnail-image'
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = getYouTubeThumbnailFallback(game.video_id!);
+                      }}
+                    />
+                    <div className='video-overlay'>
+                      <div className='play-icon'>▶</div>
+                    </div>
+                  </div>
+                )}
+
                 <div className='game-header'>
                   <div className='game-info'>
                     {game.teams && (
@@ -423,7 +485,7 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
                         {game.teams.name}
                       </h3>
                     )}
-                    <h3 className='game-opponent'>vs {game.opponent}</h3>
+                    <h3 className='game-opponent' title={game.opponent}>vs {game.opponent}</h3>
                     <div className='game-meta'>
                       <span className='game-date'>
                         {new Date(game.date).toLocaleDateString()}
@@ -454,34 +516,6 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
                       💬 {game.coaching_points_count || 0} coaching points
                     </span>
                   </div>
-                </div>
-
-                <div className='game-actions'>
-                  <button
-                    onClick={() => onAnalyzeGame(game)}
-                    className='btn btn-primary btn-sm'
-                    disabled={!game.video_id}
-                    title={!game.video_id ? 'Video required for analysis' : 'Start analysis'}
-                  >
-                    {game.video_id ? 'Analyze' : 'No Video'}
-                  </button>
-
-                  {((game.user_role || userRole) === 'coach' || (game.user_role || userRole) === 'admin') && (
-                    <>
-                      <button
-                        onClick={() => onEditGame(game)}
-                        className='btn btn-secondary btn-sm'
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDeleteGame(game.id)}
-                        className='btn btn-error btn-sm'
-                      >
-                        Delete
-                      </button>
-                    </>
-                  )}
                 </div>
               </div>
             ))}
