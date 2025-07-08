@@ -39,11 +39,12 @@ interface Ellipse extends Shape
 export type Drawing = Line | Rectangle | Ellipse;
 
 // Type for recording start event data
-export interface RecordingStartEventData {
+export interface RecordingStartEventData
+{
   // Video transport controls
   playbackSpeed: number;
   videoTimestamp: number;
-  
+
   // Canvas state
   existingDrawings: Drawing[];
 }

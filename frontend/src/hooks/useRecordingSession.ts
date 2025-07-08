@@ -136,7 +136,8 @@ export const useRecordingSession = (): UseRecordingSessionReturn =>
   /**
    * Starts a new recording session
    */
-  const startRecordingSession = useCallback((initialState?: RecordingStartEventData) => {
+  const startRecordingSession = useCallback((initialState?: RecordingStartEventData) =>
+  {
     const startTime = Date.now();
     setIsRecording(true);
     setRecordingStartTime(startTime);
@@ -145,13 +146,14 @@ export const useRecordingSession = (): UseRecordingSessionReturn =>
     lastCanvasDimensionsRef.current = null;
 
     // If initial state is provided, create a recording_start event
-    if (initialState) {
+    if (initialState)
+    {
       const recordingStartEvent: RecordingEvent = {
         type: 'recording_start',
         timestamp: 0, // Always at the beginning
         data: initialState,
       };
-      
+
       setRecordingEvents([recordingStartEvent]);
     }
   }, []);
