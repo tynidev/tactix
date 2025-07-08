@@ -202,6 +202,11 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
               const allDrawings = drawingEvents.flatMap((event) => event.event_data.drawings || []);
               onShowDrawings(allDrawings);
             }
+            else
+            {
+              // Clear the canvas if no drawings exist for this coaching point
+              onShowDrawings([]);
+            }
           }
         }
         catch (err)
