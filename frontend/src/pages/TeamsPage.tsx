@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { FaPencilAlt, FaTrash } from 'react-icons/fa';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getApiUrl } from '../utils/api';
 
@@ -85,8 +85,10 @@ export const TeamsPage: React.FC = () =>
       setTeams(data);
 
       // Fetch join codes for each team to display guardian codes immediately
-      for (const teamMembership of data) {
-        try {
+      for (const teamMembership of data)
+      {
+        try
+        {
           const joinCodesResponse = await fetch(`${apiUrl}/api/teams/${teamMembership.teams.id}/join-codes`, {
             headers: {
               'Authorization': `Bearer ${session.data.session.access_token}`,
@@ -94,11 +96,14 @@ export const TeamsPage: React.FC = () =>
             },
           });
 
-          if (joinCodesResponse.ok) {
+          if (joinCodesResponse.ok)
+          {
             const joinCodesData = await joinCodesResponse.json();
             setJoinCodes(prev => ({ ...prev, [teamMembership.teams.id]: joinCodesData }));
           }
-        } catch (err) {
+        }
+        catch (err)
+        {
           console.error(`Failed to fetch join codes for team ${teamMembership.teams.id}:`, err);
           // Don't fail the whole page if join codes fail to load
         }
@@ -264,7 +269,7 @@ export const TeamsPage: React.FC = () =>
   const toggleJoinCodes = async (teamId: string) =>
   {
     const isShowing = showJoinCodes[teamId];
-    
+
     if (!isShowing)
     {
       // Fetch join codes if not already loaded
@@ -337,12 +342,12 @@ export const TeamsPage: React.FC = () =>
 
       // Refresh join codes
       await fetchJoinCodes(teamId);
-      
+
       // Reset form
       setShowCreateJoinCode(null);
       setNewJoinCodeRole('');
       setNewJoinCodeExpires('');
-      
+
       alert('Join code created successfully!');
     }
     catch (err)
@@ -364,7 +369,11 @@ export const TeamsPage: React.FC = () =>
 
   const handleDeleteTeam = async (teamId: string) =>
   {
-    if (!confirm('Are you sure you want to delete this team? This will also delete all games, coaching points, and join codes.'))
+    if (
+      !confirm(
+        'Are you sure you want to delete this team? This will also delete all games, coaching points, and join codes.',
+      )
+    )
     {
       return;
     }
@@ -488,7 +497,8 @@ export const TeamsPage: React.FC = () =>
                           style={{ flex: 1 }}
                         />
                         <button
-                          onClick={() => handleSaveTeamName(teamMembership.teams.id)}
+                          onClick={() =>
+                            handleSaveTeamName(teamMembership.teams.id)}
                           className='btn btn-success btn-sm'
                           title='Save'
                         >
@@ -503,9 +513,7 @@ export const TeamsPage: React.FC = () =>
                         </button>
                       </div>
                     ) :
-                    (
-                      <h3 className='team-name'>{teamMembership.teams.name}</h3>
-                    )}
+                    <h3 className='team-name'>{teamMembership.teams.name}</h3>}
                 </div>
 
                 <p className='team-role'>Role: {teamMembership.role}</p>
@@ -514,116 +522,131 @@ export const TeamsPage: React.FC = () =>
                 </p>
 
                 {/* Guardian Join Code - Always visible */}
-                {joinCodes[teamMembership.teams.id] && (() => {
+                {joinCodes[teamMembership.teams.id] && (() =>
+                {
                   const guardianCode = getGuardianJoinCode(joinCodes[teamMembership.teams.id]);
-                  return guardianCode ? (
-                    <div style={{ 
-                      marginTop: 'var(--space-md)', 
-                      padding: 'var(--space-sm)', 
-                      backgroundColor: 'var(--color-bg-secondary)', 
-                      borderRadius: 'var(--border-radius)',
-                      border: '1px solid var(--color-border)'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div>
-                          <strong>Guardian Join Code:</strong>
-                          <div style={{ 
-                            fontFamily: 'monospace', 
-                            fontSize: '1.2em', 
-                            fontWeight: 'bold',
-                            color: 'var(--color-primary)'
-                          }}>
-                            {guardianCode.code}
+                  return guardianCode ?
+                    (
+                      <div
+                        style={{
+                          marginTop: 'var(--space-md)',
+                          padding: 'var(--space-sm)',
+                          backgroundColor: 'var(--color-bg-secondary)',
+                          borderRadius: 'var(--border-radius)',
+                          border: '1px solid var(--color-border)',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div>
+                            <strong>Guardian Join Code:</strong>
+                            <div
+                              style={{
+                                fontFamily: 'monospace',
+                                fontSize: '1.2em',
+                                fontWeight: 'bold',
+                                color: 'var(--color-primary)',
+                              }}
+                            >
+                              {guardianCode.code}
+                            </div>
+                            <small style={{ color: 'var(--color-text-secondary)' }}>
+                              Never expires
+                            </small>
                           </div>
-                          <small style={{ color: 'var(--color-text-secondary)' }}>
-                            Never expires
-                          </small>
+                          <button
+                            onClick={() => copyToClipboard(guardianCode.code)}
+                            className='btn btn-secondary btn-sm'
+                            title='Copy join code'
+                          >
+                            📋
+                          </button>
                         </div>
-                        <button
-                          onClick={() => copyToClipboard(guardianCode.code)}
-                          className='btn btn-secondary btn-sm'
-                          title='Copy join code'
-                        >
-                          📋
-                        </button>
                       </div>
-                    </div>
-                  ) : null;
+                    ) :
+                    null;
                 })()}
 
                 {/* Join Code Management Button */}
                 <div style={{ marginTop: 'var(--space-md)' }}>
                   <button
-                    onClick={() => toggleJoinCodes(teamMembership.teams.id)}
+                    onClick={() =>
+                      toggleJoinCodes(teamMembership.teams.id)}
                     className='btn btn-secondary btn-sm'
                     disabled={loadingJoinCodes[teamMembership.teams.id]}
                   >
-                    {loadingJoinCodes[teamMembership.teams.id] 
-                      ? 'Loading...' 
-                      : showJoinCodes[teamMembership.teams.id] 
-                        ? 'Hide Join Codes' 
-                        : 'Show Join Codes'
-                    }
+                    {loadingJoinCodes[teamMembership.teams.id] ?
+                      'Loading...' :
+                      showJoinCodes[teamMembership.teams.id] ?
+                      'Hide Join Codes' :
+                      'Show Join Codes'}
                   </button>
                 </div>
 
                 {/* Join Codes Section */}
                 {showJoinCodes[teamMembership.teams.id] && joinCodes[teamMembership.teams.id] && (
-                  <div style={{ 
-                    marginTop: 'var(--space-md)', 
-                    padding: 'var(--space-sm)', 
-                    backgroundColor: 'var(--color-bg-secondary)', 
-                    borderRadius: 'var(--border-radius)',
-                    border: '1px solid var(--color-border)'
-                  }}>
+                  <div
+                    style={{
+                      marginTop: 'var(--space-md)',
+                      padding: 'var(--space-sm)',
+                      backgroundColor: 'var(--color-bg-secondary)',
+                      borderRadius: 'var(--border-radius)',
+                      border: '1px solid var(--color-border)',
+                    }}
+                  >
                     <h4>Join Codes</h4>
-                    
+
                     {/* Guardian Code */}
-                    {(() => {
+                    {(() =>
+                    {
                       const guardianCode = getGuardianJoinCode(joinCodes[teamMembership.teams.id]);
-                      return guardianCode ? (
-                        <div style={{ 
-                          marginBottom: 'var(--space-sm)', 
-                          padding: 'var(--space-xs)', 
-                          backgroundColor: 'var(--color-success-bg)', 
-                          borderRadius: 'var(--border-radius-sm)',
-                          border: '1px solid var(--color-success)'
-                        }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <div>
-                              <strong>{guardianCode.code}</strong> - Guardian (Permanent)
-                              <br />
-                              <small>Created by: {guardianCode.user_profiles.name}</small>
+                      return guardianCode ?
+                        (
+                          <div
+                            style={{
+                              marginBottom: 'var(--space-sm)',
+                              padding: 'var(--space-xs)',
+                              backgroundColor: 'var(--color-success-bg)',
+                              borderRadius: 'var(--border-radius-sm)',
+                              border: '1px solid var(--color-success)',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <div>
+                                <strong>{guardianCode.code}</strong> - Guardian (Permanent)
+                                <br />
+                                <small>Created by: {guardianCode.user_profiles.name}</small>
+                              </div>
+                              <button
+                                onClick={() => copyToClipboard(guardianCode.code)}
+                                className='btn btn-secondary btn-sm'
+                              >
+                                📋
+                              </button>
                             </div>
-                            <button
-                              onClick={() => copyToClipboard(guardianCode.code)}
-                              className='btn btn-secondary btn-sm'
-                            >
-                              📋
-                            </button>
                           </div>
-                        </div>
-                      ) : null;
+                        ) :
+                        null;
                     })()}
 
                     {/* Other Join Codes */}
                     {getNonGuardianJoinCodes(joinCodes[teamMembership.teams.id]).map((code) => (
-                      <div key={code.id} style={{ 
-                        marginBottom: 'var(--space-sm)', 
-                        padding: 'var(--space-xs)', 
-                        backgroundColor: 'var(--color-bg)', 
-                        borderRadius: 'var(--border-radius-sm)',
-                        border: '1px solid var(--color-border)'
-                      }}>
+                      <div
+                        key={code.id}
+                        style={{
+                          marginBottom: 'var(--space-sm)',
+                          padding: 'var(--space-xs)',
+                          backgroundColor: 'var(--color-bg)',
+                          borderRadius: 'var(--border-radius-sm)',
+                          border: '1px solid var(--color-border)',
+                        }}
+                      >
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <div>
                             <strong>{code.code}</strong> - {code.team_role || 'Any Role'}
                             <br />
                             <small>
                               Created by: {code.user_profiles.name}
-                              {code.expires_at && (
-                                <> | Expires: {new Date(code.expires_at).toLocaleDateString()}</>
-                              )}
+                              {code.expires_at && <>| Expires: {new Date(code.expires_at).toLocaleDateString()}</>}
                             </small>
                           </div>
                           <button
@@ -639,62 +662,67 @@ export const TeamsPage: React.FC = () =>
                     {/* Create New Join Code */}
                     {(teamMembership.role === 'coach' || teamMembership.role === 'admin') && (
                       <div style={{ marginTop: 'var(--space-md)' }}>
-                        {showCreateJoinCode === teamMembership.teams.id ? (
-                          <div style={{ 
-                            padding: 'var(--space-sm)', 
-                            backgroundColor: 'var(--color-bg)', 
-                            borderRadius: 'var(--border-radius-sm)',
-                            border: '1px solid var(--color-border)'
-                          }}>
-                            <h5>Create New Join Code</h5>
-                            <div style={{ marginBottom: 'var(--space-sm)' }}>
-                              <label>Role:</label>
-                              <select
-                                value={newJoinCodeRole}
-                                onChange={(e) => setNewJoinCodeRole(e.target.value)}
-                                className='form-input'
-                                style={{ marginTop: 'var(--space-xs)' }}
-                              >
-                                <option value=''>Select Role</option>
-                                <option value='player'>Player</option>
-                                <option value='coach'>Coach</option>
-                                <option value='admin'>Admin</option>
-                                <option value='guardian'>Guardian</option>
-                              </select>
+                        {showCreateJoinCode === teamMembership.teams.id ?
+                          (
+                            <div
+                              style={{
+                                padding: 'var(--space-sm)',
+                                backgroundColor: 'var(--color-bg)',
+                                borderRadius: 'var(--border-radius-sm)',
+                                border: '1px solid var(--color-border)',
+                              }}
+                            >
+                              <h5>Create New Join Code</h5>
+                              <div style={{ marginBottom: 'var(--space-sm)' }}>
+                                <label>Role:</label>
+                                <select
+                                  value={newJoinCodeRole}
+                                  onChange={(e) => setNewJoinCodeRole(e.target.value)}
+                                  className='form-input'
+                                  style={{ marginTop: 'var(--space-xs)' }}
+                                >
+                                  <option value=''>Select Role</option>
+                                  <option value='player'>Player</option>
+                                  <option value='coach'>Coach</option>
+                                  <option value='admin'>Admin</option>
+                                  <option value='guardian'>Guardian</option>
+                                </select>
+                              </div>
+                              <div style={{ marginBottom: 'var(--space-sm)' }}>
+                                <label>Expiration Date (optional):</label>
+                                <input
+                                  type='datetime-local'
+                                  value={newJoinCodeExpires}
+                                  onChange={(e) =>
+                                    setNewJoinCodeExpires(e.target.value)}
+                                  className='form-input'
+                                  style={{ marginTop: 'var(--space-xs)' }}
+                                />
+                              </div>
+                              <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+                                <button
+                                  onClick={() => handleCreateJoinCode(teamMembership.teams.id)}
+                                  className='btn btn-primary btn-sm'
+                                >
+                                  Create Code
+                                </button>
+                                <button
+                                  onClick={() => setShowCreateJoinCode(null)}
+                                  className='btn btn-secondary btn-sm'
+                                >
+                                  Cancel
+                                </button>
+                              </div>
                             </div>
-                            <div style={{ marginBottom: 'var(--space-sm)' }}>
-                              <label>Expiration Date (optional):</label>
-                              <input
-                                type='datetime-local'
-                                value={newJoinCodeExpires}
-                                onChange={(e) => setNewJoinCodeExpires(e.target.value)}
-                                className='form-input'
-                                style={{ marginTop: 'var(--space-xs)' }}
-                              />
-                            </div>
-                            <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
-                              <button
-                                onClick={() => handleCreateJoinCode(teamMembership.teams.id)}
-                                className='btn btn-primary btn-sm'
-                              >
-                                Create Code
-                              </button>
-                              <button
-                                onClick={() => setShowCreateJoinCode(null)}
-                                className='btn btn-secondary btn-sm'
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => setShowCreateJoinCode(teamMembership.teams.id)}
-                            className='btn btn-success btn-sm'
-                          >
-                            + Create Join Code
-                          </button>
-                        )}
+                          ) :
+                          (
+                            <button
+                              onClick={() => setShowCreateJoinCode(teamMembership.teams.id)}
+                              className='btn btn-success btn-sm'
+                            >
+                              + Create Join Code
+                            </button>
+                          )}
                       </div>
                     )}
                   </div>

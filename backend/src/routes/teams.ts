@@ -94,30 +94,38 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
       return;
     }
 
-    // Create permanent guardian join code
-    const guardianCode = await generateUniqueJoinCode();
-    const { error: guardianCodeError } = await supabase
-      .from('team_join_codes')
-      .insert({
-        team_id: teamData.id,
-        code: guardianCode,
-        created_by: userId!,
-        team_role: TeamRole.Guardian,
-        expires_at: null, // Never expires
-        is_active: true,
-      });
+    // Create permanent join codes for all roles
+    const joinCodes = {
+      player: await generateUniqueJoinCode(),
+      coach: await generateUniqueJoinCode(),
+      admin: await generateUniqueJoinCode(),
+      guardian: await generateUniqueJoinCode(),
+    };
 
-    if (guardianCodeError)
+    const joinCodeInserts = Object.entries(joinCodes).map(([role, code]) => ({
+      team_id: teamData.id,
+      code,
+      created_by: userId!,
+      team_role: role as TeamRole,
+      expires_at: null, // Never expires
+      is_active: true,
+    }));
+
+    const { error: joinCodeError } = await supabase
+      .from('team_join_codes')
+      .insert(joinCodeInserts);
+
+    if (joinCodeError)
     {
-      console.error('Failed to create guardian join code:', guardianCodeError);
-      // Don't fail team creation if guardian code fails
+      console.error('Failed to create join codes:', joinCodeError);
+      // Don't fail team creation if join codes fail
     }
 
     res.status(201).json({
       message: 'Team created successfully',
       team: {
         ...teamData,
-        guardian_join_code: guardianCode,
+        join_codes: joinCodes,
       },
     });
   }
@@ -660,6 +668,148 @@ router.post(
   },
 );
 
+// Get team details
+router.get(
+  '/:teamId',
+  requireTeamRole([TeamRole.Coach, TeamRole.Admin, TeamRole.Player, TeamRole.Guardian]),
+  async (req: AuthenticatedRequest, res: Response): Promise<void> =>
+  {
+    try
+    {
+      const { teamId } = req.params;
+      const userId = req.user?.id;
+
+      // Get team basic info
+      const { data: teamData, error: teamError } = await supabase
+        .from('teams')
+        .select('*')
+        .eq('id', teamId)
+        .single();
+
+      if (teamError)
+      {
+        res.status(400).json({ error: teamError.message });
+        return;
+      }
+
+      // Get user's role on this team
+      const { data: userMembership, error: membershipError } = await supabase
+        .from('team_memberships')
+        .select('role')
+        .eq('team_id', teamId)
+        .eq('user_id', userId!)
+        .single();
+
+      if (membershipError)
+      {
+        res.status(403).json({ error: 'User is not a member of this team' });
+        return;
+      }
+
+      // Get member counts by role
+      const { data: memberCounts, error: countError } = await supabase
+        .from('team_memberships')
+        .select('role')
+        .eq('team_id', teamId);
+
+      if (countError)
+      {
+        res.status(400).json({ error: countError.message });
+        return;
+      }
+
+      // Get player count
+      const { data: playerCount, error: playerCountError } = await supabase
+        .from('team_players')
+        .select('id')
+        .eq('team_id', teamId);
+
+      if (playerCountError)
+      {
+        res.status(400).json({ error: playerCountError.message });
+        return;
+      }
+
+      // Get game count
+      const { data: gameCount, error: gameCountError } = await supabase
+        .from('games')
+        .select('id')
+        .eq('team_id', teamId);
+
+      if (gameCountError)
+      {
+        res.status(400).json({ error: gameCountError.message });
+        return;
+      }
+
+      // Count members by role
+      const roleCounts = memberCounts?.reduce((acc: Record<string, number>, member) =>
+      {
+        acc[member.role] = (acc[member.role] || 0) + 1;
+        return acc;
+      }, {}) || {};
+
+      res.json({
+        ...teamData,
+        user_role: userMembership.role,
+        member_counts: {
+          ...roleCounts,
+          players: playerCount?.length || 0,
+        },
+        total_games: gameCount?.length || 0,
+      });
+    }
+    catch (error)
+    {
+      console.error('Get team details error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+);
+
+// Get team members (excluding players - they have separate endpoint)
+router.get(
+  '/:teamId/members',
+  requireTeamRole([TeamRole.Coach, TeamRole.Admin, TeamRole.Player, TeamRole.Guardian]),
+  async (req: AuthenticatedRequest, res: Response): Promise<void> =>
+  {
+    try
+    {
+      const { teamId } = req.params;
+
+      const { data: members, error } = await supabase
+        .from('team_memberships')
+        .select(`
+          id,
+          role,
+          created_at,
+          user_profiles (
+            id,
+            name,
+            email,
+            created_at
+          )
+        `)
+        .eq('team_id', teamId)
+        .neq('role', 'player')
+        .order('created_at', { ascending: true });
+
+      if (error)
+      {
+        res.status(400).json({ error: error.message });
+        return;
+      }
+
+      res.json(members || []);
+    }
+    catch (error)
+    {
+      console.error('Get team members error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+);
+
 // Get players for a team
 router.get(
   '/:teamId/players',
@@ -673,11 +823,13 @@ router.get(
       const { data: players, error } = await supabase
         .from('team_players')
         .select(`
+          created_at,
           player_profiles (
             id,
             name,
             jersey_number,
-            user_id
+            user_id,
+            created_at
           )
         `)
         .eq('team_id', teamId);
@@ -688,8 +840,11 @@ router.get(
         return;
       }
 
-      // Flatten the structure to make it easier to work with
-      const flattenedPlayers = players?.map(tp => tp.player_profiles).filter(Boolean) || [];
+      // Flatten the structure and include join date
+      const flattenedPlayers = players?.map(tp => ({
+        ...tp.player_profiles,
+        team_joined_at: tp.created_at,
+      })).filter(Boolean) || [];
 
       res.json(flattenedPlayers);
     }
