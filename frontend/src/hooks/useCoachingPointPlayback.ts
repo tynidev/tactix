@@ -32,6 +32,7 @@ export interface PlaybackEventHandlers
   onDrawEvent?: (drawings: Drawing[]) => void;
   onSpeedEvent?: (speed: number) => void;
   onRecordingStartEvent?: (initialState: RecordingStartEventData) => void;
+  onPlaybackComplete?: () => void;
 }
 
 export interface UseCoachingPointPlaybackReturn
@@ -215,6 +216,9 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
    */
   const stopPlayback = useCallback(() =>
   {
+    // Call completion handler before cleanup to notify parent component (e.g., to clear canvas)
+    handlersRef.current.onPlaybackComplete?.();
+
     if (audioRef.current)
     {
       const audio = audioRef.current;
@@ -350,6 +354,9 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
         cancelAnimationFrame(animationFrameRef.current);
         animationFrameRef.current = null;
       }
+      
+      // Call completion handler to notify parent component (e.g., to clear canvas)
+      handlersRef.current.onPlaybackComplete?.();
     });
 
     audio.addEventListener('error', (e) =>

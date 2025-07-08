@@ -93,6 +93,9 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
   // Add this ref to track previous drawings
   const lastDrawingsRef = useRef<Drawing[]>([]);
 
+  // Track if video was playing when we paused coaching point playback
+  const wasVideoPlayingBeforePauseRef = useRef<boolean>(false);
+
   // Audio recording functionality
   const audioRecording = useAudioRecording();
 
@@ -309,6 +312,29 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
     setSelectedCoachingPoint(point);
   }, [playback]);
 
+  // Reset transport controls to default state
+  const resetTransportControls = useCallback(() => {
+    if (!player || !selectedCoachingPoint) return;
+
+    // 1. Pause video if playing
+    if (player.getPlayerState() === 1) { // Playing
+      player.pauseVideo();
+    }
+
+    // 2. Set video to the beginning of the coaching point timestamp
+    const coachingPointTimestamp = parseInt(selectedCoachingPoint.timestamp) / 1000; // Convert ms to seconds
+    player.seekTo(coachingPointTimestamp, true);
+
+    // 3. Clear the canvas
+    clearCanvas();
+
+    // 4. Set playback to 1x speed
+    player.setPlaybackRate(1);
+
+    // 5. Clear video playing state tracking
+    wasVideoPlayingBeforePauseRef.current = false;
+  }, [player, selectedCoachingPoint, clearCanvas]);
+
   // Playback event handlers for coaching_point_events during coaching point playback
   const playbackEventHandlers = useCallback(() => ({
     onPlayEvent: () => {
@@ -351,7 +377,11 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
         setDrawingData(initialState.existingDrawings);
       }
     },
-  }), [player, setDrawingData]);
+    onPlaybackComplete: () => {
+      // Reset transport controls when playback finishes naturally
+      resetTransportControls();
+    },
+  }), [player, setDrawingData, resetTransportControls]);
 
   // Handle starting playback of a coaching point
   const handleStartPlayback = useCallback(() => {
@@ -361,25 +391,42 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
     playback.startPlayback(selectedCoachingPoint, handlers);
   }, [selectedCoachingPoint, playback, playbackEventHandlers]);
 
-  // Handle toggling playback (play/pause)
-  const handleTogglePlayback = useCallback(() => {
-    if (playback.isPlaying) {
-      playback.pausePlayback();
-    } else if (playback.currentTime > 0 || playback.duration > 0) {
-      // Resume if already started
+  // Handle play/resume playback
+  const handlePlayPlayback = useCallback(() => {
+    if (playback.currentTime > 0 && playback.currentTime < playback.duration && !playback.isPlaying) {
+      // Resume if paused (but not if at the end)
       playback.resumePlayback();
+      
+      // Resume video if it was playing before we paused
+      if (wasVideoPlayingBeforePauseRef.current && player && player.getPlayerState() !== 1) {
+        player.playVideo();
+      }
     } else {
-      // Start fresh playback
+      // Start fresh playback (or restart if at the end)
       handleStartPlayback();
     }
-  }, [playback, handleStartPlayback]);
+  }, [playback, handleStartPlayback, player]);
+
+  // Handle pause playback
+  const handlePausePlayback = useCallback(() => {
+    // Remember if the video was playing before we pause
+    if (player && player.getPlayerState() === 1) { // Video is playing
+      wasVideoPlayingBeforePauseRef.current = true;
+      player.pauseVideo();
+    } else {
+      wasVideoPlayingBeforePauseRef.current = false;
+    }
+    
+    // Pause the coaching point audio
+    playback.pausePlayback();
+  }, [playback, player]);
 
   // Handle stopping playback
   const handleStopPlayback = useCallback(() => {
     playback.stopPlayback();
-    // Clear any drawings that were set during playback
-    clearCanvas();
-  }, [playback, clearCanvas]);
+    // Reset transport controls when manually stopping playback
+    resetTransportControls();
+  }, [playback, resetTransportControls]);
 
   // Update video dimensions when sidebar state changes
   useEffect(() => {
@@ -616,12 +663,21 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
                     {/* Control Buttons */}
                     <div className="playback-buttons">
                       <button
-                        onClick={handleTogglePlayback}
-                        className={`btn ${playback.isPlaying ? 'btn-warning' : 'btn-success'}`}
-                        disabled={playback.isLoading || !selectedCoachingPoint.audio_url}
-                        title={playback.isPlaying ? 'Pause playback' : 'Start/Resume playback'}
+                        onClick={handlePlayPlayback}
+                        className="btn btn-success"
+                        disabled={playback.isLoading || !selectedCoachingPoint.audio_url || playback.isPlaying}
+                        title="Start or resume playback"
                       >
-                        {playback.isLoading ? '⏳' : playback.isPlaying ? '⏸️ Pause' : '▶️ Play'}
+                        {playback.isLoading ? '⏳' : '▶️ Play'}
+                      </button>
+                      
+                      <button
+                        onClick={handlePausePlayback}
+                        className="btn btn-warning"
+                        disabled={!playback.isPlaying}
+                        title="Pause playback"
+                      >
+                        ⏸️ Pause
                       </button>
                       
                       <button

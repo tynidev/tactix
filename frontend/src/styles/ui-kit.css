@@ -70,7 +70,7 @@
   --color-accent-light: #FFB366;
   
   /* Status Colors */
-  --color-success: #10B981;
+  --color-success: #249e4d;
   --color-warning: #F59E0B;
   --color-error: #EF4444;
   --color-info: #3B82F6;
@@ -263,7 +263,7 @@ p {
 }
 
 .btn-success:hover:not(:disabled) {
-  background: #0d9488;
+  background: #46ac53;
 }
 
 .btn-error {

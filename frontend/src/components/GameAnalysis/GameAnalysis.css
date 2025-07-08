@@ -429,6 +429,33 @@
   font-size: 0.875rem;
   font-weight: 500;
   padding: var(--space-sm) var(--space-md);
+  min-width: 0; /* Allow buttons to shrink properly */
+  white-space: nowrap; /* Prevent text wrapping */
+}
+
+/* Specific button styling for playback controls */
+.playback-buttons .btn-success {
+  background: var(--color-success);
+  color: white;
+  border-color: var(--color-success);
+}
+
+.playback-buttons .btn-warning {
+  background: var(--color-warning);
+  color: white;
+  border-color: var(--color-warning);
+}
+
+.playback-buttons .btn-error {
+  background: var(--color-error);
+  color: white;
+  border-color: var(--color-error);
+}
+
+.playback-buttons .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(50%);
 }
 
 .playback-status {
