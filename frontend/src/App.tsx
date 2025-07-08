@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { Route, Routes } from 'react-router-dom';
 import { Auth } from './components/Auth/Auth';
 import { AppRouter } from './components/Router/Router';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -23,7 +24,12 @@ const AppContent: React.FC = () =>
     );
   }
 
-  return user ? <AppRouter /> : <Auth />;
+  return (
+    <Routes>
+      <Route path='/auth' element={<Auth />} />
+      <Route path='/*' element={user ? <AppRouter /> : <Auth />} />
+    </Routes>
+  );
 };
 
 function App()
