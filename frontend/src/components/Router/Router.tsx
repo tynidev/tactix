@@ -1,9 +1,9 @@
 import React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { DashboardPage, GamesPage, ReviewPage, TeamDetailPage, TeamsPage } from '../../pages';
+import { Auth } from '../Auth/Auth';
 import { Navigation } from '../Navigation/Navigation';
 import UserProfilePage from '../UserProfile/UserProfile';
-import { Auth } from '../Auth/Auth';
 
 export const AppRouter: React.FC = () =>
 {
