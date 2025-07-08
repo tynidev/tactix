@@ -145,31 +145,31 @@ export const uploadAudioFile = async (audioBlob: Blob): Promise<string | null> =
  * Compress drawing data by reducing precision and removing redundant data
  * Helps reduce payload size for large drawing datasets
  */
-const compressDrawingData = (drawings: any[]): any[] =>
-{
-  return drawings.map(drawing =>
-  {
-    if (drawing.points && Array.isArray(drawing.points))
-    {
-      // Reduce point precision to 2 decimal places
-      const compressedPoints = drawing.points.map((point: any) => ({
-        x: Math.round(point.x * 100) / 100,
-        y: Math.round(point.y * 100) / 100,
-      }));
+// (drawings: any[]): any[] =>
+// {
+//   return drawings.map(drawing =>
+//   {
+//     if (drawing.points && Array.isArray(drawing.points))
+//     {
+//       // Reduce point precision to 2 decimal places
+//       const compressedPoints = drawing.points.map((point: any) => ({
+//         x: Math.round(point.x * 100) / 100,
+//         y: Math.round(point.y * 100) / 100,
+//       }));
 
-      // Remove consecutive duplicate points
-      const filteredPoints = compressedPoints.filter((point: any, index: number) =>
-      {
-        if (index === 0) return true;
-        const prevPoint = compressedPoints[index - 1];
-        return point.x !== prevPoint.x || point.y !== prevPoint.y;
-      });
+//       // Remove consecutive duplicate points
+//       const filteredPoints = compressedPoints.filter((point: any, index: number) =>
+//       {
+//         if (index === 0) return true;
+//         const prevPoint = compressedPoints[index - 1];
+//         return point.x !== prevPoint.x || point.y !== prevPoint.y;
+//       });
 
-      return { ...drawing, points: filteredPoints };
-    }
-    return drawing;
-  });
-};
+//       return { ...drawing, points: filteredPoints };
+//     }
+//     return drawing;
+//   });
+// };
 
 /**
  * Create a comprehensive coaching point with optional audio recording, events, player tags, and labels

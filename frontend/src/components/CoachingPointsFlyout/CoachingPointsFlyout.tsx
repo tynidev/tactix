@@ -312,7 +312,7 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
     }, [coachingPoints]);
 
     // Memoize filter options
-    const filterOptions = useMemo(() => {
+    useMemo(() => {
       const players = new Set<string>();
       const labels = new Set<string>();
 

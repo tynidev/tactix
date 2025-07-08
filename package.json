@@ -16,13 +16,11 @@
     "build:frontend": "cd frontend && npm run build",
     "build:backend": "cd backend && npm run build",
     "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install",
-    "fmt": "dprint fmt",
-    "prepare": "husky"
+    "fmt": "dprint fmt"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
     "dprint": "^0.45.0",
-    "husky": "^9.1.7",
     "supabase": "^2.30.4"
   },
   "keywords": [
