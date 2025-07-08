@@ -31,6 +31,9 @@
   border-radius: var(--radius-lg);
   padding: var(--space-lg);
   transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  height: 320px; /* Fixed height for all cards */
 }
 
 .game-card:hover {
@@ -105,21 +108,37 @@
   color: var(--color-text-primary);
 }
 
+.game-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
 .game-notes {
   margin: 0 0 var(--space-md) 0;
   font-size: 0.875rem;
   color: var(--text-primary);
   line-height: 1.4;
   background: var(--bg-primary);
-  padding: var(--space-sm);
+  padding: 0;
   border-radius: var(--radius-md);
   border-left: 3px solid var(--primary-300);
+  /* Clamp to exactly 2 lines */
+  overflow: hidden;
+  height: calc(1.4em * 2); /* 2 lines at 1.4 line-height */
+  min-height: calc(1.4em * 2); /* Ensure consistent height even with no notes */
+}
+
+.game-notes:empty::before {
+  content: "\00A0"; /* Non-breaking space to maintain height when empty */
+  opacity: 0;
 }
 
 .game-stats {
   display: flex;
   gap: var(--space-md);
-  margin-bottom: var(--space-lg);
+  margin-bottom: auto; /* Push to fill available space */
+  padding-bottom: var(--space-lg);
   font-size: 0.75rem;
   color: var(--color-text-primary);
 }
@@ -134,6 +153,7 @@
   display: flex;
   gap: var(--space-sm);
   flex-wrap: wrap;
+  margin-top: auto; /* Push to bottom */
 }
 
 .game-actions .btn {

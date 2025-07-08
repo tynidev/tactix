@@ -371,23 +371,25 @@ export const GamesList: React.FC<GamesListProps> = ({
                 </div>
               </div>
 
-              {game.location && (
-                <p className="game-location-detail">📍 {game.location}</p>
-              )}
-
-              {game.notes && (
-                <p className="game-notes">{game.notes}</p>
-              )}
-
-              <div className="game-stats">
-                {game.video_id && (
-                  <span className="game-stat">
-                    📹 Video Available
-                  </span>
+              <div className="game-content">
+                {game.location && (
+                  <p className="game-location-detail">📍 {game.location}</p>
                 )}
-                <span className="game-stat">
-                  💬 {game.coaching_points_count || 0} coaching points
-                </span>
+
+                <div className="game-notes">
+                  {game.notes || ''}
+                </div>
+
+                <div className="game-stats">
+                  {game.video_id && (
+                    <span className="game-stat">
+                      📹 Video Available
+                    </span>
+                  )}
+                  <span className="game-stat">
+                    💬 {game.coaching_points_count || 0} coaching points
+                  </span>
+                </div>
               </div>
 
               <div className="game-actions">
