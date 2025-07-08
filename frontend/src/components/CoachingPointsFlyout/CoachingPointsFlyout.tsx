@@ -220,7 +220,11 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
     const handlePointClick = useCallback(
       async (point: CoachingPoint) =>
       {
-        // Pause the video first
+        // FIRST: Stop any current playback and set the new coaching point
+        // This ensures playback is stopped immediately before any video operations
+        onSelectCoachingPoint(point);
+
+        // Pause the video
         onPauseVideo();
 
         // Add a small delay to ensure the video is paused before seeking
@@ -231,9 +235,6 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
 
         // Load and show any drawings for this point
         await loadDrawingEvents(point.id);
-
-        // Pass the selected coaching point to parent
-        onSelectCoachingPoint(point);
 
         // Hide the flyout
         setIsExpanded(false);
