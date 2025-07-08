@@ -472,6 +472,7 @@ p {
   align-items: center;
   padding: var(--space-md) var(--space-lg);
   gap: var(--space-xl);
+  padding-left: 120px; /* Add space for the logo */
 }
 
 .header-nav .nav-brand {
@@ -479,9 +480,24 @@ p {
   font-weight: 700;
   color: var(--color-accent-primary);
   text-decoration: none;
+  position: relative;
+  height: 40px; /* Set fixed height to prevent expansion */
+  display: flex;
+  align-items: center;
 }
 
+.header-nav .nav-brand img {
+  position: absolute;
+  top: 50%;
+  left: -100px;
+  transform: translateY(-50%);
+  height: 100px;
+  width: auto;
+  z-index: 10;
+  margin-top: 16px; /* Add some top margin */
+}
 .header-nav .nav-items {
+  margin-left: 120px;
   display: flex;
   gap: var(--space-md);
   list-style: none;

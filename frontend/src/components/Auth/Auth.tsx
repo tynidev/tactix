@@ -222,7 +222,7 @@ export const Auth: React.FC = () =>
       </div>
       <div className='auth-card'>
         <div className='auth-header'>
-          <h1>TACTIX</h1>
+          <img src='/tactix-logo.png' alt='TACTIX' style={{ height: '120px' }} />
           <p>Video Coaching Platform</p>
         </div>
 

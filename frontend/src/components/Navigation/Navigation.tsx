@@ -21,7 +21,7 @@ export const Navigation: React.FC = () =>
     <nav className='header-nav'>
       <div className='header-nav-content'>
         <Link to='/dashboard' className='nav-brand'>
-          TACTIX
+          <img src='/tactix-logo.png' alt='TACTIX' />
         </Link>
 
         <ul className='nav-items'>
