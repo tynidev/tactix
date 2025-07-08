@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
-import { DashboardPage, GamesPage, ReviewPage, TeamsPage } from '../../pages';
+import { DashboardPage, GamesPage, ReviewPage, TeamDetailPage, TeamsPage } from '../../pages';
 import { Navigation } from '../Navigation/Navigation';
 import UserProfilePage from '../UserProfile/UserProfile';
 
@@ -13,6 +13,7 @@ export const AppRouter: React.FC = () =>
         <Route path='/' element={<Navigate to='/dashboard' replace />} />
         <Route path='/dashboard' element={<DashboardPage />} />
         <Route path='/teams' element={<TeamsPage />} />
+        <Route path='/team/:teamId' element={<TeamDetailPage />} />
         <Route path='/games' element={<GamesPage />} />
         <Route path='/games/:teamId' element={<GamesPage />} />
         <Route path='/profile' element={<UserProfilePage />} />

@@ -167,7 +167,63 @@ router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> 
       return;
     }
 
-    res.json(teams);
+    // Enhance each team with additional metadata
+    const enhancedTeams = await Promise.all(
+      (teams || []).map(async (teamMembership) => {
+        const teamId = teamMembership.teams.id;
+
+        // Get player count
+        const { count: playerCount, error: playerCountError } = await supabase
+          .from('team_players')
+          .select('*', { count: 'exact', head: true })
+          .eq('team_id', teamId);
+
+        // Get game count
+        const { count: gameCount, error: gameCountError } = await supabase
+          .from('games')
+          .select('*', { count: 'exact', head: true })
+          .eq('team_id', teamId);
+
+        // Get reviewed games count (games with coaching points)
+        const { data: gameIds, error: gameIdsError } = await supabase
+          .from('games')
+          .select('id')
+          .eq('team_id', teamId);
+
+        const { data: reviewedGames, error: reviewedGamesError } = await supabase
+          .from('coaching_points')
+          .select('game_id')
+          .in('game_id', gameIds?.map(g => g.id) || []);
+
+        // Get coaches for this team
+        const { data: coaches, error: coachesError } = await supabase
+          .from('team_memberships')
+          .select(`
+            user_profiles (
+              name
+            )
+          `)
+          .eq('team_id', teamId)
+          .eq('role', 'coach');
+
+        // Count unique reviewed games
+        const uniqueReviewedGames = reviewedGames ? 
+          [...new Set(reviewedGames.map(rg => rg.game_id))].length : 0;
+
+        return {
+          ...teamMembership,
+          teams: {
+            ...teamMembership.teams,
+            player_count: playerCount || 0,
+            game_count: gameCount || 0,
+            reviewed_games_count: uniqueReviewedGames,
+            coaches: coaches?.map(c => ({ name: c.user_profiles?.name || 'Unknown' })) || []
+          }
+        };
+      })
+    );
+
+    res.json(enhancedTeams);
   }
   catch (error)
   {
@@ -706,6 +762,8 @@ router.get(
         return;
       }
 
+      const userRole = userMembership.role as TeamRole;
+
       // Get member counts by role
       const { data: memberCounts, error: countError } = await supabase
         .from('team_memberships')
@@ -718,10 +776,10 @@ router.get(
         return;
       }
 
-      // Get player count
-      const { data: playerCount, error: playerCountError } = await supabase
+      // Get player count using Supabase count functionality
+      const { count: playerCount, error: playerCountError } = await supabase
         .from('team_players')
-        .select('id')
+        .select('*', { count: 'exact', head: true })
         .eq('team_id', teamId);
 
       if (playerCountError)
@@ -730,10 +788,10 @@ router.get(
         return;
       }
 
-      // Get game count
-      const { data: gameCount, error: gameCountError } = await supabase
+      // Get game count using Supabase count functionality
+      const { count: gameCount, error: gameCountError } = await supabase
         .from('games')
-        .select('id')
+        .select('*', { count: 'exact', head: true })
         .eq('team_id', teamId);
 
       if (gameCountError)
@@ -741,6 +799,42 @@ router.get(
         res.status(400).json({ error: gameCountError.message });
         return;
       }
+
+      // Get join codes with role-based filtering
+      const { data: joinCodes, error: joinCodesError } = await supabase
+        .from('team_join_codes')
+        .select('*')
+        .eq('team_id', teamId)
+        .eq('is_active', true);
+
+      if (joinCodesError)
+      {
+        res.status(400).json({ error: joinCodesError.message });
+        return;
+      }
+
+      // Filter join codes based on user's role
+      // Everyone sees player & guardian codes, only coaches/admins see coach & admin codes
+      const filteredJoinCodes = joinCodes?.filter(code =>
+      {
+        if (!code.team_role) return true; // Show codes without specific roles
+        
+        const codeRole = code.team_role as TeamRole;
+        
+        // Everyone can see player and guardian codes
+        if (codeRole === TeamRole.Player || codeRole === TeamRole.Guardian)
+        {
+          return true;
+        }
+        
+        // Only coaches and admins can see coach and admin codes
+        if (userRole === TeamRole.Coach || userRole === TeamRole.Admin)
+        {
+          return true;
+        }
+        
+        return false;
+      }) || [];
 
       // Count members by role
       const roleCounts = memberCounts?.reduce((acc: Record<string, number>, member) =>
@@ -751,12 +845,20 @@ router.get(
 
       res.json({
         ...teamData,
-        user_role: userMembership.role,
+        user_role: userRole,
         member_counts: {
           ...roleCounts,
-          players: playerCount?.length || 0,
+          players: playerCount || 0,
         },
-        total_games: gameCount?.length || 0,
+        total_games: gameCount || 0,
+        join_codes: filteredJoinCodes.map(code => ({
+          id: code.id,
+          code: code.code,
+          team_role: code.team_role,
+          created_at: code.created_at,
+          expires_at: code.expires_at,
+          is_active: code.is_active,
+        })),
       });
     }
     catch (error)
@@ -767,7 +869,7 @@ router.get(
   },
 );
 
-// Get team members (excluding players - they have separate endpoint)
+// Get team members grouped by role
 router.get(
   '/:teamId/members',
   requireTeamRole([TeamRole.Coach, TeamRole.Admin, TeamRole.Player, TeamRole.Guardian]),
@@ -777,7 +879,8 @@ router.get(
     {
       const { teamId } = req.params;
 
-      const { data: members, error } = await supabase
+      // Get all team memberships (coaches, admins, guardians, players)
+      const { data: memberships, error: membershipsError } = await supabase
         .from('team_memberships')
         .select(`
           id,
@@ -791,16 +894,97 @@ router.get(
           )
         `)
         .eq('team_id', teamId)
-        .neq('role', 'player')
         .order('created_at', { ascending: true });
 
-      if (error)
+      if (membershipsError)
       {
-        res.status(400).json({ error: error.message });
+        res.status(400).json({ error: membershipsError.message });
         return;
       }
 
-      res.json(members || []);
+      // Get players with their profiles and jersey numbers
+      const { data: players, error: playersError } = await supabase
+        .from('team_players')
+        .select(`
+          created_at,
+          player_profiles (
+            id,
+            name,
+            jersey_number,
+            user_id,
+            created_at,
+            user_profiles (
+              id,
+              name,
+              email,
+              created_at
+            )
+          )
+        `)
+        .eq('team_id', teamId)
+        .order('created_at', { ascending: true });
+
+      if (playersError)
+      {
+        res.status(400).json({ error: playersError.message });
+        return;
+      }
+
+      // Group members by role
+      const membersByRole: Record<string, any[]> = {
+        players: [],
+        coaches: [],
+        admins: [],
+        guardians: [],
+      };
+
+      // Process regular memberships (coaches, admins, guardians, players with user accounts)
+      memberships?.forEach(membership => {
+        const member = {
+          id: membership.id,
+          user_id: membership.user_profiles?.id,
+          name: membership.user_profiles?.name,
+          email: membership.user_profiles?.email,
+          role: membership.role,
+          joined_at: membership.created_at,
+          user_created_at: membership.user_profiles?.created_at,
+        };
+
+        switch (membership.role) {
+          case TeamRole.Coach:
+            membersByRole.coaches.push(member);
+            break;
+          case TeamRole.Admin:
+            membersByRole.admins.push(member);
+            break;
+          case TeamRole.Guardian:
+            membersByRole.guardians.push(member);
+            break;
+          case TeamRole.Player:
+            // Players with user accounts will be handled separately below
+            break;
+        }
+      });
+
+      // Process players (including those without user accounts)
+      players?.forEach(teamPlayer => {
+        const playerProfile = teamPlayer.player_profiles;
+        if (playerProfile) {
+          const player = {
+            id: playerProfile.id,
+            user_id: playerProfile.user_id,
+            name: playerProfile.name,
+            email: playerProfile.user_profiles?.email || null,
+            jersey_number: playerProfile.jersey_number,
+            joined_at: teamPlayer.created_at,
+            profile_created_at: playerProfile.created_at,
+            user_created_at: playerProfile.user_profiles?.created_at || null,
+          };
+          membersByRole.players.push(player);
+        }
+      });
+
+      res.json(membersByRole);
     }
     catch (error)
     {

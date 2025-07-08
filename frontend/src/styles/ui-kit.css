@@ -799,6 +799,37 @@ p {
   margin-bottom: var(--space-lg);
 }
 
+.team-metadata {
+  margin-bottom: var(--space-lg);
+  padding: var(--space-md);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.metadata-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-sm);
+}
+
+.metadata-row:last-child {
+  margin-bottom: 0;
+}
+
+.metadata-label {
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+}
+
+.metadata-value {
+  font-weight: 700;
+  color: var(--color-text-primary);
+  font-size: 14px;
+}
+
 .team-actions {
   display: flex;
   gap: var(--space-sm);

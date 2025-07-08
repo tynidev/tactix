@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { FaPencilAlt, FaTrash } from 'react-icons/fa';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getApiUrl } from '../utils/api';
 
@@ -11,37 +11,22 @@ interface Team
     id: string;
     name: string;
     created_at: string;
-  };
-}
-
-interface JoinCode
-{
-  id: string;
-  code: string;
-  team_role: string | null;
-  created_at: string;
-  expires_at: string | null;
-  is_active: boolean;
-  created_by: string;
-  user_profiles: {
-    name: string;
+    player_count: number;
+    game_count: number;
+    reviewed_games_count: number;
+    coaches: Array<{name: string}>;
   };
 }
 
 export const TeamsPage: React.FC = () =>
 {
   const {} = useAuth();
+  const navigate = useNavigate();
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
   const [editingTeamName, setEditingTeamName] = useState('');
-  const [joinCodes, setJoinCodes] = useState<Record<string, JoinCode[]>>({});
-  const [showJoinCodes, setShowJoinCodes] = useState<Record<string, boolean>>({});
-  const [loadingJoinCodes, setLoadingJoinCodes] = useState<Record<string, boolean>>({});
-  const [showCreateJoinCode, setShowCreateJoinCode] = useState<string | null>(null);
-  const [newJoinCodeRole, setNewJoinCodeRole] = useState('');
-  const [newJoinCodeExpires, setNewJoinCodeExpires] = useState('');
 
   useEffect(() =>
   {
@@ -83,31 +68,6 @@ export const TeamsPage: React.FC = () =>
 
       const data = await response.json();
       setTeams(data);
-
-      // Fetch join codes for each team to display guardian codes immediately
-      for (const teamMembership of data)
-      {
-        try
-        {
-          const joinCodesResponse = await fetch(`${apiUrl}/api/teams/${teamMembership.teams.id}/join-codes`, {
-            headers: {
-              'Authorization': `Bearer ${session.data.session.access_token}`,
-              'Content-Type': 'application/json',
-            },
-          });
-
-          if (joinCodesResponse.ok)
-          {
-            const joinCodesData = await joinCodesResponse.json();
-            setJoinCodes(prev => ({ ...prev, [teamMembership.teams.id]: joinCodesData }));
-          }
-        }
-        catch (err)
-        {
-          console.error(`Failed to fetch join codes for team ${teamMembership.teams.id}:`, err);
-          // Don't fail the whole page if join codes fail to load
-        }
-      }
     }
     catch (err)
     {
@@ -223,150 +183,6 @@ export const TeamsPage: React.FC = () =>
     }
   };
 
-  const fetchJoinCodes = async (teamId: string) =>
-  {
-    if (loadingJoinCodes[teamId]) return;
-
-    setLoadingJoinCodes(prev => ({ ...prev, [teamId]: true }));
-
-    try
-    {
-      const token = (await import('../lib/supabase')).supabase.auth.getSession();
-      const session = await token;
-
-      if (!session.data.session?.access_token)
-      {
-        throw new Error('No access token');
-      }
-
-      const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/api/teams/${teamId}/join-codes`, {
-        headers: {
-          'Authorization': `Bearer ${session.data.session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok)
-      {
-        throw new Error('Failed to fetch join codes');
-      }
-
-      const data = await response.json();
-      setJoinCodes(prev => ({ ...prev, [teamId]: data }));
-    }
-    catch (err)
-    {
-      console.error('Error fetching join codes:', err);
-      alert('Failed to load join codes');
-    }
-    finally
-    {
-      setLoadingJoinCodes(prev => ({ ...prev, [teamId]: false }));
-    }
-  };
-
-  const toggleJoinCodes = async (teamId: string) =>
-  {
-    const isShowing = showJoinCodes[teamId];
-
-    if (!isShowing)
-    {
-      // Fetch join codes if not already loaded
-      if (!joinCodes[teamId])
-      {
-        await fetchJoinCodes(teamId);
-      }
-    }
-
-    setShowJoinCodes(prev => ({ ...prev, [teamId]: !isShowing }));
-  };
-
-  const copyToClipboard = async (text: string) =>
-  {
-    try
-    {
-      await navigator.clipboard.writeText(text);
-      // Could show a temporary toast message here
-      alert('Join code copied to clipboard!');
-    }
-    catch (err)
-    {
-      console.error('Failed to copy to clipboard:', err);
-      // Fallback for older browsers
-      const textArea = document.createElement('textarea');
-      textArea.value = text;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-      alert('Join code copied to clipboard!');
-    }
-  };
-
-  const handleCreateJoinCode = async (teamId: string) =>
-  {
-    if (!newJoinCodeRole.trim())
-    {
-      alert('Please select a role');
-      return;
-    }
-
-    try
-    {
-      const token = (await import('../lib/supabase')).supabase.auth.getSession();
-      const session = await token;
-
-      if (!session.data.session?.access_token)
-      {
-        throw new Error('No access token');
-      }
-
-      const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/api/teams/${teamId}/join-codes`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.data.session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          team_role: newJoinCodeRole,
-          expires_at: newJoinCodeExpires || null,
-        }),
-      });
-
-      if (!response.ok)
-      {
-        throw new Error('Failed to create join code');
-      }
-
-      // Refresh join codes
-      await fetchJoinCodes(teamId);
-
-      // Reset form
-      setShowCreateJoinCode(null);
-      setNewJoinCodeRole('');
-      setNewJoinCodeExpires('');
-
-      alert('Join code created successfully!');
-    }
-    catch (err)
-    {
-      alert('Failed to create join code');
-      console.error('Error creating join code:', err);
-    }
-  };
-
-  const getGuardianJoinCode = (teamCodes: JoinCode[]) =>
-  {
-    return teamCodes.find(code => code.team_role === 'guardian' && !code.expires_at);
-  };
-
-  const getNonGuardianJoinCodes = (teamCodes: JoinCode[]) =>
-  {
-    return teamCodes.filter(code => code.team_role !== 'guardian');
-  };
-
   const handleDeleteTeam = async (teamId: string) =>
   {
     if (
@@ -442,7 +258,12 @@ export const TeamsPage: React.FC = () =>
         (
           <div className='teams-grid'>
             {teams.map((teamMembership) => (
-              <div key={teamMembership.teams.id} className='team-card' style={{ position: 'relative' }}>
+              <div
+                key={teamMembership.teams.id}
+                className='team-card'
+                style={{ position: 'relative', cursor: 'pointer' }}
+                onClick={() => navigate(`/team/${teamMembership.teams.id}`)}
+              >
                 {/* Floating Action Icons */}
                 {(teamMembership.role === 'coach' || teamMembership.role === 'admin') && (
                   <div className='floating-actions team'>
@@ -516,228 +337,38 @@ export const TeamsPage: React.FC = () =>
                     <h3 className='team-name'>{teamMembership.teams.name}</h3>}
                 </div>
 
-                <p className='team-role'>Role: {teamMembership.role}</p>
-                <p className='team-created'>
-                  Created: {new Date(teamMembership.teams.created_at).toLocaleDateString()}
-                </p>
-
-                {/* Guardian Join Code - Always visible */}
-                {joinCodes[teamMembership.teams.id] && (() =>
-                {
-                  const guardianCode = getGuardianJoinCode(joinCodes[teamMembership.teams.id]);
-                  return guardianCode ?
-                    (
-                      <div
-                        style={{
-                          marginTop: 'var(--space-md)',
-                          padding: 'var(--space-sm)',
-                          backgroundColor: 'var(--color-bg-secondary)',
-                          borderRadius: 'var(--border-radius)',
-                          border: '1px solid var(--color-border)',
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <div>
-                            <strong>Guardian Join Code:</strong>
-                            <div
-                              style={{
-                                fontFamily: 'monospace',
-                                fontSize: '1.2em',
-                                fontWeight: 'bold',
-                                color: 'var(--color-primary)',
-                              }}
-                            >
-                              {guardianCode.code}
-                            </div>
-                            <small style={{ color: 'var(--color-text-secondary)' }}>
-                              Never expires
-                            </small>
-                          </div>
-                          <button
-                            onClick={() => copyToClipboard(guardianCode.code)}
-                            className='btn btn-secondary btn-sm'
-                            title='Copy join code'
-                          >
-                            📋
-                          </button>
-                        </div>
-                      </div>
-                    ) :
-                    null;
-                })()}
-
-                {/* Join Code Management Button */}
-                <div style={{ marginTop: 'var(--space-md)' }}>
-                  <button
-                    onClick={() =>
-                      toggleJoinCodes(teamMembership.teams.id)}
-                    className='btn btn-secondary btn-sm'
-                    disabled={loadingJoinCodes[teamMembership.teams.id]}
-                  >
-                    {loadingJoinCodes[teamMembership.teams.id] ?
-                      'Loading...' :
-                      showJoinCodes[teamMembership.teams.id] ?
-                      'Hide Join Codes' :
-                      'Show Join Codes'}
-                  </button>
-                </div>
-
-                {/* Join Codes Section */}
-                {showJoinCodes[teamMembership.teams.id] && joinCodes[teamMembership.teams.id] && (
-                  <div
-                    style={{
-                      marginTop: 'var(--space-md)',
-                      padding: 'var(--space-sm)',
-                      backgroundColor: 'var(--color-bg-secondary)',
-                      borderRadius: 'var(--border-radius)',
-                      border: '1px solid var(--color-border)',
-                    }}
-                  >
-                    <h4>Join Codes</h4>
-
-                    {/* Guardian Code */}
-                    {(() =>
-                    {
-                      const guardianCode = getGuardianJoinCode(joinCodes[teamMembership.teams.id]);
-                      return guardianCode ?
-                        (
-                          <div
-                            style={{
-                              marginBottom: 'var(--space-sm)',
-                              padding: 'var(--space-xs)',
-                              backgroundColor: 'var(--color-success-bg)',
-                              borderRadius: 'var(--border-radius-sm)',
-                              border: '1px solid var(--color-success)',
-                            }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                              <div>
-                                <strong>{guardianCode.code}</strong> - Guardian (Permanent)
-                                <br />
-                                <small>Created by: {guardianCode.user_profiles.name}</small>
-                              </div>
-                              <button
-                                onClick={() => copyToClipboard(guardianCode.code)}
-                                className='btn btn-secondary btn-sm'
-                              >
-                                📋
-                              </button>
-                            </div>
-                          </div>
-                        ) :
-                        null;
-                    })()}
-
-                    {/* Other Join Codes */}
-                    {getNonGuardianJoinCodes(joinCodes[teamMembership.teams.id]).map((code) => (
-                      <div
-                        key={code.id}
-                        style={{
-                          marginBottom: 'var(--space-sm)',
-                          padding: 'var(--space-xs)',
-                          backgroundColor: 'var(--color-bg)',
-                          borderRadius: 'var(--border-radius-sm)',
-                          border: '1px solid var(--color-border)',
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <div>
-                            <strong>{code.code}</strong> - {code.team_role || 'Any Role'}
-                            <br />
-                            <small>
-                              Created by: {code.user_profiles.name}
-                              {code.expires_at && <>| Expires: {new Date(code.expires_at).toLocaleDateString()}</>}
-                            </small>
-                          </div>
-                          <button
-                            onClick={() => copyToClipboard(code.code)}
-                            className='btn btn-secondary btn-sm'
-                          >
-                            📋
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-
-                    {/* Create New Join Code */}
-                    {(teamMembership.role === 'coach' || teamMembership.role === 'admin') && (
-                      <div style={{ marginTop: 'var(--space-md)' }}>
-                        {showCreateJoinCode === teamMembership.teams.id ?
-                          (
-                            <div
-                              style={{
-                                padding: 'var(--space-sm)',
-                                backgroundColor: 'var(--color-bg)',
-                                borderRadius: 'var(--border-radius-sm)',
-                                border: '1px solid var(--color-border)',
-                              }}
-                            >
-                              <h5>Create New Join Code</h5>
-                              <div style={{ marginBottom: 'var(--space-sm)' }}>
-                                <label>Role:</label>
-                                <select
-                                  value={newJoinCodeRole}
-                                  onChange={(e) => setNewJoinCodeRole(e.target.value)}
-                                  className='form-input'
-                                  style={{ marginTop: 'var(--space-xs)' }}
-                                >
-                                  <option value=''>Select Role</option>
-                                  <option value='player'>Player</option>
-                                  <option value='coach'>Coach</option>
-                                  <option value='admin'>Admin</option>
-                                  <option value='guardian'>Guardian</option>
-                                </select>
-                              </div>
-                              <div style={{ marginBottom: 'var(--space-sm)' }}>
-                                <label>Expiration Date (optional):</label>
-                                <input
-                                  type='datetime-local'
-                                  value={newJoinCodeExpires}
-                                  onChange={(e) =>
-                                    setNewJoinCodeExpires(e.target.value)}
-                                  className='form-input'
-                                  style={{ marginTop: 'var(--space-xs)' }}
-                                />
-                              </div>
-                              <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
-                                <button
-                                  onClick={() => handleCreateJoinCode(teamMembership.teams.id)}
-                                  className='btn btn-primary btn-sm'
-                                >
-                                  Create Code
-                                </button>
-                                <button
-                                  onClick={() => setShowCreateJoinCode(null)}
-                                  className='btn btn-secondary btn-sm'
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            </div>
-                          ) :
-                          (
-                            <button
-                              onClick={() => setShowCreateJoinCode(teamMembership.teams.id)}
-                              className='btn btn-success btn-sm'
-                            >
-                              + Create Join Code
-                            </button>
-                          )}
-                      </div>
-                    )}
+                {/* Team Metadata */}
+                <div className='team-metadata'>
+                  {teamMembership.teams.coaches.length > 0 && (
+                    <div className='metadata-row'>
+                      <span className='metadata-label'>Coaches:</span>
+                      <span className='metadata-value'>
+                        {teamMembership.teams.coaches.map(coach => coach.name).join(', ')}
+                      </span>
+                    </div>
+                  )}
+                  <div className='metadata-row'>
+                    <span className='metadata-label'>Players:</span>
+                    <span className='metadata-value'>{teamMembership.teams.player_count}</span>
                   </div>
-                )}
+                  <div className='metadata-row'>
+                    <span className='metadata-label'>Games:</span>
+                    <span className='metadata-value'>{teamMembership.teams.game_count}</span>
+                  </div>
+                  <div className='metadata-row'>
+                    <span className='metadata-label'>Reviewed:</span>
+                    <span className='metadata-value'>{teamMembership.teams.reviewed_games_count}</span>
+                  </div>
+                </div>
 
                 <div className='team-actions'>
                   <Link
                     to={`/games/${teamMembership.teams.id}`}
                     className='btn btn-primary'
+                    onClick={(e) => e.stopPropagation()}
                   >
                     View Games
                   </Link>
-                  {(teamMembership.role === 'coach' || teamMembership.role === 'admin') && (
-                    <button className='btn btn-secondary'>Manage</button>
-                  )}
                 </div>
               </div>
             ))}
