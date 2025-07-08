@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { getApiUrl } from '../../utils/api';
 import ThemeToggle from '../ThemeToggle/ThemeToggle';
 
 export const Auth: React.FC = () =>
@@ -12,7 +14,96 @@ export const Auth: React.FC = () =>
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
+  // Team code related state
+  const [teamCode, setTeamCode] = useState<string | null>(null);
+  const [teamInfo, setTeamInfo] = useState<{name: string, role: string} | null>(null);
+  const [teamJoinStatus, setTeamJoinStatus] = useState<'pending' | 'success' | 'error' | null>(null);
+  const [teamJoinError, setTeamJoinError] = useState<string>('');
+
   const { signIn, signUp } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  // Function to validate team code and get team info
+  const validateTeamCode = async (code: string) => {
+    try {
+      const apiUrl = getApiUrl();
+      const response = await fetch(`${apiUrl}/api/teams/join-codes/${code}/validate`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Invalid or expired team code');
+      }
+
+      const data = await response.json();
+      return {
+        name: data.team_name,
+        role: data.team_role || 'guardian' // Default to guardian if no role specified
+      };
+    } catch (error) {
+      console.error('Team code validation error:', error);
+      return null;
+    }
+  };
+
+  // Function to join team with code
+  const joinTeamWithCode = async (code: string) => {
+    try {
+      const apiUrl = getApiUrl();
+      const response = await fetch(`${apiUrl}/api/teams/join`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ joinCode: code }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Handle "already a member" case gracefully
+        if (data.error?.includes('already a member')) {
+          setTeamJoinStatus('success');
+          setSuccessMessage(`Welcome back! You're already a member of ${teamInfo?.name}.`);
+          return true;
+        }
+        throw new Error(data.error || 'Failed to join team');
+      }
+
+      setTeamJoinStatus('success');
+      setSuccessMessage(`Successfully joined ${data.team.name} as ${data.team.role}!`);
+      return true;
+    } catch (error) {
+      console.error('Team join error:', error);
+      setTeamJoinStatus('error');
+      setTeamJoinError(error instanceof Error ? error.message : 'Failed to join team');
+      return false;
+    }
+  };
+
+  // Check for team code in URL on component mount
+  useEffect(() => {
+    const code = searchParams.get('teamCode');
+    if (code) {
+      setTeamCode(code);
+      validateTeamCode(code).then(info => {
+        if (info) {
+          setTeamInfo(info);
+        } else {
+          setError('Invalid or expired team invitation code');
+        }
+      });
+      
+      // Clear the team code from URL
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('teamCode');
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const handleSubmit = async (e: React.FormEvent) =>
   {
@@ -20,6 +111,8 @@ export const Auth: React.FC = () =>
     setLoading(true);
     setError('');
     setSuccessMessage('');
+    setTeamJoinStatus(null);
+    setTeamJoinError('');
 
     try
     {
@@ -43,14 +136,37 @@ export const Auth: React.FC = () =>
       {
         setError(result.error);
       }
-      else if (!isLogin)
+      else
       {
-        // Successful signup - user will be automatically signed in after a brief delay
-        setSuccessMessage('Account created successfully! Check your email for verification.');
-        // Clear the form
-        setEmail('');
-        setPassword('');
-        setName('');
+        // Authentication successful
+        if (!isLogin)
+        {
+          setSuccessMessage('Account created successfully! Check your email for verification.');
+          // Clear the form
+          setEmail('');
+          setPassword('');
+          setName('');
+        }
+
+        // If we have a team code, attempt to join the team
+        if (teamCode && teamInfo)
+        {
+          const joinSuccess = await joinTeamWithCode(teamCode);
+          if (joinSuccess)
+          {
+            // Navigate to dashboard after successful team join
+            setTimeout(() => {
+              navigate('/dashboard');
+            }, 2000);
+          }
+        }
+        else if (isLogin)
+        {
+          // Normal login without team code - navigate to dashboard
+          setTimeout(() => {
+            navigate('/dashboard');
+          }, 1000);
+        }
       }
     }
     catch (err)
@@ -73,6 +189,18 @@ export const Auth: React.FC = () =>
           <h1>TACTIX</h1>
           <p>Video Coaching Platform</p>
         </div>
+
+        {teamInfo && (
+          <div className='alert alert-info' style={{ marginBottom: 'var(--space-md)' }}>
+            <h3 style={{ margin: '0 0 var(--space-sm) 0', fontSize: '1.1rem' }}>Team Invitation</h3>
+            <p style={{ margin: 0 }}>
+              You're being invited to join <strong>{teamInfo.name}</strong> as a <strong>{teamInfo.role}</strong>.
+            </p>
+            <p style={{ margin: 'var(--space-sm) 0 0 0', fontSize: '0.9rem' }}>
+              {isLogin ? 'Sign in' : 'Sign up'} to accept this invitation.
+            </p>
+          </div>
+        )}
 
         <div className='auth-tabs'>
           <button
@@ -103,6 +231,13 @@ export const Auth: React.FC = () =>
 
         {error && <div className='alert alert-error'>{error}</div>}
         {successMessage && <div className='alert alert-success'>{successMessage}</div>}
+        {teamJoinStatus === 'error' && (
+          <div className='alert alert-error'>
+            Account {isLogin ? 'signed in' : 'created'} successfully, but failed to join team: {teamJoinError}
+            <br />
+            <small>Please try signing in again with the original link.</small>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className='auth-form'>
           {!isLogin && (
@@ -152,7 +287,11 @@ export const Auth: React.FC = () =>
             className='btn btn-primary btn-full'
             disabled={loading}
           >
-            {loading ? 'Loading...' : isLogin ? 'Sign In' : 'Sign Up'}
+            {loading ? 'Loading...' : 
+             teamCode ? 
+               `${isLogin ? 'Sign In' : 'Sign Up'} & Join Team` : 
+               isLogin ? 'Sign In' : 'Sign Up'
+            }
           </button>
         </form>
 

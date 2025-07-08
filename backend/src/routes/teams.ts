@@ -1,4 +1,4 @@
-import { Response, Router } from 'express';
+import { Request, Response, Router } from 'express';
 import { AuthenticatedRequest, authenticateUser } from '../middleware/auth.js';
 import { TeamRole } from '../types/database.js';
 import { requireTeamRole } from '../utils/roleAuth.js';
@@ -47,7 +47,62 @@ async function generateUniqueJoinCode(): Promise<string>
   throw new Error(`Failed to generate unique join code after ${MAX_ATTEMPTS} attempts`);
 }
 
-// All routes require authentication
+// Validate join code (public endpoint - must be before auth middleware)
+router.get('/join-codes/:code/validate', async (req: Request, res: Response): Promise<void> =>
+{
+  try
+  {
+    const { code } = req.params;
+
+    if (!code)
+    {
+      res.status(400).json({ error: 'Join code is required' });
+      return;
+    }
+
+    // Find active join code
+    const { data: joinCodeData, error: findError } = await supabase
+      .from('team_join_codes')
+      .select(`
+        team_id,
+        team_role,
+        is_active,
+        expires_at,
+        teams!inner(id, name)
+      `)
+      .eq('code', code)
+      .eq('is_active', true)
+      .single();
+
+    if (findError || !joinCodeData)
+    {
+      res.status(404).json({ error: 'Invalid or inactive join code' });
+      return;
+    }
+
+    // Check if code is expired
+    if (joinCodeData.expires_at && new Date(joinCodeData.expires_at) < new Date())
+    {
+      res.status(400).json({ error: 'Join code has expired' });
+      return;
+    }
+
+    const teamInfo = Array.isArray(joinCodeData.teams) ? joinCodeData.teams[0] : joinCodeData.teams;
+
+    res.json({
+      team_name: teamInfo.name,
+      team_role: joinCodeData.team_role,
+      team_id: joinCodeData.team_id,
+    });
+  }
+  catch (error)
+  {
+    console.error('Validate join code error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// All routes below require authentication
 router.use(authenticateUser);
 
 // Create a new team
