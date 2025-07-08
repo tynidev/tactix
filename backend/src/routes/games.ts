@@ -10,11 +10,14 @@ const router = Router();
 router.use(authenticateUser);
 
 // Get all games from teams the user has access to
-router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
+router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> =>
+{
+  try
+  {
     const userId = req.user?.id;
 
-    if (!userId) {
+    if (!userId)
+    {
       res.status(401).json({ error: 'User not authenticated' });
       return;
     }
@@ -25,12 +28,14 @@ router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> 
       .select('team_id, role')
       .eq('user_id', userId);
 
-    if (membershipError) {
+    if (membershipError)
+    {
       res.status(400).json({ error: membershipError.message });
       return;
     }
 
-    if (!memberships || memberships.length === 0) {
+    if (!memberships || memberships.length === 0)
+    {
       res.json([]);
       return;
     }
@@ -58,16 +63,18 @@ router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> 
       .in('team_id', teamIds)
       .order('date', { ascending: false });
 
-    if (gamesError) {
+    if (gamesError)
+    {
       res.status(400).json({ error: gamesError.message });
       return;
     }
 
     // Add user role for each game and coaching points count
     const gamesWithRolesAndCounts = await Promise.all(
-      (games || []).map(async (game) => {
+      (games || []).map(async (game) =>
+      {
         const membership = memberships.find(m => m.team_id === game.team_id);
-        
+
         // Get coaching points count for this game
         const { count: coachingPointsCount } = await supabase
           .from('coaching_points')
@@ -79,11 +86,13 @@ router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> 
           user_role: membership?.role || 'player',
           coaching_points_count: coachingPointsCount || 0,
         };
-      })
+      }),
     );
 
     res.json(gamesWithRolesAndCounts);
-  } catch (error) {
+  }
+  catch (error)
+  {
     console.error('Get all games error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
