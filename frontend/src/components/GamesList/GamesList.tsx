@@ -424,8 +424,8 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
         (
           <div className='games-grid'>
             {filteredGames.map((game) => (
-              <div 
-                key={game.id} 
+              <div
+                key={game.id}
                 className={`game-card ${game.video_id ? 'clickable' : 'disabled'}`}
                 onClick={() => game.video_id && onAnalyzeGame(game)}
                 title={game.video_id ? 'Click to analyze game' : 'Video required for analysis'}
@@ -435,7 +435,8 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
                   <div className='floating-actions'>
                     <button
                       className='floating-action-btn edit-btn'
-                      onClick={(e) => {
+                      onClick={(e) =>
+                      {
                         e.stopPropagation();
                         onEditGame(game);
                       }}
@@ -446,7 +447,8 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
                     </button>
                     <button
                       className='floating-action-btn delete-btn'
-                      onClick={(e) => {
+                      onClick={(e) =>
+                      {
                         e.stopPropagation();
                         handleDeleteGame(game.id);
                       }}
@@ -464,7 +466,8 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
                       src={getYouTubeThumbnailUrl(game.video_id)}
                       alt={`Thumbnail for ${game.opponent} game`}
                       className='thumbnail-image'
-                      onError={(e) => {
+                      onError={(e) =>
+                      {
                         const target = e.target as HTMLImageElement;
                         target.src = getYouTubeThumbnailFallback(game.video_id!);
                       }}
