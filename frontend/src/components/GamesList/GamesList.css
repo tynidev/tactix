@@ -62,11 +62,19 @@
   box-shadow: var(--shadow-md);
 }
 
+.game-card .floating-actions{
+  top: var(--space-sm);
+  right: var(--space-sm);
+}
+
+.team-card .floating-actions{
+  top: var(--space-lg);
+  right: var(--space-lg);
+}
+
 /* Floating Action Buttons */
 .floating-actions {
   position: absolute;
-  top: var(--space-sm);
-  right: var(--space-sm);
   display: flex;
   gap: var(--space-xs);
   z-index: 10;
