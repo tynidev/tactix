@@ -1,0 +1,1 @@
+export { TeamsGrid } from './TeamsGrid';

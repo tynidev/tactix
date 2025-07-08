@@ -93,6 +93,10 @@
   font-size: 0.875rem;
 }
 
+.team .floating-action-btn:hover{
+  color: white;
+}
+
 .floating-action-btn:hover {
   background: rgba(0, 0, 0, 0.8);
   transform: scale(1.1);

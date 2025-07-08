@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { FaPencilAlt, FaTrash } from 'react-icons/fa';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getApiUrl } from '../utils/api';
+import { TeamsGrid } from '../components/TeamsGrid';
 
 interface Team
 {
@@ -256,122 +256,18 @@ export const TeamsPage: React.FC = () =>
           </div>
         ) :
         (
-          <div className='teams-grid'>
-            {teams.map((teamMembership) => (
-              <div
-                key={teamMembership.teams.id}
-                className='team-card'
-                style={{ position: 'relative', cursor: 'pointer' }}
-                onClick={() => navigate(`/team/${teamMembership.teams.id}`)}
-              >
-                {/* Floating Action Icons */}
-                {(teamMembership.role === 'coach' || teamMembership.role === 'admin') && (
-                  <div className='floating-actions team'>
-                    <button
-                      className='floating-action-btn edit-btn'
-                      onClick={(e) =>
-                      {
-                        e.stopPropagation();
-                        handleEditTeam(teamMembership.teams.id, teamMembership.teams.name);
-                      }}
-                      title='Edit team'
-                      aria-label='Edit team'
-                    >
-                      <FaPencilAlt />
-                    </button>
-                    <button
-                      className='floating-action-btn delete-btn'
-                      onClick={(e) =>
-                      {
-                        e.stopPropagation();
-                        handleDeleteTeam(teamMembership.teams.id);
-                      }}
-                      title='Delete team'
-                      aria-label='Delete team'
-                    >
-                      <FaTrash />
-                    </button>
-                  </div>
-                )}
-
-                <div className='team-header'>
-                  {editingTeamId === teamMembership.teams.id ?
-                    (
-                      <div style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'center' }}>
-                        <input
-                          type='text'
-                          value={editingTeamName}
-                          onChange={(e) => setEditingTeamName(e.target.value)}
-                          className='form-input'
-                          onKeyDown={(e) =>
-                          {
-                            if (e.key === 'Enter')
-                            {
-                              handleSaveTeamName(teamMembership.teams.id);
-                            }
-                            else if (e.key === 'Escape')
-                            {
-                              handleCancelEdit();
-                            }
-                          }}
-                          autoFocus
-                          style={{ flex: 1 }}
-                        />
-                        <button
-                          onClick={() => handleSaveTeamName(teamMembership.teams.id)}
-                          className='btn btn-success btn-sm'
-                          title='Save'
-                        >
-                          ✓
-                        </button>
-                        <button
-                          onClick={handleCancelEdit}
-                          className='btn btn-error btn-sm'
-                          title='Cancel'
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ) :
-                    <h3 className='team-name'>{teamMembership.teams.name}</h3>}
-                </div>
-
-                {/* Team Metadata */}
-                <div className='team-metadata'>
-                  {teamMembership.teams.coaches.length > 0 && (
-                    <div className='metadata-row'>
-                      <span className='metadata-label'>Coaches:</span>
-                      <span className='metadata-value'>
-                        {teamMembership.teams.coaches.map(coach => coach.name).join(', ')}
-                      </span>
-                    </div>
-                  )}
-                  <div className='metadata-row'>
-                    <span className='metadata-label'>Players:</span>
-                    <span className='metadata-value'>{teamMembership.teams.player_count}</span>
-                  </div>
-                  <div className='metadata-row'>
-                    <span className='metadata-label'>Games:</span>
-                    <span className='metadata-value'>{teamMembership.teams.game_count}</span>
-                  </div>
-                  <div className='metadata-row'>
-                    <span className='metadata-label'>Reviewed:</span>
-                    <span className='metadata-value'>{teamMembership.teams.reviewed_games_count}</span>
-                  </div>
-                </div>
-
-                <div className='team-actions'>
-                  <Link
-                    to={`/games/${teamMembership.teams.id}`}
-                    className='btn btn-primary'
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    View Games
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
+          <TeamsGrid
+            teams={teams}
+            variant="full"
+            onTeamClick={(teamId) => navigate(`/team/${teamId}`)}
+            onEditTeam={handleEditTeam}
+            onDeleteTeam={handleDeleteTeam}
+            onSaveTeamName={(teamId) => handleSaveTeamName(teamId)}
+            onCancelEdit={handleCancelEdit}
+            editingTeamId={editingTeamId}
+            editingTeamName={editingTeamName}
+            onEditingTeamNameChange={setEditingTeamName}
+          />
         )}
     </main>
   );

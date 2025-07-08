@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getApiUrl } from '../utils/api';
+import { TeamsGrid } from '../components/TeamsGrid';
 
 interface Team
 {
@@ -230,84 +231,26 @@ export const DashboardPage: React.FC = () =>
             </div>
           ) :
           (
-            <div className='teams-grid'>
-              {teams.map((teamMembership) => (
-                <div key={teamMembership.teams.id} className='team-card'>
-                  <div className='team-header'>
-                    {editingTeamId === teamMembership.teams.id ?
-                      (
-                        <div style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'center' }}>
-                          <input
-                            type='text'
-                            value={editingTeamName}
-                            onChange={(e) => setEditingTeamName(e.target.value)}
-                            className='form-input'
-                            onKeyDown={(e) =>
-                            {
-                              if (e.key === 'Enter')
-                              {
-                                handleSaveTeamName(teamMembership.teams.id);
-                              }
-                              else if (e.key === 'Escape')
-                              {
-                                handleCancelEdit();
-                              }
-                            }}
-                            autoFocus
-                            style={{ flex: 1 }}
-                          />
-                          <button
-                            onClick={() => handleSaveTeamName(teamMembership.teams.id)}
-                            className='btn btn-success btn-sm'
-                            title='Save'
-                          >
-                            ✓
-                          </button>
-                          <button
-                            onClick={handleCancelEdit}
-                            className='btn btn-error btn-sm'
-                            title='Cancel'
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ) :
-                      (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <h3 className='team-name'>{teamMembership.teams.name}</h3>
-                          {(teamMembership.role === 'coach' || teamMembership.role === 'admin') && (
-                            <button
-                              onClick={() => handleEditTeam(teamMembership.teams.id, teamMembership.teams.name)}
-                              className='btn btn-secondary btn-sm'
-                              title='Edit team name'
-                              style={{ padding: '4px 8px' }}
-                            >
-                              ✏️
-                            </button>
-                          )}
-                        </div>
-                      )}
-                  </div>
-
-                  <p className='team-role'>Role: {teamMembership.role}</p>
-                  <p className='team-created'>
-                    Created: {new Date(teamMembership.teams.created_at).toLocaleDateString()}
-                  </p>
-
-                  <div className='team-actions'>
-                    <Link
-                      to={`/games/${teamMembership.teams.id}`}
-                      className='btn btn-primary'
-                    >
-                      View Games
-                    </Link>
-                    {(teamMembership.role === 'coach' || teamMembership.role === 'admin') && (
-                      <button className='btn btn-secondary'>Manage</button>
-                    )}
-                  </div>
+            <TeamsGrid
+              teams={teams}
+              variant="full"
+              onEditTeam={handleEditTeam}
+              onSaveTeamName={(teamId) => handleSaveTeamName(teamId)}
+              onCancelEdit={handleCancelEdit}
+              editingTeamId={editingTeamId}
+              editingTeamName={editingTeamName}
+              onEditingTeamNameChange={setEditingTeamName}
+              customActions={(team) => (
+                <div className='team-actions'>
+                  <Link
+                    to={`/games/${team.teams.id}`}
+                    className='btn btn-primary'
+                  >
+                    View Games
+                  </Link>
                 </div>
-              ))}
-            </div>
+              )}
+            />
           )}
       </div>
     </main>
