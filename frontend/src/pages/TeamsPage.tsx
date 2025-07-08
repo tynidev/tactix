@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { TeamsGrid } from '../components/TeamsGrid';
 import { useAuth } from '../contexts/AuthContext';
 import { getApiUrl } from '../utils/api';
-import { TeamsGrid } from '../components/TeamsGrid';
 
 interface Team
 {
@@ -258,7 +258,7 @@ export const TeamsPage: React.FC = () =>
         (
           <TeamsGrid
             teams={teams}
-            variant="full"
+            variant='full'
             onTeamClick={(teamId) => navigate(`/team/${teamId}`)}
             onEditTeam={handleEditTeam}
             onDeleteTeam={handleDeleteTeam}

@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { TeamsGrid } from '../components/TeamsGrid';
 import { useAuth } from '../contexts/AuthContext';
 import { getApiUrl } from '../utils/api';
-import { TeamsGrid } from '../components/TeamsGrid';
 
 interface Team
 {
@@ -16,6 +16,7 @@ interface Team
 
 export const DashboardPage: React.FC = () =>
 {
+  const navigate = useNavigate();
   const {} = useAuth();
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
@@ -233,23 +234,14 @@ export const DashboardPage: React.FC = () =>
           (
             <TeamsGrid
               teams={teams}
-              variant="full"
+              variant='full'
+              onTeamClick={(teamId) => navigate(`/team/${teamId}`)}
               onEditTeam={handleEditTeam}
               onSaveTeamName={(teamId) => handleSaveTeamName(teamId)}
               onCancelEdit={handleCancelEdit}
               editingTeamId={editingTeamId}
               editingTeamName={editingTeamName}
               onEditingTeamNameChange={setEditingTeamName}
-              customActions={(team) => (
-                <div className='team-actions'>
-                  <Link
-                    to={`/games/${team.teams.id}`}
-                    className='btn btn-primary'
-                  >
-                    View Games
-                  </Link>
-                </div>
-              )}
             />
           )}
       </div>

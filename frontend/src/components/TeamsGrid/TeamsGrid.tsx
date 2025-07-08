@@ -2,7 +2,8 @@ import React from 'react';
 import { FaPencilAlt, FaTrash } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 
-interface Team {
+interface Team
+{
   role: string;
   teams: {
     id: string;
@@ -15,7 +16,8 @@ interface Team {
   };
 }
 
-interface TeamsGridProps {
+interface TeamsGridProps
+{
   teams: Team[];
   variant?: 'full' | 'compact';
   onTeamClick?: (teamId: string) => void;
@@ -45,23 +47,32 @@ export const TeamsGrid: React.FC<TeamsGridProps> = ({
   showMetadata = variant === 'full',
   showFloatingActions = variant === 'full',
   customActions,
-}) => {
-  const handleCardClick = (teamId: string) => {
-    if (onTeamClick) {
+}) =>
+{
+  const handleCardClick = (teamId: string) =>
+  {
+    if (onTeamClick)
+    {
       onTeamClick(teamId);
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent, teamId: string) => {
-    if (e.key === 'Enter' && onSaveTeamName) {
+  const handleKeyDown = (e: React.KeyboardEvent, teamId: string) =>
+  {
+    if (e.key === 'Enter' && onSaveTeamName)
+    {
       onSaveTeamName(teamId, editingTeamName);
-    } else if (e.key === 'Escape' && onCancelEdit) {
+    }
+    else if (e.key === 'Escape' && onCancelEdit)
+    {
       onCancelEdit();
     }
   };
 
-  const renderTeamActions = (teamMembership: Team) => {
-    if (customActions) {
+  const renderTeamActions = (teamMembership: Team) =>
+  {
+    if (customActions)
+    {
       return customActions(teamMembership);
     }
 
@@ -85,9 +96,9 @@ export const TeamsGrid: React.FC<TeamsGridProps> = ({
         <div
           key={teamMembership.teams.id}
           className='team-card'
-          style={{ 
-            position: 'relative', 
-            cursor: onTeamClick ? 'pointer' : 'default'
+          style={{
+            position: 'relative',
+            cursor: onTeamClick ? 'pointer' : 'default',
           }}
           onClick={() => handleCardClick(teamMembership.teams.id)}
         >
@@ -96,9 +107,11 @@ export const TeamsGrid: React.FC<TeamsGridProps> = ({
             <div className='floating-actions team'>
               <button
                 className='floating-action-btn edit-btn'
-                onClick={(e) => {
+                onClick={(e) =>
+                {
                   e.stopPropagation();
-                  if (onEditTeam) {
+                  if (onEditTeam)
+                  {
                     onEditTeam(teamMembership.teams.id, teamMembership.teams.name);
                   }
                 }}
@@ -109,9 +122,11 @@ export const TeamsGrid: React.FC<TeamsGridProps> = ({
               </button>
               <button
                 className='floating-action-btn delete-btn'
-                onClick={(e) => {
+                onClick={(e) =>
+                {
                   e.stopPropagation();
-                  if (onDeleteTeam) {
+                  if (onDeleteTeam)
+                  {
                     onDeleteTeam(teamMembership.teams.id);
                   }
                 }}
@@ -124,56 +139,60 @@ export const TeamsGrid: React.FC<TeamsGridProps> = ({
           )}
 
           <div className='team-header'>
-            {editingTeamId === teamMembership.teams.id ? (
-              <div style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'center' }}>
-                <input
-                  type='text'
-                  value={editingTeamName}
-                  onChange={(e) => onEditingTeamNameChange && onEditingTeamNameChange(e.target.value)}
-                  className='form-input'
-                  onKeyDown={(e) => handleKeyDown(e, teamMembership.teams.id)}
-                  autoFocus
-                  style={{ flex: 1 }}
-                />
-                <button
-                  onClick={() => onSaveTeamName && onSaveTeamName(teamMembership.teams.id, editingTeamName)}
-                  className='btn btn-success btn-sm'
-                  title='Save'
-                >
-                  ✓
-                </button>
-                <button
-                  onClick={onCancelEdit}
-                  className='btn btn-error btn-sm'
-                  title='Cancel'
-                >
-                  ✕
-                </button>
-              </div>
-            ) : variant === 'compact' ? (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <h3 className='team-name'>{teamMembership.teams.name}</h3>
-                {(teamMembership.role === 'coach' || teamMembership.role === 'admin') && (
+            {editingTeamId === teamMembership.teams.id ?
+              (
+                <div style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'center' }}>
+                  <input
+                    type='text'
+                    value={editingTeamName}
+                    onChange={(e) => onEditingTeamNameChange && onEditingTeamNameChange(e.target.value)}
+                    className='form-input'
+                    onKeyDown={(e) => handleKeyDown(e, teamMembership.teams.id)}
+                    autoFocus
+                    style={{ flex: 1 }}
+                  />
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (onEditTeam) {
-                        onEditTeam(teamMembership.teams.id, teamMembership.teams.name);
-                      }
-                    }}
-                    className='btn btn-secondary btn-sm'
-                    title='Edit team name'
-                    style={{ padding: '4px 8px' }}
+                    onClick={() => onSaveTeamName && onSaveTeamName(teamMembership.teams.id, editingTeamName)}
+                    className='btn btn-success btn-sm'
+                    title='Save'
                   >
-                    ✏️
+                    ✓
                   </button>
-                )}
-              </div>
-            ) : (
-              <h3 className='team-name'>{teamMembership.teams.name}</h3>
-            )}
+                  <button
+                    onClick={onCancelEdit}
+                    className='btn btn-error btn-sm'
+                    title='Cancel'
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) :
+              variant === 'compact' ?
+              (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <h3 className='team-name'>{teamMembership.teams.name}</h3>
+                  {(teamMembership.role === 'coach' || teamMembership.role === 'admin') && (
+                    <button
+                      onClick={(e) =>
+                      {
+                        e.stopPropagation();
+                        if (onEditTeam)
+                        {
+                          onEditTeam(teamMembership.teams.id, teamMembership.teams.name);
+                        }
+                      }}
+                      className='btn btn-secondary btn-sm'
+                      title='Edit team name'
+                      style={{ padding: '4px 8px' }}
+                    >
+                      ✏️
+                    </button>
+                  )}
+                </div>
+              ) :
+              <h3 className='team-name'>{teamMembership.teams.name}</h3>}
             <p className='team-role'>Role: {teamMembership.role}</p>
-            
+
             {variant === 'compact' && (
               <p className='team-created'>
                 Created: {new Date(teamMembership.teams.created_at).toLocaleDateString()}
