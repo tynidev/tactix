@@ -277,8 +277,17 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
       }
       
       // Capture initial state for recording_start event
+      let playbackSpeed = 1.0;
+      try {
+        if (player && typeof player.getPlaybackRate === 'function') {
+          playbackSpeed = player.getPlaybackRate();
+        }
+      } catch (error) {
+        console.warn('Failed to get playback rate, using default:', error);
+      }
+
       const initialState: RecordingStartEventData = {
-        playbackSpeed: player?.getPlaybackRate() ?? 1.0,
+        playbackSpeed: playbackSpeed,
         videoTimestamp: recordingStartTime * 1000, // Convert to milliseconds
         existingDrawings: getDrawingData(), // Current canvas drawings
       };
@@ -774,7 +783,14 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
         isPlaying={isPlaying}
         currentTime={playerCurrentTime}
         duration={duration}
-        currentPlaybackRate={player?.getPlaybackRate() ?? 1}
+        currentPlaybackRate={(() => {
+          try {
+            return (player && typeof player.getPlaybackRate === 'function') ? player.getPlaybackRate() : 1;
+          } catch (error) {
+            console.warn('Failed to get playback rate for flyout, using default:', error);
+            return 1;
+          }
+        })()}
         onTogglePlayPause={togglePlayPause}
         onSeek={seekVideo}
         onSeekTo={seekToTime}

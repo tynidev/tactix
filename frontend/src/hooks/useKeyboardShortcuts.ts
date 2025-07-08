@@ -86,18 +86,19 @@ export const useKeyboardShortcuts = ({
         // Speed up
         if (player)
         {
-          const currentRate = player.getPlaybackRate();
-          if (currentRate < 2)
+          let rate = CONFIG.video.playbackRates.fast;
+          try
           {
-            if (currentRate < 1)
+            if (typeof player.getPlaybackRate === 'function' && player.getPlaybackRate() < 1)
             {
-              setPlaybackRate(CONFIG.video.playbackRates.normal);
-            }
-            else
-            {
-              setPlaybackRate(CONFIG.video.playbackRates.fast);
+              rate = CONFIG.video.playbackRates.normal;
             }
           }
+          catch (error)
+          {
+            console.warn('Failed to get playback rate for speed up, using fallback:', error);
+          }
+          setPlaybackRate(rate);
         }
         break;
       case 's':
@@ -105,18 +106,19 @@ export const useKeyboardShortcuts = ({
         // Speed down
         if (player)
         {
-          const currentRate = player.getPlaybackRate();
-          if (currentRate > 0.5)
+          let rate = CONFIG.video.playbackRates.slow;
+          try
           {
-            if (currentRate > 1)
+            if (typeof player.getPlaybackRate === 'function' && player.getPlaybackRate() > 1)
             {
-              setPlaybackRate(CONFIG.video.playbackRates.normal);
-            }
-            else
-            {
-              setPlaybackRate(CONFIG.video.playbackRates.slow);
+              rate = CONFIG.video.playbackRates.normal;
             }
           }
+          catch (error)
+          {
+            console.warn('Failed to get playback rate for speed down, using fallback:', error);
+          }
+          setPlaybackRate(rate);
         }
         break;
     }
