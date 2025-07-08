@@ -157,6 +157,15 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
     });
   }, []);
 
+  // Store duration in a ref so it can be accessed in the animation loop without dependencies
+  const durationRef = useRef<number>(0);
+  const lastUpdateTimeRef = useRef<number>(0);
+  
+  // Update duration ref when duration state changes
+  useEffect(() => {
+    durationRef.current = duration;
+  }, [duration]);
+
   /**
    * Animation frame loop for checking events and updating progress
    */
@@ -174,13 +183,16 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
     // Use state duration if audio duration is invalid (Infinity, NaN, or 0)
     if (!isFinite(dur) || dur === 0)
     {
-      dur = duration;
+      dur = durationRef.current;
     }
 
-    // Removed verbose debug logging now that feature is working
-
-    setCurrentTime(time);
-    setProgress(dur > 0 ? (time / dur) * 100 : 0);
+    // Throttle UI updates to ~10Hz instead of 60Hz to improve React rendering performance
+    const now = Date.now();
+    if (now - lastUpdateTimeRef.current >= 100) { // Update every 100ms
+      setCurrentTime(time);
+      setProgress(dur > 0 ? (time / dur) * 100 : 0);
+      lastUpdateTimeRef.current = now;
+    }
 
     // Process events at current time - use audio state instead of isPlaying state
     if (!audio.paused && (!audio.ended || !isFinite(audio.duration)))
@@ -193,7 +205,7 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
     {
       animationFrameRef.current = requestAnimationFrame(animationLoop);
     }
-  }, [isPlaying, processEvents, duration]);
+  }, [processEvents]);
 
   /**
    * Stops playback and cleans up
@@ -340,14 +352,6 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
       setIsPlaying(false);
     });
 
-    audio.addEventListener('timeupdate', () =>
-    {
-      setCurrentTime(audio.currentTime);
-      if (audio.duration > 0)
-      {
-        setProgress((audio.currentTime / audio.duration) * 100);
-      }
-    });
 
     // Start playing
     audio.play().catch(err =>
