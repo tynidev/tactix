@@ -309,7 +309,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
     setSelectedCoachingPoint(point);
   }, [playback]);
 
-  // Playback event handlers for synchronized events
+  // Playback event handlers for coaching_point_events during coaching point playback
   const playbackEventHandlers = useCallback(() => ({
     onPlayEvent: () => {
       if (player && player.getPlayerState() !== 1) { // Not playing
@@ -335,8 +335,6 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
       }
     },
     onRecordingStartEvent: (initialState: RecordingStartEventData) => {
-      console.log('🎬 Applying initial recording state:', initialState);
-      
       // Set playback speed
       if (player && initialState.playbackSpeed) {
         player.setPlaybackRate(initialState.playbackSpeed);

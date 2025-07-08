@@ -318,6 +318,7 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
       setIsPlaying(false);
       setProgress(100);
       setActiveEventIndex(null);
+      executedEventsRef.current.clear();
       if (animationFrameRef.current)
       {
         cancelAnimationFrame(animationFrameRef.current);
