@@ -307,23 +307,22 @@ export const GamesList: React.FC<GamesListProps> = ({
             </select>
           </div>
 
-          <div className="filter-group">
-            <label>Date Range</label>
-            <DatePicker
-              selectsRange
-              startDate={startDate}
-              endDate={endDate}
-              onChange={handleDateChange}
-              placeholderText="Select date range"
-              className="filter-input"
-              isClearable
-              dateFormat="MM/dd/yyyy"
-            />
-          </div>
-
-          <div className="filter-actions">
+          <div className="date-range-container">
+            <div className="date-picker-wrapper">
+              <label>Date Range</label>
+              <DatePicker
+                selectsRange
+                startDate={startDate}
+                endDate={endDate}
+                onChange={handleDateChange}
+                placeholderText="Select date range"
+                className="filter-input"
+                isClearable
+                dateFormat="MM/dd/yyyy"
+              />
+            </div>
             {hasActiveFilters && (
-              <button onClick={clearFilters} className="btn btn-secondary">
+              <button onClick={clearFilters} className="btn btn-secondary clear-all-btn">
                 Clear All
               </button>
             )}

@@ -306,6 +306,35 @@
   position: relative;
 }
 
+.date-range-container {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-md);
+  flex: 1; /* Same flex as other filter groups */
+  min-width: 300px; /* Ensure enough space for both elements */
+}
+
+.date-picker-wrapper {
+  flex: 1;
+  min-width: 200px;
+}
+
+.date-picker-wrapper label {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.clear-all-btn {
+  flex-shrink: 0; /* Prevent the button from shrinking */
+  margin-bottom: 0; /* Align with the date picker input */
+  white-space: nowrap; /* Prevent text wrapping */
+}
+
 /* Date Range Picker - Floating */
 .date-range-picker {
   position: absolute;
