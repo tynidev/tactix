@@ -267,58 +267,71 @@ export const TeamDetailPage: React.FC = () =>
     </div>
   );
 
-  const renderJoinCodes = (role: string) =>
+  const renderAllJoinCodes = () =>
   {
-    if (!isJoinCodeVisible(role)) return null;
-
-    const codes = getJoinCodesByRole(role);
-    if (codes.length === 0) return null;
+    const roles = ['guardian', 'player', 'coach', 'admin'];
+    const visibleRoles = roles.filter(role => isJoinCodeVisible(role) && getJoinCodesByRole(role).length > 0);
+    
+    if (visibleRoles.length === 0) return null;
 
     return (
-      <div style={{ marginTop: 'var(--space-md)' }}>
-        <h4 style={{ textTransform: 'capitalize', marginBottom: 'var(--space-sm)' }}>
-          {role} Join Codes
-        </h4>
-        {codes.map(code => (
-          <div
-            key={code.id}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: 'var(--space-sm)',
-              backgroundColor: 'var(--color-bg-secondary)',
-              borderRadius: 'var(--radius-md)',
-              marginBottom: 'var(--space-sm)',
-              border: '1px solid var(--border-color)',
-            }}
-          >
-            <div>
-              <div
-                style={{
-                  fontFamily: 'monospace',
-                  fontSize: '1.2em',
-                  fontWeight: 'bold',
-                  color: 'var(--color-accent-primary)',
-                }}
-              >
-                {code.code}
+      <div style={{ marginBottom: 'var(--space-2xl)' }}>
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+          gap: 'var(--space-lg)' 
+        }}>
+          {visibleRoles.map(role => {
+            const codes = getJoinCodesByRole(role);
+            return (
+              <div key={role}>
+                <h4 style={{ textTransform: 'capitalize', marginBottom: 'var(--space-sm)', fontSize: '1rem' }}>
+                  {role} Join Codes
+                </h4>
+                {codes.map(code => (
+                  <div
+                    key={code.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: 'var(--space-sm)',
+                      backgroundColor: 'var(--color-bg-secondary)',
+                      borderRadius: 'var(--radius-md)',
+                      marginBottom: 'var(--space-sm)',
+                      border: '1px solid var(--border-color)',
+                    }}
+                  >
+                    <div>
+                      <div
+                        style={{
+                          fontFamily: 'monospace',
+                          fontSize: '1.2em',
+                          fontWeight: 'bold',
+                          color: 'var(--color-accent-primary)',
+                        }}
+                      >
+                        {code.code}
+                      </div>
+                      <small style={{ color: 'var(--color-text-secondary)' }}>
+                        {code.expires_at ?
+                          `Expires: ${new Date(code.expires_at).toLocaleDateString()}` :
+                          'Never expires'}
+                      </small>
+                    </div>
+                    <button
+                      onClick={() => copyToClipboard(code.code)}
+                      className='btn btn-secondary btn-sm'
+                      title='Copy join code'
+                    >
+                      <FaCopy />
+                    </button>
+                  </div>
+                ))}
               </div>
-              <small style={{ color: 'var(--color-text-secondary)' }}>
-                {code.expires_at ?
-                  `Expires: ${new Date(code.expires_at).toLocaleDateString()}` :
-                  'Never expires'}
-              </small>
-            </div>
-            <button
-              onClick={() => copyToClipboard(code.code)}
-              className='btn btn-secondary btn-sm'
-              title='Copy join code'
-            >
-              <FaCopy />
-            </button>
-          </div>
-        ))}
+            );
+          })}
+        </div>
       </div>
     );
   };
@@ -375,8 +388,6 @@ export const TeamDetailPage: React.FC = () =>
             </div>
           </div>
         </div>
-
-        {renderJoinCodes(role)}
 
         <div className='members-list'>
           {sortedMembers.length === 0 ?
@@ -572,6 +583,9 @@ export const TeamDetailPage: React.FC = () =>
           <div className='stat-label'>Games</div>
         </div>
       </div>
+
+      {/* Join Codes Section */}
+      {renderAllJoinCodes()}
 
       {/* Team Members Sections */}
       <div className='team-members'>
