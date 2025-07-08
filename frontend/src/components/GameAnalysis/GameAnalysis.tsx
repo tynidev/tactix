@@ -1,19 +1,20 @@
-import React, { useCallback, useEffect, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useAudioRecording } from '../../hooks/useAudioRecording';
+import { useCoachingPointPlayback } from '../../hooks/useCoachingPointPlayback';
 import { useDrawingCanvas } from '../../hooks/useDrawingCanvas';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
-import { useYouTubePlayer } from '../../hooks/useYouTubePlayer';
-import { useAudioRecording } from '../../hooks/useAudioRecording';
 import { useRecordingSession } from '../../hooks/useRecordingSession';
-import { useCoachingPointPlayback } from '../../hooks/useCoachingPointPlayback';
+import { useYouTubePlayer } from '../../hooks/useYouTubePlayer';
+import type { Drawing, RecordingStartEventData } from '../../types/drawing';
 import { CoachingPointModal } from '../CoachingPointModal/CoachingPointModal';
 import { CoachingPointsFlyout } from '../CoachingPointsFlyout/CoachingPointsFlyout';
 import DrawingCanvas from '../DrawingCanvas/DrawingCanvas';
 import DrawingToolbar from '../DrawingToolbar/DrawingToolbar';
 import YouTubePlayer from '../YouTubePlayer/YouTubePlayer';
-import type { Drawing, RecordingStartEventData } from '../../types/drawing';
 import './GameAnalysis.css';
 
-interface Game {
+interface Game
+{
   id: string;
   opponent: string;
   date: string;
@@ -31,7 +32,8 @@ interface Game {
   };
 }
 
-interface CoachingPointEvent {
+interface CoachingPointEvent
+{
   id: string;
   event_type: 'play' | 'pause' | 'seek' | 'draw' | 'change_speed';
   timestamp: number;
@@ -39,7 +41,8 @@ interface CoachingPointEvent {
   created_at: string;
 }
 
-interface CoachingPoint {
+interface CoachingPoint
+{
   id: string;
   game_id: string;
   author_id: string;
@@ -72,22 +75,26 @@ interface CoachingPoint {
   coaching_point_events?: CoachingPointEvent[];
 }
 
-interface GameAnalysisProps {
+interface GameAnalysisProps
+{
   game: Game;
   onBack: () => void;
 }
 
-export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
+export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) =>
+{
   const [isRecording, setIsRecording] = useState(false);
   const [showCoachingPointModal, setShowCoachingPointModal] = useState(false);
   const [coachingPointsRefresh, setCoachingPointsRefresh] = useState(0);
   const [selectedCoachingPoint, setSelectedCoachingPoint] = useState<CoachingPoint | null>(null);
   const [isFlyoutExpanded, setIsFlyoutExpanded] = useState(false);
-  const [recordingData, setRecordingData] = useState<{
-    audioBlob: Blob | null;
-    recordingEvents: any[];
-    recordingDuration: number;
-  } | null>(null);
+  const [recordingData, setRecordingData] = useState<
+    {
+      audioBlob: Blob | null;
+      recordingEvents: any[];
+      recordingDuration: number;
+    } | null
+  >(null);
   const [recordingStartTimestamp, setRecordingStartTimestamp] = useState<number | null>(null);
 
   // Add this ref to track previous drawings
@@ -99,21 +106,23 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
   // Audio recording functionality
   const audioRecording = useAudioRecording();
 
-  // Recording session functionality  
+  // Recording session functionality
   const recordingSession = useRecordingSession();
 
   // Coaching point playback functionality
   const playback = useCoachingPointPlayback();
 
   // Set body class for fullscreen and force dark theme
-  useEffect(() => {
+  useEffect(() =>
+  {
     document.body.className = 'hud-mode';
-    
+
     // Store the current theme and force dark mode
     const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
     document.documentElement.setAttribute('data-theme', 'dark');
-    
-    return () => {
+
+    return () =>
+    {
       document.body.className = '';
       // Restore the original theme
       document.documentElement.setAttribute('data-theme', currentTheme);
@@ -152,27 +161,31 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
   } = useDrawingCanvas();
 
   // Dismiss coaching point and return to normal video mode
-  const dismissCoachingPoint = useCallback(() => {
+  const dismissCoachingPoint = useCallback(() =>
+  {
     if (!selectedCoachingPoint) return;
 
     // Stop any coaching point playback
-    if (playback.isPlaying) {
+    if (playback.isPlaying)
+    {
       playback.stopPlayback();
     }
-    
+
     // Clear canvas
     clearCanvas();
-    
+
     // Hide coaching point sidebar
     setSelectedCoachingPoint(null);
   }, [selectedCoachingPoint, playback, clearCanvas]);
 
   // Wrapped YouTube player controls to capture events during recording
-  const togglePlayPause = useCallback(() => {
+  const togglePlayPause = useCallback(() =>
+  {
     // Dismiss coaching point if one is active
     dismissCoachingPoint();
-    
-    if (isRecording && player) {
+
+    if (isRecording && player)
+    {
       const currentVideoTime = player.getCurrentTime();
       const action = isPlaying ? 'pause' : 'play';
       recordingSession.recordPlayPauseEvent(action, currentVideoTime);
@@ -180,11 +193,13 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
     originalTogglePlayPause();
   }, [isRecording, player, isPlaying, recordingSession, originalTogglePlayPause, dismissCoachingPoint]);
 
-  const seekVideo = useCallback((seconds: number) => {
+  const seekVideo = useCallback((seconds: number) =>
+  {
     // Dismiss coaching point if one is active
     dismissCoachingPoint();
-    
-    if (isRecording && player) {
+
+    if (isRecording && player)
+    {
       const fromTime = player.getCurrentTime();
       const toTime = fromTime + seconds;
       recordingSession.recordSeekEvent(fromTime, toTime);
@@ -192,11 +207,13 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
     originalSeekVideo(seconds);
   }, [isRecording, player, recordingSession, originalSeekVideo, dismissCoachingPoint]);
 
-  const seekToTime = useCallback((time: number) => {
+  const seekToTime = useCallback((time: number) =>
+  {
     // Dismiss coaching point if one is active
     dismissCoachingPoint();
-    
-    if (isRecording && player) {
+
+    if (isRecording && player)
+    {
       const fromTime = player.getCurrentTime();
       recordingSession.recordSeekEvent(fromTime, time);
     }
@@ -204,8 +221,10 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
   }, [isRecording, player, recordingSession, originalSeekToTime, dismissCoachingPoint]);
 
   // Load the game video when component mounts or video_id changes
-  useEffect(() => {
-    if (game.video_id) {
+  useEffect(() =>
+  {
+    if (game.video_id)
+    {
       // The video ID is passed to the hook, so the player will load it automatically
       // We can also update the URL parameter to reflect the current video
       const url = new URL(window.location.href);
@@ -218,24 +237,28 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
   // Note: currentTime is now provided by the useYouTubePlayer hook as playerCurrentTime
 
   // Handle playback rate changes
-  const handlePlaybackRateChange = useCallback((rate: number) => {
+  const handlePlaybackRateChange = useCallback((rate: number) =>
+  {
     // Dismiss coaching point if one is active
     dismissCoachingPoint();
-    
+
     setPlaybackRate(rate);
-    
+
     // Record speed change event if recording
-    if (isRecording) {
+    if (isRecording)
+    {
       recordingSession.recordChangeSpeedEvent(rate);
     }
   }, [setPlaybackRate, isRecording, recordingSession, dismissCoachingPoint]);
 
   // Handle creating a coaching point
-  const handleCreateCoachingPoint = useCallback(() => {
+  const handleCreateCoachingPoint = useCallback(() =>
+  {
     if (!player) return;
 
     // Only allow creating coaching points when video is paused
-    if (isPlaying) {
+    if (isPlaying)
+    {
       alert('Please pause the video to add a coaching point.');
       return;
     }
@@ -247,42 +270,51 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
   }, [player, isPlaying]);
 
   // Handle when a coaching point is created successfully
-  const handleCoachingPointCreated = useCallback(() => {
+  const handleCoachingPointCreated = useCallback(() =>
+  {
     // Trigger a refresh of the coaching points flyout
     setCoachingPointsRefresh(prev => prev + 1);
   }, []);
 
   // Handle starting/stopping recording
-  const handleToggleRecording = useCallback(async () => {
-    if (!isRecording) {
+  const handleToggleRecording = useCallback(async () =>
+  {
+    if (!isRecording)
+    {
       // Start recording
-      
+
       // Capture the current video timestamp before pausing
       const recordingStartTime = player ? player.getCurrentTime() : playerCurrentTime;
-      
+
       // Pause video if playing
-      if (isPlaying && player) {
+      if (isPlaying && player)
+      {
         player.pauseVideo();
       }
-      
+
       // Store the recording start timestamp
       setRecordingStartTimestamp(recordingStartTime);
-      
+
       // Start audio recording
       const audioStarted = await audioRecording.startRecording();
-      if (!audioStarted) {
+      if (!audioStarted)
+      {
         console.error('❌ Failed to start audio recording');
         setRecordingStartTimestamp(null); // Reset on failure
         return;
       }
-      
+
       // Capture initial state for recording_start event
       let playbackSpeed = 1.0;
-      try {
-        if (player && typeof player.getPlaybackRate === 'function') {
+      try
+      {
+        if (player && typeof player.getPlaybackRate === 'function')
+        {
           playbackSpeed = player.getPlaybackRate();
         }
-      } catch (error) {
+      }
+      catch (error)
+      {
         console.warn('Failed to get playback rate, using default:', error);
       }
 
@@ -291,35 +323,38 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
         videoTimestamp: recordingStartTime * 1000, // Convert to milliseconds
         existingDrawings: getDrawingData(), // Current canvas drawings
       };
-      
+
       // Start recording session with initial state
       recordingSession.startRecordingSession(initialState);
       setIsRecording(true);
-    } else {
+    }
+    else
+    {
       // Stop recording
-      
+
       // Stop audio recording and get the blob
       const audioBlob = await audioRecording.stopRecording();
-      
+
       // Stop recording session and get events
       const capturedEvents = recordingSession.stopRecordingSession();
-      
+
       setIsRecording(false);
-      
+
       // Prepare recording data
       const recordingData = {
         audioBlob: audioBlob,
         recordingEvents: capturedEvents,
         recordingDuration: audioRecording.recordingTime,
       };
-      
+
       setRecordingData(recordingData);
       setShowCoachingPointModal(true);
     }
   }, [isRecording, isPlaying, player, playerCurrentTime, audioRecording, recordingSession, getDrawingData]);
 
   // Handle seeking to a coaching point timestamp
-  const handleSeekToPoint = useCallback((timestampMs: string) => {
+  const handleSeekToPoint = useCallback((timestampMs: string) =>
+  {
     if (!player) return;
 
     const timestamp = parseInt(timestampMs, 10) / 1000;
@@ -329,32 +364,38 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
   }, [player]);
 
   // Handle showing drawings from a coaching point
-  const handleShowDrawings = useCallback((drawings: Drawing[]) => {
+  const handleShowDrawings = useCallback((drawings: Drawing[]) =>
+  {
     setDrawingData(drawings);
   }, [setDrawingData]);
 
   // Handle pausing the video
-  const handlePauseVideo = useCallback(() => {
+  const handlePauseVideo = useCallback(() =>
+  {
     if (!player || !isPlaying) return;
 
     player.pauseVideo();
   }, [player, isPlaying]);
 
   // Handle selecting a coaching point
-  const handleSelectCoachingPoint = useCallback((point: CoachingPoint | null) => {
+  const handleSelectCoachingPoint = useCallback((point: CoachingPoint | null) =>
+  {
     // Stop any current playback when switching coaching points
-    if (playback.isPlaying) {
+    if (playback.isPlaying)
+    {
       playback.stopPlayback();
     }
     setSelectedCoachingPoint(point);
   }, [playback]);
 
   // Reset transport controls to default state
-  const resetTransportControls = useCallback(() => {
+  const resetTransportControls = useCallback(() =>
+  {
     if (!player || !selectedCoachingPoint) return;
 
     // 1. Pause video if playing
-    if (player.getPlayerState() === 1) { // Playing
+    if (player.getPlayerState() === 1)
+    { // Playing
       player.pauseVideo();
     }
 
@@ -374,102 +415,130 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
 
   // Playback event handlers for coaching_point_events during coaching point playback
   const playbackEventHandlers = useCallback(() => ({
-    onPlayEvent: () => {
-      if (player && player.getPlayerState() !== 1) { // Not playing
+    onPlayEvent: () =>
+    {
+      if (player && player.getPlayerState() !== 1)
+      { // Not playing
         player.playVideo();
       }
     },
-    onPauseEvent: () => {
-      if (player && player.getPlayerState() === 1) { // Playing
+    onPauseEvent: () =>
+    {
+      if (player && player.getPlayerState() === 1)
+      { // Playing
         player.pauseVideo();
       }
     },
-    onSeekEvent: (time: number) => {
-      if (player) {
+    onSeekEvent: (time: number) =>
+    {
+      if (player)
+      {
         player.seekTo(time, true);
       }
     },
-    onDrawEvent: (drawings: Drawing[]) => {
+    onDrawEvent: (drawings: Drawing[]) =>
+    {
       setDrawingData(drawings);
     },
-    onSpeedEvent: (speed: number) => {
-      if (player) {
+    onSpeedEvent: (speed: number) =>
+    {
+      if (player)
+      {
         player.setPlaybackRate(speed);
       }
     },
-    onRecordingStartEvent: (initialState: RecordingStartEventData) => {
+    onRecordingStartEvent: (initialState: RecordingStartEventData) =>
+    {
       // Set playback speed
-      if (player && initialState.playbackSpeed) {
+      if (player && initialState.playbackSpeed)
+      {
         player.setPlaybackRate(initialState.playbackSpeed);
       }
-      
+
       // Set video timestamp (convert milliseconds to seconds)
-      if (player && initialState.videoTimestamp !== undefined) {
+      if (player && initialState.videoTimestamp !== undefined)
+      {
         const timestampInSeconds = initialState.videoTimestamp / 1000;
         player.seekTo(timestampInSeconds, true);
       }
-      
+
       // Set existing drawings
-      if (initialState.existingDrawings) {
+      if (initialState.existingDrawings)
+      {
         setDrawingData(initialState.existingDrawings);
       }
     },
-    onPlaybackComplete: () => {
+    onPlaybackComplete: () =>
+    {
       // Reset transport controls when playback finishes naturally
       resetTransportControls();
     },
   }), [player, setDrawingData, resetTransportControls]);
 
   // Handle starting playback of a coaching point
-  const handleStartPlayback = useCallback(() => {
+  const handleStartPlayback = useCallback(() =>
+  {
     if (!selectedCoachingPoint) return;
-    
+
     const handlers = playbackEventHandlers();
     playback.startPlayback(selectedCoachingPoint, handlers);
   }, [selectedCoachingPoint, playback, playbackEventHandlers]);
 
   // Handle play/resume playback
-  const handlePlayPlayback = useCallback(() => {
-    if (playback.currentTime > 0 && playback.currentTime < playback.duration && !playback.isPlaying) {
+  const handlePlayPlayback = useCallback(() =>
+  {
+    if (playback.currentTime > 0 && playback.currentTime < playback.duration && !playback.isPlaying)
+    {
       // Resume if paused (but not if at the end)
       playback.resumePlayback();
-      
+
       // Resume video if it was playing before we paused
-      if (wasVideoPlayingBeforePauseRef.current && player && player.getPlayerState() !== 1) {
+      if (wasVideoPlayingBeforePauseRef.current && player && player.getPlayerState() !== 1)
+      {
         player.playVideo();
       }
-    } else {
+    }
+    else
+    {
       // Start fresh playback (or restart if at the end)
       handleStartPlayback();
     }
   }, [playback, handleStartPlayback, player]);
 
   // Handle pause playback
-  const handlePausePlayback = useCallback(() => {
+  const handlePausePlayback = useCallback(() =>
+  {
     // Remember if the video was playing before we pause
-    if (player && player.getPlayerState() === 1) { // Video is playing
+    if (player && player.getPlayerState() === 1)
+    { // Video is playing
       wasVideoPlayingBeforePauseRef.current = true;
       player.pauseVideo();
-    } else {
+    }
+    else
+    {
       wasVideoPlayingBeforePauseRef.current = false;
     }
-    
+
     // Pause the coaching point audio
     playback.pausePlayback();
   }, [playback, player]);
 
   // Handle stopping playback
-  const handleStopPlayback = useCallback(() => {
+  const handleStopPlayback = useCallback(() =>
+  {
     playback.stopPlayback();
     // Reset transport controls when manually stopping playback
     resetTransportControls();
   }, [playback, resetTransportControls]);
 
   // Update video dimensions when sidebar state changes
-  useEffect(() => {
-    if (isReady && updateVideoDimensions) {
+  useEffect(() =>
+  {
+    if (isReady && updateVideoDimensions)
+    {
       // Use a small delay to ensure CSS layout changes have been applied
-      const timer = setTimeout(() => {
+      const timer = setTimeout(() =>
+      {
         updateVideoDimensions();
       }, 10);
       return () => clearTimeout(timer);
@@ -477,15 +546,19 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
   }, [selectedCoachingPoint, isReady, updateVideoDimensions]);
 
   // Capture drawing changes during recording
-  useEffect(() => {
+  useEffect(() =>
+  {
     if (!isRecording) return;
 
-    const interval = setInterval(() => {
+    const interval = setInterval(() =>
+    {
       const currentDrawings = getDrawingData();
-      if (videoDimensions) {
+      if (videoDimensions)
+      {
         // Record if drawings have changed (including when cleared to empty array)
         const drawingsChanged = JSON.stringify(currentDrawings) !== JSON.stringify(lastDrawingsRef.current);
-        if (drawingsChanged) {
+        if (drawingsChanged)
+        {
           recordingSession.recordDrawEvent(currentDrawings, {
             width: videoDimensions.width,
             height: videoDimensions.height,
@@ -511,29 +584,33 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
     disabled: showCoachingPointModal || isFlyoutExpanded || playback.isPlaying, // Disable shortcuts when modal is open, flyout is expanded, or playback is active
   });
 
-  const formatTime = (seconds: number): string => {
+  const formatTime = (seconds: number): string =>
+  {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const formatGameResult = (teamScore: number | null, oppScore: number | null) => {
-    if (teamScore === null || oppScore === null) {
+  const formatGameResult = (teamScore: number | null, oppScore: number | null) =>
+  {
+    if (teamScore === null || oppScore === null)
+    {
       return 'No score recorded';
     }
     return `${teamScore} - ${oppScore}`;
   };
 
-  if (!game.video_id) {
+  if (!game.video_id)
+  {
     return (
-      <div className="game-analysis">
-        <div className="analysis-header">
-          <button onClick={onBack} className="btn btn-secondary">
+      <div className='game-analysis'>
+        <div className='analysis-header'>
+          <button onClick={onBack} className='btn btn-secondary'>
             ← Back to Games
           </button>
           <h1>Game Analysis</h1>
         </div>
-        <div className="error-state">
+        <div className='error-state'>
           <h2>No Video Available</h2>
           <p>This game doesn't have a video URL. Please add a YouTube video URL to begin analysis.</p>
         </div>
@@ -542,31 +619,31 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
   }
 
   return (
-    <div className="game-analysis">
-      <div className="analysis-header">
-        <button onClick={onBack} className="btn btn-secondary">
+    <div className='game-analysis'>
+      <div className='analysis-header'>
+        <button onClick={onBack} className='btn btn-secondary'>
           ← Back to Games
         </button>
 
-        <div className="game-info">
+        <div className='game-info'>
           <h1>vs {game.opponent}</h1>
         </div>
-        
-        <div className="game-meta">
+
+        <div className='game-meta'>
           <span>Game Date: {new Date(game.date).toLocaleDateString()}</span>
           <span>Score: {formatGameResult(game.team_score, game.opp_score)}</span>
         </div>
 
-        <div className="analysis-controls">
+        <div className='analysis-controls'>
           <button
             onClick={handleCreateCoachingPoint}
-            className="btn btn-primary"
+            className='btn btn-primary'
             disabled={!isReady || isPlaying}
             title={isPlaying ? 'Pause video to add coaching point' : 'Add coaching point'}
           >
             Add Coaching Point
           </button>
-          
+
           <button
             onClick={handleToggleRecording}
             className={`btn ${isRecording ? 'btn-error' : 'btn-success'}`}
@@ -587,7 +664,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
             stopDrawing={stopDrawing}
             videoDimensions={videoDimensions}
           />
-          
+
           <DrawingToolbar
             currentColor={currentColor}
             currentMode={currentMode}
@@ -599,49 +676,52 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
 
         {selectedCoachingPoint && (
           <div className={`coaching-point-sidebar ${playback.isPlaying ? 'playback-active' : ''}`}>
-            <div className="sidebar-header">
+            <div className='sidebar-header'>
               <h3>Coaching Point Details</h3>
-              <button 
-                onClick={() => handleSelectCoachingPoint(null)}
-                className="btn btn-secondary btn-sm"
-                title="Close details"
+              <button
+                onClick={() =>
+                  handleSelectCoachingPoint(null)}
+                className='btn btn-secondary btn-sm'
+                title='Close details'
               >
                 ✕
               </button>
             </div>
-            <div className="sidebar-content">
-              <div className="coaching-point-details">
-                <h4 className="point-title">{selectedCoachingPoint.title}</h4>
-                <div className="point-meta">
-                  <span className="point-timestamp">
+            <div className='sidebar-content'>
+              <div className='coaching-point-details'>
+                <h4 className='point-title'>{selectedCoachingPoint.title}</h4>
+                <div className='point-meta'>
+                  <span className='point-timestamp'>
                     {formatTime(parseInt(selectedCoachingPoint.timestamp) / 1000)}
                   </span>
-                  <span className="point-author">
+                  <span className='point-author'>
                     by {selectedCoachingPoint.author?.name || 'Unknown'}
                   </span>
                 </div>
-                <div className="point-feedback">
+                <div className='point-feedback'>
                   <h5>Feedback:</h5>
                   <p>{selectedCoachingPoint.feedback}</p>
                 </div>
-                {selectedCoachingPoint.coaching_point_tagged_players && selectedCoachingPoint.coaching_point_tagged_players.length > 0 && (
-                  <div className="point-players">
+                {selectedCoachingPoint.coaching_point_tagged_players &&
+                  selectedCoachingPoint.coaching_point_tagged_players.length > 0 && (
+                  <div className='point-players'>
                     <h5>Tagged Players:</h5>
-                    <div className="player-tags">
+                    <div className='player-tags'>
                       {selectedCoachingPoint.coaching_point_tagged_players.map((taggedPlayer) => (
-                        <span key={taggedPlayer.id} className="player-tag">
+                        <span key={taggedPlayer.id} className='player-tag'>
                           {taggedPlayer.player_profiles.name}
                         </span>
                       ))}
                     </div>
                   </div>
                 )}
-                {selectedCoachingPoint.coaching_point_labels && selectedCoachingPoint.coaching_point_labels.length > 0 && (
-                  <div className="point-labels">
+                {selectedCoachingPoint.coaching_point_labels &&
+                  selectedCoachingPoint.coaching_point_labels.length > 0 && (
+                  <div className='point-labels'>
                     <h5>Labels:</h5>
-                    <div className="label-tags">
+                    <div className='label-tags'>
                       {selectedCoachingPoint.coaching_point_labels.map((labelAssignment) => (
-                        <span key={labelAssignment.id} className="label-tag">
+                        <span key={labelAssignment.id} className='label-tag'>
                           {labelAssignment.labels.name}
                         </span>
                       ))}
@@ -651,13 +731,13 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
 
                 {/* Playback Controls - Only show if audio is available */}
                 {selectedCoachingPoint.audio_url && (
-                  <div className="playback-controls">
+                  <div className='playback-controls'>
                     <h5>Playback Controls:</h5>
-                    
+
                     {/* Event Count Display */}
                     {playback.totalEvents > 0 && (
-                      <div className="event-info">
-                        <span className="event-count">
+                      <div className='event-info'>
+                        <span className='event-count'>
                           📽️ {playback.totalEvents} recorded events
                         </span>
                       </div>
@@ -665,58 +745,58 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
 
                     {/* Error Display */}
                     {playback.error && (
-                      <div className="playback-error">
+                      <div className='playback-error'>
                         ❌ {playback.error}
                       </div>
                     )}
 
                     {/* Loading State */}
                     {playback.isLoading && (
-                      <div className="playback-loading">
+                      <div className='playback-loading'>
                         ⏳ Loading audio...
                       </div>
                     )}
 
                     {/* Progress Bar */}
                     {playback.duration > 0 && (
-                      <div className="progress-container">
-                        <div className="progress-bar">
-                          <div 
-                            className="progress-fill" 
+                      <div className='progress-container'>
+                        <div className='progress-bar'>
+                          <div
+                            className='progress-fill'
                             style={{ width: `${playback.progress}%` }}
                           />
                         </div>
-                        <div className="time-display">
+                        <div className='time-display'>
                           {formatTime(playback.currentTime)} / {formatTime(playback.duration)}
                         </div>
                       </div>
                     )}
 
                     {/* Control Buttons */}
-                    <div className="playback-buttons">
+                    <div className='playback-buttons'>
                       <button
                         onClick={handlePlayPlayback}
-                        className="btn btn-success"
+                        className='btn btn-success'
                         disabled={playback.isLoading || !selectedCoachingPoint.audio_url || playback.isPlaying}
-                        title="Start or resume playback"
+                        title='Start or resume playback'
                       >
                         {playback.isLoading ? '⏳' : '▶️ Play'}
                       </button>
-                      
+
                       <button
                         onClick={handlePausePlayback}
-                        className="btn btn-warning"
+                        className='btn btn-warning'
                         disabled={!playback.isPlaying}
-                        title="Pause playback"
+                        title='Pause playback'
                       >
                         ⏸️ Pause
                       </button>
-                      
+
                       <button
                         onClick={handleStopPlayback}
-                        className="btn btn-error"
+                        className='btn btn-error'
                         disabled={!playback.isPlaying && playback.currentTime === 0}
-                        title="Stop playback and reset"
+                        title='Stop playback and reset'
                       >
                         ⏹️ Stop
                       </button>
@@ -724,12 +804,12 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
 
                     {/* Playback Status */}
                     {(playback.isPlaying || playback.currentTime > 0) && (
-                      <div className="playback-status">
-                        {playback.isPlaying ? (
-                          <span className="status-playing">🎵 Playing coaching session...</span>
-                        ) : playback.currentTime > 0 ? (
-                          <span className="status-paused">⏸️ Playback paused</span>
-                        ) : null}
+                      <div className='playback-status'>
+                        {playback.isPlaying ?
+                          <span className='status-playing'>🎵 Playing coaching session...</span> :
+                          playback.currentTime > 0 ?
+                          <span className='status-paused'>⏸️ Playback paused</span> :
+                          null}
                       </div>
                     )}
                   </div>
@@ -741,25 +821,24 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
       </div>
 
       {(isRecording || audioRecording.isRecording) && (
-        <div className="recording-indicator">
-          <div className="recording-dot"></div>
+        <div className='recording-indicator'>
+          <div className='recording-dot'></div>
           <span>Recording Session</span>
           {audioRecording.recordingTime > 0 && (
-            <span className="recording-time">
+            <span className='recording-time'>
               {Math.floor(audioRecording.recordingTime / 1000 / 60)}:
               {Math.floor((audioRecording.recordingTime / 1000) % 60).toString().padStart(2, '0')}
             </span>
           )}
-          {audioRecording.error && (
-            <span className="recording-error">{audioRecording.error}</span>
-          )}
+          {audioRecording.error && <span className='recording-error'>{audioRecording.error}</span>}
         </div>
       )}
 
       {/* Coaching Point Modal */}
       <CoachingPointModal
         isOpen={showCoachingPointModal}
-        onClose={() => {
+        onClose={() =>
+        {
           setShowCoachingPointModal(false);
           setRecordingData(null);
           setRecordingStartTimestamp(null); // Reset recording start timestamp
@@ -783,10 +862,14 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
         isPlaying={isPlaying}
         currentTime={playerCurrentTime}
         duration={duration}
-        currentPlaybackRate={(() => {
-          try {
+        currentPlaybackRate={(() =>
+        {
+          try
+          {
             return (player && typeof player.getPlaybackRate === 'function') ? player.getPlaybackRate() : 1;
-          } catch (error) {
+          }
+          catch (error)
+          {
             console.warn('Failed to get playback rate for flyout, using default:', error);
             return 1;
           }
@@ -795,7 +878,8 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) => {
         onSeek={seekVideo}
         onSeekTo={seekToTime}
         onPlaybackRateChange={handlePlaybackRateChange}
-        isCoachingPointPlaybackActive={playback.isPlaying || (!!selectedCoachingPoint?.audio_url && playback.currentTime > 0)}
+        isCoachingPointPlaybackActive={playback.isPlaying ||
+          (!!selectedCoachingPoint?.audio_url && playback.currentTime > 0)}
       />
     </div>
   );

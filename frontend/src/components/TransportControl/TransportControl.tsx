@@ -1,9 +1,10 @@
-import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MdLock } from 'react-icons/md';
 import { CONFIG } from '../../types/config';
 import './TransportControl.css';
 
-interface TransportControlProps {
+interface TransportControlProps
+{
   isPlaying: boolean;
   currentTime: number;
   duration: number;
@@ -25,84 +26,95 @@ const TransportControl: React.FC<TransportControlProps> = ({
   onSeekTo,
   onPlaybackRateChange,
   disabled = false,
-}) => {
+}) =>
+{
   const [isDragging, setIsDragging] = useState(false);
   const [dragTime, setDragTime] = useState(0);
   const [isSeekingFromClick, setIsSeekingFromClick] = useState(false);
   const [lastSeekTime, setLastSeekTime] = useState(0);
   const timelineRef = useRef<HTMLDivElement>(null);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   // Store the drag time in a ref to avoid stale closures
   const dragTimeRef = useRef(dragTime);
   dragTimeRef.current = dragTime;
 
-  const formatTime = useCallback((seconds: number): string => {
+  const formatTime = useCallback((seconds: number): string =>
+  {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   }, []);
 
-  const calculateTimeFromPosition = useCallback((clientX: number): number => {
+  const calculateTimeFromPosition = useCallback((clientX: number): number =>
+  {
     if (!timelineRef.current || duration === 0) return 0;
-    
+
     const rect = timelineRef.current.getBoundingClientRect();
     const clickX = clientX - rect.left;
     const percentage = Math.max(0, Math.min(1, clickX / rect.width));
     return percentage * duration;
   }, [duration]);
 
-  const handleTimelineClick = useCallback((e: React.MouseEvent) => {
+  const handleTimelineClick = useCallback((e: React.MouseEvent) =>
+  {
     if (disabled || isDragging || duration === 0) return;
-    
+
     const newTime = calculateTimeFromPosition(e.clientX);
-    
+
     // Batch state updates
     setIsSeekingFromClick(true);
     setLastSeekTime(newTime);
     setDragTime(newTime);
-    
+
     onSeekTo(newTime);
   }, [disabled, isDragging, duration, calculateTimeFromPosition, onSeekTo]);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+  const handleMouseDown = useCallback((e: React.MouseEvent) =>
+  {
     if (disabled || duration === 0) return;
-    
+
     const newTime = calculateTimeFromPosition(e.clientX);
-    
+
     setDragTime(newTime);
     setIsDragging(true);
-    
+
     e.preventDefault();
   }, [disabled, duration, calculateTimeFromPosition]);
 
-  const handleMouseUp = useCallback(() => {
-    if (isDragging && duration > 0) {
+  const handleMouseUp = useCallback(() =>
+  {
+    if (isDragging && duration > 0)
+    {
       const seekTime = Math.max(0, Math.min(duration, dragTimeRef.current));
-      
+
       // Batch state updates
       setIsSeekingFromClick(true);
       setLastSeekTime(seekTime);
       setIsDragging(false);
-      
+
       onSeekTo(seekTime);
     }
   }, [isDragging, duration, onSeekTo]);
 
-  const handleGlobalMouseMove = useCallback((e: MouseEvent) => {
-    if (isDragging && duration > 0) {
+  const handleGlobalMouseMove = useCallback((e: MouseEvent) =>
+  {
+    if (isDragging && duration > 0)
+    {
       const newTime = calculateTimeFromPosition(e.clientX);
-      
+
       // Clear previous debounce timeout
-      if (debounceTimeoutRef.current) {
+      if (debounceTimeoutRef.current)
+      {
         clearTimeout(debounceTimeoutRef.current);
       }
-      
+
       // Update dragTime immediately for smooth visual feedback
       setDragTime(newTime);
-      
+
       // Debounce expensive operations or additional updates
-      debounceTimeoutRef.current = setTimeout(() => {
+      debounceTimeoutRef.current = setTimeout(() =>
+      {
         // Any additional operations that should be debounced can go here
         // For now, we just ensure the dragTimeRef is updated
         dragTimeRef.current = newTime;
@@ -111,21 +123,25 @@ const TransportControl: React.FC<TransportControlProps> = ({
   }, [isDragging, duration, calculateTimeFromPosition]);
 
   // Handle global mouse events for dragging
-  useEffect(() => {
-    if (isDragging) {
+  useEffect(() =>
+  {
+    if (isDragging)
+    {
       document.addEventListener('mouseup', handleMouseUp);
       document.addEventListener('mousemove', handleGlobalMouseMove);
-      
+
       // Prevent text selection while dragging
       document.body.style.userSelect = 'none';
-      
-      return () => {
+
+      return () =>
+      {
         document.removeEventListener('mouseup', handleMouseUp);
         document.removeEventListener('mousemove', handleGlobalMouseMove);
         document.body.style.userSelect = '';
-        
+
         // Clear any pending debounce timeout
-        if (debounceTimeoutRef.current) {
+        if (debounceTimeoutRef.current)
+        {
           clearTimeout(debounceTimeoutRef.current);
           debounceTimeoutRef.current = null;
         }
@@ -134,126 +150,132 @@ const TransportControl: React.FC<TransportControlProps> = ({
   }, [isDragging, handleMouseUp, handleGlobalMouseMove]);
 
   // Update dragTime when currentTime changes
-  useEffect(() => {
-    if (!isDragging && !isSeekingFromClick) {
+  useEffect(() =>
+  {
+    if (!isDragging && !isSeekingFromClick)
+    {
       setDragTime(currentTime);
     }
   }, [currentTime, isDragging, isSeekingFromClick]);
 
   // Handle seek completion detection
-  useEffect(() => {
-    if (isSeekingFromClick && Math.abs(currentTime - lastSeekTime) < 0.5) {
+  useEffect(() =>
+  {
+    if (isSeekingFromClick && Math.abs(currentTime - lastSeekTime) < 0.5)
+    {
       setIsSeekingFromClick(false);
     }
   }, [currentTime, isSeekingFromClick, lastSeekTime]);
 
   // Cleanup debounce timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (debounceTimeoutRef.current) {
+  useEffect(() =>
+  {
+    return () =>
+    {
+      if (debounceTimeoutRef.current)
+      {
         clearTimeout(debounceTimeoutRef.current);
       }
     };
   }, []);
 
   // Memoize computed values
-  const displayTime = useMemo(() => 
-    (isDragging || isSeekingFromClick) ? dragTime : currentTime,
-    [isDragging, isSeekingFromClick, dragTime, currentTime]
-  );
-  
-  const progressPercentage = useMemo(() => 
-    duration > 0 ? (displayTime / duration) * 100 : 0,
-    [displayTime, duration]
-  );
+  const displayTime = useMemo(() => (isDragging || isSeekingFromClick) ? dragTime : currentTime, [
+    isDragging,
+    isSeekingFromClick,
+    dragTime,
+    currentTime,
+  ]);
+
+  const progressPercentage = useMemo(() => duration > 0 ? (displayTime / duration) * 100 : 0, [displayTime, duration]);
 
   // Memoize button click handlers
   const handleRewind = useCallback(() => onSeek(-CONFIG.video.seekAmount), [onSeek]);
   const handleForward = useCallback(() => onSeek(CONFIG.video.seekAmount), [onSeek]);
-  
-  const handleSlowSpeed = useCallback(() => 
-    onPlaybackRateChange(CONFIG.video.playbackRates.slow), [onPlaybackRateChange]
-  );
-  const handleNormalSpeed = useCallback(() => 
-    onPlaybackRateChange(CONFIG.video.playbackRates.normal), [onPlaybackRateChange]
-  );
-  const handleFastSpeed = useCallback(() => 
-    onPlaybackRateChange(CONFIG.video.playbackRates.fast), [onPlaybackRateChange]
-  );
+
+  const handleSlowSpeed = useCallback(() => onPlaybackRateChange(CONFIG.video.playbackRates.slow), [
+    onPlaybackRateChange,
+  ]);
+  const handleNormalSpeed = useCallback(() => onPlaybackRateChange(CONFIG.video.playbackRates.normal), [
+    onPlaybackRateChange,
+  ]);
+  const handleFastSpeed = useCallback(() => onPlaybackRateChange(CONFIG.video.playbackRates.fast), [
+    onPlaybackRateChange,
+  ]);
 
   return (
     <div className={`transport-control ${disabled ? 'disabled' : ''}`}>
-      <div className="transport-main">
+      <div className='transport-main'>
         {/* Transport Controls - Left */}
-        <div className="transport-buttons">
+        <div className='transport-buttons'>
           <button
-            className="transport-btn"
+            className='transport-btn'
             onClick={handleRewind}
             disabled={disabled}
-            title={disabled ? "Transport controls disabled during coaching point playback" : "Rewind (A/←)"}
+            title={disabled ? 'Transport controls disabled during coaching point playback' : 'Rewind (A/←)'}
           >
             ⏮
           </button>
           <button
-            className="transport-btn play-pause"
+            className='transport-btn play-pause'
             onClick={onTogglePlayPause}
             disabled={disabled}
-            title={disabled ? "Transport controls disabled during coaching point playback" : "Play/Pause (S/Space)"}
+            title={disabled ? 'Transport controls disabled during coaching point playback' : 'Play/Pause (S/Space)'}
           >
             {isPlaying ? '⏸' : '▶'}
           </button>
           <button
-            className="transport-btn"
+            className='transport-btn'
             onClick={handleForward}
             disabled={disabled}
-            title={disabled ? "Transport controls disabled during coaching point playback" : "Forward (D/→)"}
+            title={disabled ? 'Transport controls disabled during coaching point playback' : 'Forward (D/→)'}
           >
             ⏭
           </button>
         </div>
 
         {/* Timeline - Center */}
-        <div className="timeline-container">
-          <span className="time-display">{formatTime(displayTime)}</span>
+        <div className='timeline-container'>
+          <span className='time-display'>{formatTime(displayTime)}</span>
           <div
             ref={timelineRef}
             className={`timeline ${disabled ? 'disabled' : ''}`}
             onClick={disabled ? undefined : handleTimelineClick}
             onMouseDown={disabled ? undefined : handleMouseDown}
-            role="slider"
-            aria-label="Video timeline"
+            role='slider'
+            aria-label='Video timeline'
             aria-valuemin={0}
             aria-valuemax={duration}
             aria-valuenow={displayTime}
             tabIndex={disabled ? -1 : 0}
             style={{ cursor: disabled ? 'not-allowed' : 'pointer' }}
           >
-            <div className="timeline-track">
-              <div 
-                className="timeline-progress" 
+            <div className='timeline-track'>
+              <div
+                className='timeline-progress'
                 style={{ width: `${progressPercentage}%` }}
               />
-              <div 
-                className="timeline-playhead" 
+              <div
+                className='timeline-playhead'
                 style={{ left: `${progressPercentage}%` }}
               />
             </div>
             {disabled && (
-              <div className="timeline-locked-icon">
+              <div className='timeline-locked-icon'>
                 <MdLock />
               </div>
             )}
           </div>
-          <span className="time-display">{formatTime(duration)}</span>
+          <span className='time-display'>{formatTime(duration)}</span>
         </div>
 
         {/* Speed Controls - Right */}
-        <div className="speed-controls">
+        <div className='speed-controls'>
           <button
             className={`speed-btn ${currentPlaybackRate === CONFIG.video.playbackRates.slow ? 'active' : ''}`}
             onClick={handleSlowSpeed}
             disabled={disabled}
-            title={disabled ? "Transport controls disabled during coaching point playback" : "0.5x Speed"}
+            title={disabled ? 'Transport controls disabled during coaching point playback' : '0.5x Speed'}
           >
             0.5x
           </button>
@@ -261,7 +283,7 @@ const TransportControl: React.FC<TransportControlProps> = ({
             className={`speed-btn ${currentPlaybackRate === CONFIG.video.playbackRates.normal ? 'active' : ''}`}
             onClick={handleNormalSpeed}
             disabled={disabled}
-            title={disabled ? "Transport controls disabled during coaching point playback" : "Normal Speed"}
+            title={disabled ? 'Transport controls disabled during coaching point playback' : 'Normal Speed'}
           >
             1x
           </button>
@@ -269,7 +291,7 @@ const TransportControl: React.FC<TransportControlProps> = ({
             className={`speed-btn ${currentPlaybackRate === CONFIG.video.playbackRates.fast ? 'active' : ''}`}
             onClick={handleFastSpeed}
             disabled={disabled}
-            title={disabled ? "Transport controls disabled during coaching point playback" : "2x Speed"}
+            title={disabled ? 'Transport controls disabled during coaching point playback' : '2x Speed'}
           >
             2x
           </button>

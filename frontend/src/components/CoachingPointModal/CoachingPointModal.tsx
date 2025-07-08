@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { getApiUrl, createCoachingPointWithRecording } from '../../utils/api';
 import type { Drawing } from '../../types/drawing';
+import { createCoachingPointWithRecording, getApiUrl } from '../../utils/api';
 import './CoachingPointModal.css';
 
-interface CoachingPointModalProps {
+interface CoachingPointModalProps
+{
   isOpen: boolean;
   onClose: () => void;
   gameId: string;
@@ -18,13 +19,15 @@ interface CoachingPointModalProps {
   } | null;
 }
 
-interface Player {
+interface Player
+{
   id: string;
   name: string;
   jersey_number?: string;
 }
 
-interface Label {
+interface Label
+{
   id: string;
   name: string;
 }
@@ -37,7 +40,8 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
   drawingData,
   onCoachingPointCreated,
   recordingData,
-}) => {
+}) =>
+{
   const { user } = useAuth();
   const [formData, setFormData] = useState({
     title: '',
@@ -58,8 +62,10 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
   const playerInputRef = useRef<HTMLDivElement>(null);
 
   // Reset form when modal opens/closes
-  useEffect(() => {
-    if (isOpen) {
+  useEffect(() =>
+  {
+    if (isOpen)
+    {
       setFormData({ title: '', feedback: '' });
       setSelectedPlayers([]);
       setSelectedLabels([]);
@@ -73,41 +79,50 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
   }, [isOpen, gameId]);
 
   // Handle click outside to close suggestions
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (labelInputRef.current && !labelInputRef.current.contains(event.target as Node)) {
+  useEffect(() =>
+  {
+    const handleClickOutside = (event: MouseEvent) =>
+    {
+      if (labelInputRef.current && !labelInputRef.current.contains(event.target as Node))
+      {
         setShowLabelSuggestions(false);
       }
-      if (playerInputRef.current && !playerInputRef.current.contains(event.target as Node)) {
+      if (playerInputRef.current && !playerInputRef.current.contains(event.target as Node))
+      {
         setShowPlayerSuggestions(false);
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
+    return () =>
+    {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
 
-  const loadPlayersAndLabels = async () => {
-    try {
+  const loadPlayersAndLabels = async () =>
+  {
+    try
+    {
       const token = (await import('../../lib/supabase')).supabase.auth.getSession();
       const session = await token;
-      
-      if (!session.data.session?.access_token) {
+
+      if (!session.data.session?.access_token)
+      {
         throw new Error('No access token');
       }
 
       const apiUrl = getApiUrl();
-      
+
       // First get the game to find the team ID
       const gameResponse = await fetch(`${apiUrl}/api/games/${gameId}`, {
         headers: {
           'Authorization': `Bearer ${session.data.session.access_token}`,
-        }
+        },
       });
 
-      if (gameResponse.ok) {
+      if (gameResponse.ok)
+      {
         const game = await gameResponse.json();
         const teamIdFromGame = game.team_id;
         setTeamId(teamIdFromGame);
@@ -116,10 +131,11 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
         const playersResponse = await fetch(`${apiUrl}/api/teams/${teamIdFromGame}/players`, {
           headers: {
             'Authorization': `Bearer ${session.data.session.access_token}`,
-          }
+          },
         });
 
-        if (playersResponse.ok) {
+        if (playersResponse.ok)
+        {
           const playersData = await playersResponse.json();
           setPlayers(playersData);
         }
@@ -128,38 +144,45 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
         const labelsResponse = await fetch(`${apiUrl}/api/teams/${teamIdFromGame}/labels`, {
           headers: {
             'Authorization': `Bearer ${session.data.session.access_token}`,
-          }
+          },
         });
 
-        if (labelsResponse.ok) {
+        if (labelsResponse.ok)
+        {
           const labelsData = await labelsResponse.json();
           setLabels(labelsData);
         }
       }
-    } catch (err) {
+    }
+    catch (err)
+    {
       console.error('Error loading players and labels:', err);
     }
   };
 
-  const formatTime = (seconds: number): string => {
+  const formatTime = (seconds: number): string =>
+  {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   // Filter labels based on input
-  const getFilteredLabels = () => {
+  const getFilteredLabels = () =>
+  {
     if (!labelInput.trim()) return [];
-    return labels.filter(label => 
+    return labels.filter(label =>
       label.name.toLowerCase().includes(labelInput.toLowerCase()) &&
       !selectedLabels.includes(label.id)
     );
   };
 
   // Filter players based on input
-  const getFilteredPlayers = () => {
+  const getFilteredPlayers = () =>
+  {
     if (!playerInput.trim()) return [];
-    return players.filter(player => {
+    return players.filter(player =>
+    {
       const matchesName = player.name.toLowerCase().includes(playerInput.toLowerCase());
       const matchesJersey = player.jersey_number?.toLowerCase().includes(playerInput.toLowerCase());
       return (matchesName || matchesJersey) && !selectedPlayers.includes(player.id);
@@ -167,58 +190,71 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
   };
 
   // Create a new label
-  const createNewLabel = async (name: string) => {
+  const createNewLabel = async (name: string) =>
+  {
     if (!teamId) return null;
 
-    try {
+    try
+    {
       const token = (await import('../../lib/supabase')).supabase.auth.getSession();
       const session = await token;
-      
-      if (!session.data.session?.access_token) {
+
+      if (!session.data.session?.access_token)
+      {
         throw new Error('No access token');
       }
 
       const apiUrl = getApiUrl();
-      
+
       const response = await fetch(`${apiUrl}/api/teams/${teamId}/labels`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.data.session.access_token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name: name.trim().toUpperCase() })
+        body: JSON.stringify({ name: name.trim().toUpperCase() }),
       });
 
-      if (response.ok) {
+      if (response.ok)
+      {
         const newLabel = await response.json();
         setLabels(prev => [...prev, newLabel]);
         return newLabel;
       }
-    } catch (err) {
+    }
+    catch (err)
+    {
       console.error('Error creating label:', err);
     }
     return null;
   };
 
-  const handleLabelInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLabelInputChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+  {
     const value = e.target.value.toUpperCase();
     setLabelInput(value);
     setShowLabelSuggestions(value.trim().length > 0);
   };
 
-  const handlePlayerInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePlayerInputChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+  {
     const value = e.target.value;
     setPlayerInput(value);
     setShowPlayerSuggestions(value.trim().length > 0);
   };
 
-  const handleLabelSelect = async (label: Label | null, inputValue?: string) => {
-    if (label) {
+  const handleLabelSelect = async (label: Label | null, inputValue?: string) =>
+  {
+    if (label)
+    {
       setSelectedLabels(prev => [...prev, label.id]);
-    } else if (inputValue?.trim()) {
+    }
+    else if (inputValue?.trim())
+    {
       // Create new label
       const newLabel = await createNewLabel(inputValue.trim());
-      if (newLabel) {
+      if (newLabel)
+      {
         setSelectedLabels(prev => [...prev, newLabel.id]);
       }
     }
@@ -226,43 +262,55 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
     setShowLabelSuggestions(false);
   };
 
-  const handlePlayerSelect = (player: Player) => {
+  const handlePlayerSelect = (player: Player) =>
+  {
     setSelectedPlayers(prev => [...prev, player.id]);
     setPlayerInput('');
     setShowPlayerSuggestions(false);
   };
 
-  const handleLabelKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+  const handleLabelKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =>
+  {
+    if (e.key === 'Enter')
+    {
       e.preventDefault();
       const filteredLabels = getFilteredLabels();
-      if (filteredLabels.length > 0) {
+      if (filteredLabels.length > 0)
+      {
         handleLabelSelect(filteredLabels[0]);
-      } else if (labelInput.trim()) {
+      }
+      else if (labelInput.trim())
+      {
         handleLabelSelect(null, labelInput.trim());
       }
     }
   };
 
-  const handlePlayerKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+  const handlePlayerKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =>
+  {
+    if (e.key === 'Enter')
+    {
       e.preventDefault();
       const filteredPlayers = getFilteredPlayers();
-      if (filteredPlayers.length > 0) {
+      if (filteredPlayers.length > 0)
+      {
         handlePlayerSelect(filteredPlayers[0]);
       }
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) =>
+  {
     e.preventDefault();
-    
-    if (!formData.title.trim() || !formData.feedback.trim()) {
+
+    if (!formData.title.trim() || !formData.feedback.trim())
+    {
       setError('Title and feedback are required');
       return;
     }
 
-    if (!user) {
+    if (!user)
+    {
       setError('User not authenticated');
       return;
     }
@@ -270,9 +318,11 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
     setIsSubmitting(true);
     setError('');
 
-    try {
+    try
+    {
       // Use the new API function that handles recording data
-      if (recordingData) {
+      if (recordingData)
+      {
         // Create coaching point with recording data
         await createCoachingPointWithRecording(
           gameId,
@@ -284,19 +334,22 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
           selectedLabels,
           recordingData.audioBlob || undefined,
           recordingData.recordingEvents,
-          recordingData.recordingDuration
+          recordingData.recordingDuration,
         );
-      } else {
+      }
+      else
+      {
         // Fallback to original method for non-recording coaching points
         const token = (await import('../../lib/supabase')).supabase.auth.getSession();
         const session = await token;
-        
-        if (!session.data.session?.access_token) {
+
+        if (!session.data.session?.access_token)
+        {
           throw new Error('No access token');
         }
 
         const apiUrl = getApiUrl();
-        
+
         // Create the coaching point
         const coachingPointData = {
           game_id: gameId,
@@ -312,20 +365,22 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${session.data.session.access_token}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
           },
-          body: JSON.stringify(coachingPointData)
+          body: JSON.stringify(coachingPointData),
         });
 
-        if (!response.ok) {
+        if (!response.ok)
+        {
           const errorData = await response.json().catch(() => ({}));
           throw new Error(errorData.message || 'Failed to create coaching point');
         }
 
         const coachingPoint = await response.json();
-        
+
         // Create the drawing event if there's drawing data
-        if (drawingData && drawingData.length > 0) {
+        if (drawingData && drawingData.length > 0)
+        {
           const eventData = {
             point_id: coachingPoint.id,
             event_type: 'draw',
@@ -335,62 +390,73 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
               canvas_dimensions: {
                 // These would typically come from the video dimensions
                 width: 1920,
-                height: 1080
-              }
-            }
+                height: 1080,
+              },
+            },
           };
 
           const eventResponse = await fetch(`${apiUrl}/api/coaching-point-events`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${session.data.session.access_token}`,
-              'Content-Type': 'application/json'
+              'Content-Type': 'application/json',
             },
-            body: JSON.stringify(eventData)
+            body: JSON.stringify(eventData),
           });
 
-          if (!eventResponse.ok) {
+          if (!eventResponse.ok)
+          {
             console.warn('Failed to save drawing data, but coaching point was created');
           }
         }
 
         // Handle player tagging if any players are selected
-        if (selectedPlayers.length > 0) {
-          for (const playerId of selectedPlayers) {
-            try {
+        if (selectedPlayers.length > 0)
+        {
+          for (const playerId of selectedPlayers)
+          {
+            try
+            {
               await fetch(`${apiUrl}/api/coaching-point-tagged-players`, {
                 method: 'POST',
                 headers: {
                   'Authorization': `Bearer ${session.data.session.access_token}`,
-                  'Content-Type': 'application/json'
+                  'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                   point_id: coachingPoint.id,
-                  player_id: playerId
-                })
+                  player_id: playerId,
+                }),
               });
-            } catch (err) {
+            }
+            catch (err)
+            {
               console.warn('Failed to tag player:', playerId, err);
             }
           }
         }
 
         // Handle label assignment if any labels are selected
-        if (selectedLabels.length > 0) {
-          for (const labelId of selectedLabels) {
-            try {
+        if (selectedLabels.length > 0)
+        {
+          for (const labelId of selectedLabels)
+          {
+            try
+            {
               await fetch(`${apiUrl}/api/coaching-point-labels`, {
                 method: 'POST',
                 headers: {
                   'Authorization': `Bearer ${session.data.session.access_token}`,
-                  'Content-Type': 'application/json'
+                  'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                   point_id: coachingPoint.id,
-                  label_id: labelId
-                })
+                  label_id: labelId,
+                }),
               });
-            } catch (err) {
+            }
+            catch (err)
+            {
               console.warn('Failed to assign label:', labelId, err);
             }
           }
@@ -398,119 +464,132 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
       }
 
       // Notify parent component that a coaching point was created
-      if (onCoachingPointCreated) {
+      if (onCoachingPointCreated)
+      {
         onCoachingPointCreated();
       }
 
       onClose();
-    } catch (err) {
+    }
+    catch (err)
+    {
       setError(err instanceof Error ? err.message : 'Failed to create coaching point');
-    } finally {
+    }
+    finally
+    {
       setIsSubmitting(false);
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+  {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content coaching-point-modal">
-        <div className="modal-header">
+    <div className='modal-overlay'>
+      <div className='modal-content coaching-point-modal'>
+        <div className='modal-header'>
           <h2>Add Coaching Point</h2>
-          <button 
+          <button
             onClick={onClose}
-            className="btn btn-ghost btn-sm"
-            aria-label="Close"
+            className='btn btn-ghost btn-sm'
+            aria-label='Close'
           >
             ✕
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="form">
-          <div className="coaching-point-info">
-            <p><strong>Timestamp:</strong> {formatTime(timestamp)}</p>
-            <p><strong>Drawings:</strong> {drawingData.length} drawing elements</p>
+        <form onSubmit={handleSubmit} className='form'>
+          <div className='coaching-point-info'>
+            <p>
+              <strong>Timestamp:</strong> {formatTime(timestamp)}
+            </p>
+            <p>
+              <strong>Drawings:</strong> {drawingData.length} drawing elements
+            </p>
             {recordingData && (
               <>
-                <p><strong>Recording:</strong> {Math.floor(recordingData.recordingDuration / 1000)}s with {recordingData.recordingEvents.length} events</p>
+                <p>
+                  <strong>Recording:</strong> {Math.floor(recordingData.recordingDuration / 1000)}s with{' '}
+                  {recordingData.recordingEvents.length} events
+                </p>
                 {recordingData.audioBlob && (
-                  <p><strong>Audio:</strong> {(recordingData.audioBlob.size / 1024).toFixed(1)} KB</p>
+                  <p>
+                    <strong>Audio:</strong> {(recordingData.audioBlob.size / 1024).toFixed(1)} KB
+                  </p>
                 )}
               </>
             )}
           </div>
 
-          {error && <div className="alert alert-error">{error}</div>}
+          {error && <div className='alert alert-error'>{error}</div>}
 
-          <div className="form-group">
-            <label htmlFor="title" className="form-label">
+          <div className='form-group'>
+            <label htmlFor='title' className='form-label'>
               Title *
             </label>
             <input
-              id="title"
-              name="title"
-              type="text"
+              id='title'
+              name='title'
+              type='text'
               value={formData.title}
               onChange={handleInputChange}
-              className="form-input"
-              placeholder="Brief summary of the coaching point"
+              className='form-input'
+              placeholder='Brief summary of the coaching point'
               required
               maxLength={200}
             />
           </div>
 
-          <div className="form-group">
-            <label htmlFor="feedback" className="form-label">
+          <div className='form-group'>
+            <label htmlFor='feedback' className='form-label'>
               Feedback *
             </label>
             <textarea
-              id="feedback"
-              name="feedback"
+              id='feedback'
+              name='feedback'
               value={formData.feedback}
               onChange={handleInputChange}
-              className="form-textarea"
-              placeholder="Detailed feedback and coaching notes..."
+              className='form-textarea'
+              placeholder='Detailed feedback and coaching notes...'
               required
               rows={4}
             />
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Tagged Players</label>
-            <div className="autocomplete-container" ref={playerInputRef}>
+          <div className='form-group'>
+            <label className='form-label'>Tagged Players</label>
+            <div className='autocomplete-container' ref={playerInputRef}>
               <input
-                type="text"
+                type='text'
                 value={playerInput}
                 onChange={handlePlayerInputChange}
                 onKeyDown={handlePlayerKeyDown}
                 onFocus={() => setShowPlayerSuggestions(playerInput.trim().length > 0)}
-                className="form-input"
-                placeholder="Type to search players..."
+                className='form-input'
+                placeholder='Type to search players...'
               />
               {showPlayerSuggestions && (
-                <div className="autocomplete-suggestions">
+                <div className='autocomplete-suggestions'>
                   {getFilteredPlayers().map((player) => (
                     <div
                       key={player.id}
-                      className="autocomplete-suggestion"
+                      className='autocomplete-suggestion'
                       onClick={() => handlePlayerSelect(player)}
                     >
                       {player.name}
-                      {player.jersey_number && (
-                        <span className="jersey-number">#{player.jersey_number}</span>
-                      )}
+                      {player.jersey_number && <span className='jersey-number'>#{player.jersey_number}</span>}
                     </div>
                   ))}
                   {getFilteredPlayers().length === 0 && playerInput.trim() && (
-                    <div className="autocomplete-no-results">
+                    <div className='autocomplete-no-results'>
                       No players found matching "{playerInput}"
                     </div>
                   )}
@@ -518,53 +597,56 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
               )}
             </div>
             {selectedPlayers.length > 0 && (
-              <div className="selected-tags">
-                {selectedPlayers.map((playerId) => {
+              <div className='selected-tags'>
+                {selectedPlayers.map((playerId) =>
+                {
                   const player = players.find(p => p.id === playerId);
-                  return player ? (
-                    <span key={playerId} className="selected-tag">
-                      {player.name.split(' ')[0]}
-                      <button
-                        type="button"
-                        onClick={() => setSelectedPlayers(prev => prev.filter(id => id !== playerId))}
-                        className="remove-tag"
-                        aria-label={`Remove ${player.name}`}
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ) : null;
+                  return player ?
+                    (
+                      <span key={playerId} className='selected-tag'>
+                        {player.name.split(' ')[0]}
+                        <button
+                          type='button'
+                          onClick={() => setSelectedPlayers(prev => prev.filter(id => id !== playerId))}
+                          className='remove-tag'
+                          aria-label={`Remove ${player.name}`}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ) :
+                    null;
                 })}
               </div>
             )}
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Labels</label>
-            <div className="autocomplete-container" ref={labelInputRef}>
+          <div className='form-group'>
+            <label className='form-label'>Labels</label>
+            <div className='autocomplete-container' ref={labelInputRef}>
               <input
-                type="text"
+                type='text'
                 value={labelInput}
                 onChange={handleLabelInputChange}
                 onKeyDown={handleLabelKeyDown}
                 onFocus={() => setShowLabelSuggestions(labelInput.trim().length > 0)}
-                className="form-input"
-                placeholder="Type to search or create labels..."
+                className='form-input'
+                placeholder='Type to search or create labels...'
               />
               {showLabelSuggestions && (
-                <div className="autocomplete-suggestions">
+                <div className='autocomplete-suggestions'>
                   {getFilteredLabels().map((label) => (
                     <div
                       key={label.id}
-                      className="autocomplete-suggestion"
+                      className='autocomplete-suggestion'
                       onClick={() => handleLabelSelect(label)}
                     >
                       {label.name}
                     </div>
                   ))}
                   {getFilteredLabels().length === 0 && labelInput.trim() && (
-                    <div 
-                      className="autocomplete-suggestion create-new"
+                    <div
+                      className='autocomplete-suggestion create-new'
                       onClick={() => handleLabelSelect(null, labelInput.trim())}
                     >
                       Create "{labelInput.trim()}"
@@ -574,39 +656,42 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
               )}
             </div>
             {selectedLabels.length > 0 && (
-              <div className="selected-tags">
-                {selectedLabels.map((labelId) => {
+              <div className='selected-tags'>
+                {selectedLabels.map((labelId) =>
+                {
                   const label = labels.find(l => l.id === labelId);
-                  return label ? (
-                    <span key={labelId} className="selected-tag">
-                      {label.name}
-                      <button
-                        type="button"
-                        onClick={() => setSelectedLabels(prev => prev.filter(id => id !== labelId))}
-                        className="remove-tag"
-                        aria-label={`Remove ${label.name}`}
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ) : null;
+                  return label ?
+                    (
+                      <span key={labelId} className='selected-tag'>
+                        {label.name}
+                        <button
+                          type='button'
+                          onClick={() => setSelectedLabels(prev => prev.filter(id => id !== labelId))}
+                          className='remove-tag'
+                          aria-label={`Remove ${label.name}`}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ) :
+                    null;
                 })}
               </div>
             )}
           </div>
 
-          <div className="form-actions">
+          <div className='form-actions'>
             <button
-              type="button"
+              type='button'
               onClick={onClose}
-              className="btn btn-secondary"
+              className='btn btn-secondary'
               disabled={isSubmitting}
             >
               Cancel
             </button>
             <button
-              type="submit"
-              className="btn btn-primary"
+              type='submit'
+              className='btn btn-primary'
               disabled={isSubmitting}
             >
               {isSubmitting ? 'Creating...' : 'Create Coaching Point'}

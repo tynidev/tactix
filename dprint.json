@@ -1,5 +1,5 @@
 {
-  "includes": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.js", "src/**/*.jsx", "*.ts", "*.js"],
+  "includes": ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"],
   "excludes": ["**/node_modules", "**/dist", "**/build", "**/coverage", "**/lcov-report", "**/*.db", "**/*.json", "**/*.md"],
   "plugins": [
     "https://plugins.dprint.dev/typescript-0.91.1.wasm",

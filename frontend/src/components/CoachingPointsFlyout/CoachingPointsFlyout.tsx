@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import type { Drawing } from '../../types/drawing';
 import { getApiUrl } from '../../utils/api';
 import TransportControl from '../TransportControl/TransportControl';
-import type { Drawing } from '../../types/drawing';
 import './CoachingPointsFlyout.css';
 import { supabase } from '../../lib/supabase';
 
-interface CoachingPoint {
+interface CoachingPoint
+{
   id: string;
   game_id: string;
   author_id: string;
@@ -38,7 +39,8 @@ interface CoachingPoint {
   }[];
 }
 
-interface CoachingPointEvent {
+interface CoachingPointEvent
+{
   id: string;
   point_id: string;
   event_type: 'play' | 'pause' | 'seek' | 'draw' | 'change_speed';
@@ -53,7 +55,8 @@ interface CoachingPointEvent {
   created_at: string;
 }
 
-interface CoachingPointsFlyoutProps {
+interface CoachingPointsFlyoutProps
+{
   gameId: string;
   onSeekToPoint: (timestamp: string) => void;
   onShowDrawings: (drawings: Drawing[]) => void;
@@ -92,7 +95,8 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
     onSeekTo,
     onPlaybackRateChange,
     isCoachingPointPlaybackActive = false,
-  }) => {
+  }) =>
+  {
     const { user } = useAuth();
     const [isExpanded, setIsExpanded] = useState(false);
     const [coachingPoints, setCoachingPoints] = useState<CoachingPoint[]>([]);
@@ -104,16 +108,19 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
     const [selectedPlayerFilter, setSelectedPlayerFilter] = useState('');
     const [selectedLabelFilter, setSelectedLabelFilter] = useState('');
 
-    const loadCoachingPoints = useCallback(async () => {
+    const loadCoachingPoints = useCallback(async () =>
+    {
       const abortController = new AbortController();
 
       setLoading(true);
       setError('');
 
-      try {
+      try
+      {
         const session = await supabase.auth.getSession();
 
-        if (!session.data.session?.access_token) {
+        if (!session.data.session?.access_token)
+        {
           throw new Error('No access token');
         }
 
@@ -126,25 +133,34 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
           signal: abortController.signal,
         });
 
-        if (!response.ok) {
+        if (!response.ok)
+        {
           throw new Error('Failed to load coaching points');
         }
 
         const points = await response.json();
-        const sortedPoints = points.sort((a: CoachingPoint, b: CoachingPoint) => {
+        const sortedPoints = points.sort((a: CoachingPoint, b: CoachingPoint) =>
+        {
           return parseInt(a.timestamp) - parseInt(b.timestamp);
         });
 
-        if (!abortController.signal.aborted) {
+        if (!abortController.signal.aborted)
+        {
           setCoachingPoints(sortedPoints);
         }
-      } catch (err) {
-        if (!abortController.signal.aborted) {
+      }
+      catch (err)
+      {
+        if (!abortController.signal.aborted)
+        {
           setError(err instanceof Error ? err.message : 'Failed to load coaching points');
           console.error('Error loading coaching points:', err);
         }
-      } finally {
-        if (!abortController.signal.aborted) {
+      }
+      finally
+      {
+        if (!abortController.signal.aborted)
+        {
           setLoading(false);
         }
       }
@@ -153,11 +169,14 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
     }, [gameId]);
 
     const loadDrawingEvents = useCallback(
-      async (pointId: string) => {
-        try {
+      async (pointId: string) =>
+      {
+        try
+        {
           const session = await supabase.auth.getSession();
 
-          if (!session.data.session?.access_token) {
+          if (!session.data.session?.access_token)
+          {
             return;
           }
 
@@ -169,28 +188,33 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
             },
           });
 
-          if (response.ok) {
+          if (response.ok)
+          {
             const events: CoachingPointEvent[] = await response.json();
             // Find drawing events with timestamp=0
             const drawingEvents = events.filter((event) =>
               event.event_type === 'draw' && event.timestamp === 0 && event.event_data.drawings
             );
 
-            if (drawingEvents.length > 0) {
+            if (drawingEvents.length > 0)
+            {
               // Combine all drawings from timestamp=0 events
               const allDrawings = drawingEvents.flatMap((event) => event.event_data.drawings || []);
               onShowDrawings(allDrawings);
             }
           }
-        } catch (err) {
+        }
+        catch (err)
+        {
           console.error('Error loading drawing events:', err);
         }
       },
-      [onShowDrawings]
+      [onShowDrawings],
     );
 
     const handlePointClick = useCallback(
-      async (point: CoachingPoint) => {
+      async (point: CoachingPoint) =>
+      {
         // Pause the video first
         onPauseVideo();
 
@@ -209,26 +233,30 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
         // Hide the flyout
         setIsExpanded(false);
       },
-      [onPauseVideo, onSeekToPoint, loadDrawingEvents, onSelectCoachingPoint]
+      [onPauseVideo, onSeekToPoint, loadDrawingEvents, onSelectCoachingPoint],
     );
 
     const handleDeletePoint = useCallback(
-      async (pointId: string, event: React.MouseEvent) => {
+      async (pointId: string, event: React.MouseEvent) =>
+      {
         // Stop event propagation to prevent triggering the point click
         event.stopPropagation();
 
         if (
           !confirm(
-            'Are you sure you want to delete this coaching point? This action cannot be undone.'
+            'Are you sure you want to delete this coaching point? This action cannot be undone.',
           )
-        ) {
+        )
+        {
           return;
         }
 
-        try {
+        try
+        {
           const session = await supabase.auth.getSession();
 
-          if (!session.data.session?.access_token) {
+          if (!session.data.session?.access_token)
+          {
             throw new Error('No access token');
           }
 
@@ -241,27 +269,32 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
             },
           });
 
-          if (!response.ok) {
+          if (!response.ok)
+          {
             const errorData = await response.json();
             throw new Error(errorData.message || 'Failed to delete coaching point');
           }
 
           // Remove the deleted point from the local state
           setCoachingPoints((prev) => prev.filter((point) => point.id !== pointId));
-        } catch (err) {
+        }
+        catch (err)
+        {
           console.error('Error deleting coaching point:', err);
           alert(err instanceof Error ? err.message : 'Failed to delete coaching point');
         }
       },
-      []
+      [],
     );
 
     const canDeletePoint = useCallback(
-      (point: CoachingPoint): boolean => {
+      (point: CoachingPoint): boolean =>
+      {
         if (!user) return false;
 
         // User can delete if they are the author
-        if (point.author_id === user.id) {
+        if (point.author_id === user.id)
+        {
           return true;
         }
 
@@ -270,10 +303,11 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
         // We could make an additional API call to check roles, but that would be overkill for this feature
         return true; // Show delete button for all users, backend will enforce proper permissions
       },
-      [user]
+      [user],
     );
 
-    const formatTimestamp = (timestamp: string): string => {
+    const formatTimestamp = (timestamp: string): string =>
+    {
       const timestampNum = parseInt(timestamp);
       const date = new Date(timestampNum);
       const hours = String(date.getUTCHours()).padStart(2, '0');
@@ -282,7 +316,8 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
       return `${hours}:${minutes}:${seconds}`;
     };
 
-    const formatDate = (dateString: string): string => {
+    const formatDate = (dateString: string): string =>
+    {
       return new Date(dateString).toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
@@ -292,15 +327,19 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
     };
 
     // Get unique players and labels for filter options
-    const getUniqueFilterOptions = useCallback(() => {
+    const getUniqueFilterOptions = useCallback(() =>
+    {
       const players = new Set<string>();
       const labels = new Set<string>();
 
-      coachingPoints.forEach((point) => {
-        point.coaching_point_tagged_players?.forEach((tp) => {
+      coachingPoints.forEach((point) =>
+      {
+        point.coaching_point_tagged_players?.forEach((tp) =>
+        {
           players.add(tp.player_profiles.name);
         });
-        point.coaching_point_labels?.forEach((label) => {
+        point.coaching_point_labels?.forEach((label) =>
+        {
           labels.add(label.labels.name);
         });
       });
@@ -312,15 +351,19 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
     }, [coachingPoints]);
 
     // Memoize filter options
-    useMemo(() => {
+    useMemo(() =>
+    {
       const players = new Set<string>();
       const labels = new Set<string>();
 
-      coachingPoints.forEach((point) => {
-        point.coaching_point_tagged_players?.forEach((tp) => {
+      coachingPoints.forEach((point) =>
+      {
+        point.coaching_point_tagged_players?.forEach((tp) =>
+        {
           players.add(tp.player_profiles.name);
         });
-        point.coaching_point_labels?.forEach((label) => {
+        point.coaching_point_labels?.forEach((label) =>
+        {
           labels.add(label.labels.name);
         });
       });
@@ -332,29 +375,34 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
     }, [coachingPoints]);
 
     // Memoize filtered results
-    const filteredPoints = useMemo(() => {
-      return coachingPoints.filter((point) => {
+    const filteredPoints = useMemo(() =>
+    {
+      return coachingPoints.filter((point) =>
+      {
         // Title filter
         if (
           titleFilter &&
           !point.title.toLowerCase().includes(titleFilter.toLowerCase()) &&
           !point.feedback.toLowerCase().includes(titleFilter.toLowerCase())
-        ) {
+        )
+        {
           return false;
         }
 
         // Player filter
-        if (selectedPlayerFilter) {
+        if (selectedPlayerFilter)
+        {
           const hasPlayer = point.coaching_point_tagged_players?.some(
-            (tp) => tp.player_profiles.name === selectedPlayerFilter
+            (tp) => tp.player_profiles.name === selectedPlayerFilter,
           );
           if (!hasPlayer) return false;
         }
 
         // Label filter
-        if (selectedLabelFilter) {
+        if (selectedLabelFilter)
+        {
           const hasLabel = point.coaching_point_labels?.some(
-            (label) => label.labels.name === selectedLabelFilter
+            (label) => label.labels.name === selectedLabelFilter,
           );
           if (!hasLabel) return false;
         }
@@ -364,12 +412,14 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
     }, [coachingPoints, titleFilter, selectedPlayerFilter, selectedLabelFilter]);
 
     // Filter coaching points based on active filters
-    const filteredCoachingPoints = useCallback(() => {
+    const filteredCoachingPoints = useCallback(() =>
+    {
       return filteredPoints;
     }, [filteredPoints]);
 
     // Clear all filters
-    const clearFilters = useCallback(() => {
+    const clearFilters = useCallback(() =>
+    {
       setTitleFilter('');
       setSelectedPlayerFilter('');
       setSelectedLabelFilter('');
@@ -378,30 +428,36 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
     // Check if any filters are active
     const hasActiveFilters = titleFilter || selectedPlayerFilter || selectedLabelFilter;
 
-    useEffect(() => {
-      if (isExpanded && coachingPoints.length === 0) {
+    useEffect(() =>
+    {
+      if (isExpanded && coachingPoints.length === 0)
+      {
         loadCoachingPoints();
       }
     }, [isExpanded, coachingPoints.length, loadCoachingPoints]);
 
     // Refresh coaching points when refreshTrigger changes
-    useEffect(() => {
-      if (refreshTrigger !== undefined) {
+    useEffect(() =>
+    {
+      if (refreshTrigger !== undefined)
+      {
         loadCoachingPoints();
       }
     }, [refreshTrigger, loadCoachingPoints]);
 
     // Notify parent when expansion state changes
-    useEffect(() => {
-      if (onExpandedChange) {
+    useEffect(() =>
+    {
+      if (onExpandedChange)
+      {
         onExpandedChange(isExpanded);
       }
     }, [isExpanded, onExpandedChange]);
 
     return (
       <div className={`coaching-points-flyout ${isExpanded ? 'expanded' : 'collapsed'}`}>
-        <div className="flyout-header">
-          <div className="header-content">
+        <div className='flyout-header'>
+          <div className='header-content'>
             <TransportControl
               isPlaying={isPlaying}
               currentTime={currentTime}
@@ -414,11 +470,12 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
               disabled={isCoachingPointPlaybackActive}
             />
 
-            <div className="header-right" onClick={() => setIsExpanded(!isExpanded)}>
+            <div className='header-right' onClick={() => setIsExpanded(!isExpanded)}>
               <h3>Coaching Points</h3>
               <button
-                className="expand-button"
-                onClick={(e) => {
+                className='expand-button'
+                onClick={(e) =>
+                {
                   e.stopPropagation();
                   setIsExpanded(!isExpanded);
                 }}
@@ -430,32 +487,32 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
         </div>
 
         {isExpanded && (
-          <div className="flyout-content">
+          <div className='flyout-content'>
             {/* Filter Section */}
             {coachingPoints.length > 0 && (
-              <div className="filters-section">
-                <div className="filters-grid">
+              <div className='filters-section'>
+                <div className='filters-grid'>
                   {/* Title/Content Filter */}
-                  <div className="filter-group">
+                  <div className='filter-group'>
                     <input
-                      id="title-filter"
-                      type="text"
+                      id='title-filter'
+                      type='text'
                       value={titleFilter}
                       onChange={(e) => setTitleFilter(e.target.value)}
-                      placeholder="Search in titles and feedback..."
-                      className="filter-input"
+                      placeholder='Search in titles and feedback...'
+                      className='filter-input'
                     />
                   </div>
 
                   {/* Player Filter */}
-                  <div className="filter-group">
+                  <div className='filter-group'>
                     <select
-                      id="player-filter"
+                      id='player-filter'
                       value={selectedPlayerFilter}
                       onChange={(e) => setSelectedPlayerFilter(e.target.value)}
-                      className="filter-select"
+                      className='filter-select'
                     >
-                      <option value="">All Players</option>
+                      <option value=''>All Players</option>
                       {getUniqueFilterOptions().players.map((player) => (
                         <option key={player} value={player}>
                           {player}
@@ -465,14 +522,14 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
                   </div>
 
                   {/* Label Filter */}
-                  <div className="filter-group">
+                  <div className='filter-group'>
                     <select
-                      id="label-filter"
+                      id='label-filter'
                       value={selectedLabelFilter}
                       onChange={(e) => setSelectedLabelFilter(e.target.value)}
-                      className="filter-select"
+                      className='filter-select'
                     >
-                      <option value="">All Labels</option>
+                      <option value=''>All Labels</option>
                       {getUniqueFilterOptions().labels.map((label) => (
                         <option key={label} value={label}>
                           {label}
@@ -482,9 +539,9 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
                   </div>
 
                   {/* Clear All Button */}
-                  <div className="filter-group clear-filter-group">
+                  <div className='filter-group clear-filter-group'>
                     {hasActiveFilters && (
-                      <button onClick={clearFilters} className="clear-filters-btn">
+                      <button onClick={clearFilters} className='clear-filters-btn'>
                         Clear All
                       </button>
                     )}
@@ -494,32 +551,32 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
             )}
 
             {loading && (
-              <div className="loading-state">
-                <div className="loading-spinner">Loading coaching points...</div>
+              <div className='loading-state'>
+                <div className='loading-spinner'>Loading coaching points...</div>
               </div>
             )}
 
             {error && (
-              <div className="error-state">
+              <div className='error-state'>
                 <p>{error}</p>
-                <button onClick={loadCoachingPoints} className="btn btn-secondary btn-sm">
+                <button onClick={loadCoachingPoints} className='btn btn-secondary btn-sm'>
                   Retry
                 </button>
               </div>
             )}
 
             {!loading && !error && coachingPoints.length === 0 && (
-              <div className="empty-state">
+              <div className='empty-state'>
                 <p>No coaching points have been created for this game yet.</p>
                 <p>Pause the video and click "Add Coaching Point" to create one.</p>
               </div>
             )}
 
             {!loading && !error && coachingPoints.length > 0 && filteredCoachingPoints().length === 0 && (
-              <div className="empty-state">
+              <div className='empty-state'>
                 <p>No coaching points match the current filters.</p>
                 {hasActiveFilters && (
-                  <button onClick={clearFilters} className="btn btn-secondary btn-sm">
+                  <button onClick={clearFilters} className='btn btn-secondary btn-sm'>
                     Clear Filters
                   </button>
                 )}
@@ -527,40 +584,40 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
             )}
 
             {!loading && !error && filteredCoachingPoints().length > 0 && (
-              <div className="coaching-points-list">
+              <div className='coaching-points-list'>
                 {filteredCoachingPoints().map((point) => (
                   <div
                     key={point.id}
-                    className="coaching-point-item"
+                    className='coaching-point-item'
                     onClick={() => handlePointClick(point)}
                   >
                     {canDeletePoint(point) && (
                       <button
-                        className="delete-point-btn"
+                        className='delete-point-btn'
                         onClick={(e) => handleDeletePoint(point.id, e)}
-                        title="Delete coaching point"
-                        aria-label="Delete coaching point"
+                        title='Delete coaching point'
+                        aria-label='Delete coaching point'
                       >
                         ✕
                       </button>
                     )}
-                    <div className="point-header">
-                      <div className="point-timestamp">{formatTimestamp(point.timestamp)}</div>
+                    <div className='point-header'>
+                      <div className='point-timestamp'>{formatTimestamp(point.timestamp)}</div>
                     </div>
 
-                    <div className="point-content">
-                      <h4 className="point-title">{point.title}</h4>
-                      <p className="point-feedback">{point.feedback}</p>
+                    <div className='point-content'>
+                      <h4 className='point-title'>{point.title}</h4>
+                      <p className='point-feedback'>{point.feedback}</p>
 
                       {/* Combined Players and Labels Container */}
                       {((point.coaching_point_tagged_players && point.coaching_point_tagged_players.length > 0) ||
                         (point.coaching_point_labels && point.coaching_point_labels.length > 0)) && (
-                        <div className="point-tags-container">
+                        <div className='point-tags-container'>
                           {/* Tagged Players */}
                           {point.coaching_point_tagged_players && point.coaching_point_tagged_players.length > 0 && (
-                            <div className="point-tagged-players">
+                            <div className='point-tagged-players'>
                               {point.coaching_point_tagged_players.map((taggedPlayer) => (
-                                <span key={taggedPlayer.id} className="player-tag">
+                                <span key={taggedPlayer.id} className='player-tag'>
                                   {taggedPlayer.player_profiles.name}
                                 </span>
                               ))}
@@ -569,9 +626,9 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
 
                           {/* Labels */}
                           {point.coaching_point_labels && point.coaching_point_labels.length > 0 && (
-                            <div className="point-labels">
+                            <div className='point-labels'>
                               {point.coaching_point_labels.map((labelAssignment) => (
-                                <span key={labelAssignment.id} className="label-tag">
+                                <span key={labelAssignment.id} className='label-tag'>
                                   {labelAssignment.labels.name}
                                 </span>
                               ))}
@@ -581,9 +638,9 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
                       )}
                     </div>
 
-                    <div className="point-footer">
-                      <span className="point-author">by {point.author?.name || 'Unknown'}</span>
-                      <div className="point-date">{formatDate(point.created_at)}</div>
+                    <div className='point-footer'>
+                      <span className='point-author'>by {point.author?.name || 'Unknown'}</span>
+                      <div className='point-date'>{formatDate(point.created_at)}</div>
                     </div>
                   </div>
                 ))}
@@ -593,5 +650,5 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
         )}
       </div>
     );
-  }
+  },
 );

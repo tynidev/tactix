@@ -1,10 +1,11 @@
-import React, { useEffect, useState, useMemo, useCallback, useImperativeHandle, forwardRef } from 'react';
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import DatePicker from 'react-datepicker';
 import { getApiUrl, getValidAccessToken } from '../../utils/api';
 import './GamesList.css';
 import 'react-datepicker/dist/react-datepicker.css';
 
-interface Game {
+interface Game
+{
   id: string;
   opponent: string;
   date: string;
@@ -24,7 +25,8 @@ interface Game {
   user_role?: string;
 }
 
-interface Team {
+interface Team
+{
   role: string;
   teams: {
     id: string;
@@ -33,7 +35,8 @@ interface Team {
   };
 }
 
-interface GamesListProps {
+interface GamesListProps
+{
   teamId?: string;
   userRole?: string;
   teams: Team[];
@@ -43,7 +46,8 @@ interface GamesListProps {
   onAnalyzeGame: (game: Game) => void;
 }
 
-export interface GamesListRef {
+export interface GamesListRef
+{
   refresh: () => void;
 }
 
@@ -54,8 +58,9 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
   selectedTeam,
   onTeamChange,
   onEditGame,
-  onAnalyzeGame
-}, ref) => {
+  onAnalyzeGame,
+}, ref) =>
+{
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -67,21 +72,25 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
 
-  useEffect(() => {
+  useEffect(() =>
+  {
     fetchGames();
   }, [teamId]);
 
   // Expose refresh function to parent component
   useImperativeHandle(ref, () => ({
-    refresh: fetchGames
+    refresh: fetchGames,
   }));
 
-  const fetchGames = async () => {
-    try {
+  const fetchGames = async () =>
+  {
+    try
+    {
       setLoading(true);
       const token = await getValidAccessToken();
-      
-      if (!token) {
+
+      if (!token)
+      {
         throw new Error('No access token');
       }
 
@@ -91,33 +100,42 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
       const response = await fetch(endpoint, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+        },
       });
 
-      if (!response.ok) {
+      if (!response.ok)
+      {
         throw new Error('Failed to fetch games');
       }
 
       const data = await response.json();
       setGames(data);
-    } catch (err) {
+    }
+    catch (err)
+    {
       setError('Failed to load games');
       console.error('Error fetching games:', err);
-    } finally {
+    }
+    finally
+    {
       setLoading(false);
     }
   };
 
-  const handleDeleteGame = async (gameId: string) => {
-    if (!confirm('Are you sure you want to delete this game? This will also delete all coaching points.')) {
+  const handleDeleteGame = async (gameId: string) =>
+  {
+    if (!confirm('Are you sure you want to delete this game? This will also delete all coaching points.'))
+    {
       return;
     }
 
-    try {
+    try
+    {
       const token = await getValidAccessToken();
-      
-      if (!token) {
+
+      if (!token)
+      {
         throw new Error('No access token');
       }
 
@@ -126,101 +144,128 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+        },
       });
 
-      if (!response.ok) {
+      if (!response.ok)
+      {
         throw new Error('Failed to delete game');
       }
 
       // Refresh games list
       fetchGames();
-    } catch (err) {
+    }
+    catch (err)
+    {
       alert('Failed to delete game');
       console.error('Error deleting game:', err);
     }
   };
 
-  const formatGameResult = (teamScore: number | null, oppScore: number | null) => {
-    if (teamScore === null || oppScore === null) {
+  const formatGameResult = (teamScore: number | null, oppScore: number | null) =>
+  {
+    if (teamScore === null || oppScore === null)
+    {
       return 'No score';
     }
 
-    if (teamScore > oppScore) {
+    if (teamScore > oppScore)
+    {
       return `W ${teamScore}-${oppScore}`;
-    } else if (teamScore < oppScore) {
+    }
+    else if (teamScore < oppScore)
+    {
       return `L ${teamScore}-${oppScore}`;
-    } else {
+    }
+    else
+    {
       return `T ${teamScore}-${oppScore}`;
     }
   };
 
-  const getResultClass = (teamScore: number | null, oppScore: number | null) => {
-    if (teamScore === null || oppScore === null) {
+  const getResultClass = (teamScore: number | null, oppScore: number | null) =>
+  {
+    if (teamScore === null || oppScore === null)
+    {
       return '';
     }
 
-    if (teamScore > oppScore) {
+    if (teamScore > oppScore)
+    {
       return 'result-win';
-    } else if (teamScore < oppScore) {
+    }
+    else if (teamScore < oppScore)
+    {
       return 'result-loss';
-    } else {
+    }
+    else
+    {
       return 'result-tie';
     }
   };
 
   // Date range handlers
-  const handleDateChange = useCallback((dates: [Date | null, Date | null]) => {
+  const handleDateChange = useCallback((dates: [Date | null, Date | null]) =>
+  {
     const [start, end] = dates;
     setStartDate(start);
     setEndDate(end);
   }, []);
 
-  const clearDateRange = useCallback(() => {
+  const clearDateRange = useCallback(() =>
+  {
     setStartDate(null);
     setEndDate(null);
   }, []);
 
   // Filter logic
-  const filteredGames = useMemo(() => {
-    return games.filter((game) => {
+  const filteredGames = useMemo(() =>
+  {
+    return games.filter((game) =>
+    {
       // Text search filter
-      if (searchText) {
+      if (searchText)
+      {
         const searchLower = searchText.toLowerCase();
         const teamName = game.teams?.name?.toLowerCase() || '';
         const opponent = game.opponent.toLowerCase();
         const notes = game.notes?.toLowerCase() || '';
-        
-        const matchesSearch = teamName.includes(searchLower) || 
-                            opponent.includes(searchLower) || 
-                            notes.includes(searchLower);
-        
+
+        const matchesSearch = teamName.includes(searchLower) ||
+          opponent.includes(searchLower) ||
+          notes.includes(searchLower);
+
         if (!matchesSearch) return false;
       }
 
       // Home/Away filter
-      if (homeAwayFilter && game.home_away !== homeAwayFilter) {
+      if (homeAwayFilter && game.home_away !== homeAwayFilter)
+      {
         return false;
       }
 
       // Game type filter
-      if (gameTypeFilter && game.game_type !== gameTypeFilter) {
+      if (gameTypeFilter && game.game_type !== gameTypeFilter)
+      {
         return false;
       }
 
       // Date range filter
-      if (startDate || endDate) {
+      if (startDate || endDate)
+      {
         const gameDate = new Date(game.date);
         gameDate.setHours(0, 0, 0, 0); // Reset time for date comparison
-        
-        if (startDate) {
+
+        if (startDate)
+        {
           const start = new Date(startDate);
           start.setHours(0, 0, 0, 0);
           if (gameDate < start) return false;
         }
-        
-        if (endDate) {
+
+        if (endDate)
+        {
           const end = new Date(endDate);
           end.setHours(23, 59, 59, 999);
           if (gameDate > end) return false;
@@ -232,7 +277,8 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
   }, [games, searchText, homeAwayFilter, gameTypeFilter, startDate, endDate]);
 
   // Clear all filters
-  const clearFilters = useCallback(() => {
+  const clearFilters = useCallback(() =>
+  {
     setSearchText('');
     setHomeAwayFilter('');
     setGameTypeFilter('');
@@ -242,42 +288,43 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
   // Check if any filters are active
   const hasActiveFilters = searchText || homeAwayFilter || gameTypeFilter || startDate || endDate;
 
-  if (loading) {
+  if (loading)
+  {
     return (
-      <div className="games-list">
-        <div className="loading">Loading games...</div>
+      <div className='games-list'>
+        <div className='loading'>Loading games...</div>
       </div>
     );
   }
 
   return (
-    <div className="games-list">
-      {error && <div className="alert alert-error">{error}</div>}
+    <div className='games-list'>
+      {error && <div className='alert alert-error'>{error}</div>}
 
       {/* Filter Section */}
-      <div className="filter-section">
-        <div className="filter-container">
-          <div className="filter-group">
-            <label htmlFor="search">Search</label>
+      <div className='filter-section'>
+        <div className='filter-container'>
+          <div className='filter-group'>
+            <label htmlFor='search'>Search</label>
             <input
-              type="text"
-              id="search"
-              className="filter-input"
-              placeholder="Search teams, opponents, notes..."
+              type='text'
+              id='search'
+              className='filter-input'
+              placeholder='Search teams, opponents, notes...'
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
             />
           </div>
 
-          <div className="filter-group">
-            <label htmlFor="team">Team</label>
+          <div className='filter-group'>
+            <label htmlFor='team'>Team</label>
             <select
-              id="team"
-              className="filter-input filter-select"
+              id='team'
+              className='filter-input filter-select'
               value={selectedTeam?.teams.id || ''}
               onChange={onTeamChange}
             >
-              <option value="">All Teams</option>
+              <option value=''>All Teams</option>
               {teams.map((team) => (
                 <option key={team.teams.id} value={team.teams.id}>
                   {team.teams.name}
@@ -286,52 +333,52 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
             </select>
           </div>
 
-          <div className="filter-group">
-            <label htmlFor="location">Location</label>
+          <div className='filter-group'>
+            <label htmlFor='location'>Location</label>
             <select
-              id="location"
-              className="filter-input filter-select"
+              id='location'
+              className='filter-input filter-select'
               value={homeAwayFilter}
               onChange={(e) => setHomeAwayFilter(e.target.value)}
             >
-              <option value="">Home/Away</option>
-              <option value="home">Home</option>
-              <option value="away">Away</option>
-              <option value="neutral">Neutral</option>
+              <option value=''>Home/Away</option>
+              <option value='home'>Home</option>
+              <option value='away'>Away</option>
+              <option value='neutral'>Neutral</option>
             </select>
           </div>
 
-          <div className="filter-group">
-            <label htmlFor="game-type">Game Type</label>
+          <div className='filter-group'>
+            <label htmlFor='game-type'>Game Type</label>
             <select
-              id="game-type"
-              className="filter-input filter-select"
+              id='game-type'
+              className='filter-input filter-select'
               value={gameTypeFilter}
               onChange={(e) => setGameTypeFilter(e.target.value)}
             >
-              <option value="">All Game Types</option>
-              <option value="regular">Regular</option>
-              <option value="tournament">Tournament</option>
-              <option value="scrimmage">Scrimmage</option>
+              <option value=''>All Game Types</option>
+              <option value='regular'>Regular</option>
+              <option value='tournament'>Tournament</option>
+              <option value='scrimmage'>Scrimmage</option>
             </select>
           </div>
 
-          <div className="date-range-container">
-            <div className="date-picker-wrapper">
+          <div className='date-range-container'>
+            <div className='date-picker-wrapper'>
               <label>Date Range</label>
               <DatePicker
                 selectsRange
                 startDate={startDate}
                 endDate={endDate}
                 onChange={handleDateChange}
-                placeholderText="Select date range"
-                className="filter-input"
+                placeholderText='Select date range'
+                className='filter-input'
                 isClearable
-                dateFormat="MM/dd/yyyy"
+                dateFormat='MM/dd/yyyy'
               />
             </div>
             {hasActiveFilters && (
-              <button onClick={clearFilters} className="btn btn-secondary clear-all-btn">
+              <button onClick={clearFilters} className='btn btn-secondary clear-all-btn'>
                 Clear All
               </button>
             )}
@@ -339,98 +386,107 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
         </div>
       </div>
 
-      {games.length === 0 ? (
-        <div className="empty-state">
-          <h3>No Games Yet</h3>
-          <p>Get started by adding your first game to analyze.</p>
-        </div>
-      ) : filteredGames.length === 0 ? (
-        <div className="empty-state">
-          <h3>No Games Match Filters</h3>
-          <p>Try adjusting your filters to see more games.</p>
-          {hasActiveFilters && (
-            <button onClick={clearFilters} className="btn btn-secondary btn-sm" style={{ marginTop: 'var(--space-md)' }}>
-              Clear All Filters
-            </button>
-          )}
-        </div>
-      ) : (
-        <div className="games-grid">
-          {filteredGames.map((game) => (
-            <div key={game.id} className="game-card">
-              <div className="game-header">
-                <div className="game-info">
-                  {game.teams && (
-                    <h3 className="game-team" style={{ fontWeight: 'bold', color: 'var(--primary-500)', marginBottom: 'var(--space-xs)' }}>
-                      {game.teams.name}
-                    </h3>
-                  )}
-                  <h3 className="game-opponent">vs {game.opponent}</h3>
-                  <div className="game-meta">
-                    <span className="game-date">
-                      {new Date(game.date).toLocaleDateString()}
-                    </span>
-                    <span className="game-type">{game.game_type}</span>
-                    <span className="game-location">{game.home_away}</span>
+      {games.length === 0 ?
+        (
+          <div className='empty-state'>
+            <h3>No Games Yet</h3>
+            <p>Get started by adding your first game to analyze.</p>
+          </div>
+        ) :
+        filteredGames.length === 0 ?
+        (
+          <div className='empty-state'>
+            <h3>No Games Match Filters</h3>
+            <p>Try adjusting your filters to see more games.</p>
+            {hasActiveFilters && (
+              <button
+                onClick={clearFilters}
+                className='btn btn-secondary btn-sm'
+                style={{ marginTop: 'var(--space-md)' }}
+              >
+                Clear All Filters
+              </button>
+            )}
+          </div>
+        ) :
+        (
+          <div className='games-grid'>
+            {filteredGames.map((game) => (
+              <div key={game.id} className='game-card'>
+                <div className='game-header'>
+                  <div className='game-info'>
+                    {game.teams && (
+                      <h3
+                        className='game-team'
+                        style={{ fontWeight: 'bold', color: 'var(--primary-500)', marginBottom: 'var(--space-xs)' }}
+                      >
+                        {game.teams.name}
+                      </h3>
+                    )}
+                    <h3 className='game-opponent'>vs {game.opponent}</h3>
+                    <div className='game-meta'>
+                      <span className='game-date'>
+                        {new Date(game.date).toLocaleDateString()}
+                      </span>
+                      <span className='game-type'>{game.game_type}</span>
+                      <span className='game-location'>{game.home_away}</span>
+                    </div>
+                  </div>
+                  <div className={`game-result ${getResultClass(game.team_score, game.opp_score)}`}>
+                    {formatGameResult(game.team_score, game.opp_score)}
                   </div>
                 </div>
-                <div className={`game-result ${getResultClass(game.team_score, game.opp_score)}`}>
-                  {formatGameResult(game.team_score, game.opp_score)}
-                </div>
-              </div>
 
-              <div className="game-content">
-                {game.location && (
-                  <p className="game-location-detail">📍 {game.location}</p>
-                )}
+                <div className='game-content'>
+                  {game.location && <p className='game-location-detail'>📍 {game.location}</p>}
 
-                <div className="game-notes">
-                  {game.notes || ''}
-                </div>
+                  <div className='game-notes'>
+                    {game.notes || ''}
+                  </div>
 
-                <div className="game-stats">
-                  {game.video_id && (
-                    <span className="game-stat">
-                      📹 Video Available
+                  <div className='game-stats'>
+                    {game.video_id && (
+                      <span className='game-stat'>
+                        📹 Video Available
+                      </span>
+                    )}
+                    <span className='game-stat'>
+                      💬 {game.coaching_points_count || 0} coaching points
                     </span>
+                  </div>
+                </div>
+
+                <div className='game-actions'>
+                  <button
+                    onClick={() => onAnalyzeGame(game)}
+                    className='btn btn-primary btn-sm'
+                    disabled={!game.video_id}
+                    title={!game.video_id ? 'Video required for analysis' : 'Start analysis'}
+                  >
+                    {game.video_id ? 'Analyze' : 'No Video'}
+                  </button>
+
+                  {((game.user_role || userRole) === 'coach' || (game.user_role || userRole) === 'admin') && (
+                    <>
+                      <button
+                        onClick={() => onEditGame(game)}
+                        className='btn btn-secondary btn-sm'
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteGame(game.id)}
+                        className='btn btn-error btn-sm'
+                      >
+                        Delete
+                      </button>
+                    </>
                   )}
-                  <span className="game-stat">
-                    💬 {game.coaching_points_count || 0} coaching points
-                  </span>
                 </div>
               </div>
-
-              <div className="game-actions">
-                <button
-                  onClick={() => onAnalyzeGame(game)}
-                  className="btn btn-primary btn-sm"
-                  disabled={!game.video_id}
-                  title={!game.video_id ? 'Video required for analysis' : 'Start analysis'}
-                >
-                  {game.video_id ? 'Analyze' : 'No Video'}
-                </button>
-                
-                {((game.user_role || userRole) === 'coach' || (game.user_role || userRole) === 'admin') && (
-                  <>
-                    <button
-                      onClick={() => onEditGame(game)}
-                      className="btn btn-secondary btn-sm"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeleteGame(game.id)}
-                      className="btn btn-error btn-sm"
-                    >
-                      Delete
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
     </div>
   );
 });
