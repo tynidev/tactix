@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { getApiUrl } from '../../utils/api';
 import ThemeToggle from '../ThemeToggle/ThemeToggle';
@@ -16,7 +16,7 @@ export const Auth: React.FC = () =>
 
   // Team code related state
   const [teamCode, setTeamCode] = useState<string | null>(null);
-  const [teamInfo, setTeamInfo] = useState<{name: string, role: string} | null>(null);
+  const [teamInfo, setTeamInfo] = useState<{ name: string; role: string; } | null>(null);
   const [teamJoinStatus, setTeamJoinStatus] = useState<'pending' | 'success' | 'error' | null>(null);
   const [teamJoinError, setTeamJoinError] = useState<string>('');
 
@@ -25,8 +25,10 @@ export const Auth: React.FC = () =>
   const navigate = useNavigate();
 
   // Function to validate team code and get team info
-  const validateTeamCode = async (code: string) => {
-    try {
+  const validateTeamCode = async (code: string) =>
+  {
+    try
+    {
       const apiUrl = getApiUrl();
       const response = await fetch(`${apiUrl}/api/teams/join-codes/${code}/validate`, {
         method: 'GET',
@@ -35,24 +37,29 @@ export const Auth: React.FC = () =>
         },
       });
 
-      if (!response.ok) {
+      if (!response.ok)
+      {
         throw new Error('Invalid or expired team code');
       }
 
       const data = await response.json();
       return {
         name: data.team_name,
-        role: data.team_role || 'guardian' // Default to guardian if no role specified
+        role: data.team_role || 'guardian', // Default to guardian if no role specified
       };
-    } catch (error) {
+    }
+    catch (error)
+    {
       console.error('Team code validation error:', error);
       return null;
     }
   };
 
   // Function to join team with code
-  const joinTeamWithCode = async (code: string) => {
-    try {
+  const joinTeamWithCode = async (code: string) =>
+  {
+    try
+    {
       const apiUrl = getApiUrl();
       const response = await fetch(`${apiUrl}/api/teams/join`, {
         method: 'POST',
@@ -64,9 +71,11 @@ export const Auth: React.FC = () =>
 
       const data = await response.json();
 
-      if (!response.ok) {
+      if (!response.ok)
+      {
         // Handle "already a member" case gracefully
-        if (data.error?.includes('already a member')) {
+        if (data.error?.includes('already a member'))
+        {
           setTeamJoinStatus('success');
           setSuccessMessage(`Welcome back! You're already a member of ${teamInfo?.name}.`);
           return true;
@@ -77,7 +86,9 @@ export const Auth: React.FC = () =>
       setTeamJoinStatus('success');
       setSuccessMessage(`Successfully joined ${data.team.name} as ${data.team.role}!`);
       return true;
-    } catch (error) {
+    }
+    catch (error)
+    {
       console.error('Team join error:', error);
       setTeamJoinStatus('error');
       setTeamJoinError(error instanceof Error ? error.message : 'Failed to join team');
@@ -86,18 +97,24 @@ export const Auth: React.FC = () =>
   };
 
   // Check for team code in URL on component mount
-  useEffect(() => {
+  useEffect(() =>
+  {
     const code = searchParams.get('teamCode');
-    if (code) {
+    if (code)
+    {
       setTeamCode(code);
-      validateTeamCode(code).then(info => {
-        if (info) {
+      validateTeamCode(code).then(info =>
+      {
+        if (info)
+        {
           setTeamInfo(info);
-        } else {
+        }
+        else
+        {
           setError('Invalid or expired team invitation code');
         }
       });
-      
+
       // Clear the team code from URL
       const newParams = new URLSearchParams(searchParams);
       newParams.delete('teamCode');
@@ -155,7 +172,8 @@ export const Auth: React.FC = () =>
           if (joinSuccess)
           {
             // Navigate to dashboard after successful team join
-            setTimeout(() => {
+            setTimeout(() =>
+            {
               navigate('/dashboard');
             }, 2000);
           }
@@ -163,7 +181,8 @@ export const Auth: React.FC = () =>
         else if (isLogin)
         {
           // Normal login without team code - navigate to dashboard
-          setTimeout(() => {
+          setTimeout(() =>
+          {
             navigate('/dashboard');
           }, 1000);
         }
@@ -287,11 +306,13 @@ export const Auth: React.FC = () =>
             className='btn btn-primary btn-full'
             disabled={loading}
           >
-            {loading ? 'Loading...' : 
-             teamCode ? 
-               `${isLogin ? 'Sign In' : 'Sign Up'} & Join Team` : 
-               isLogin ? 'Sign In' : 'Sign Up'
-            }
+            {loading ?
+              'Loading...' :
+              teamCode ?
+              `${isLogin ? 'Sign In' : 'Sign Up'} & Join Team` :
+              isLogin ?
+              'Sign In' :
+              'Sign Up'}
           </button>
         </form>
 
