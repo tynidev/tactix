@@ -180,7 +180,7 @@ export const TeamDetailPage: React.FC = () =>
   {
     try
     {
-      const fullUrl = `${window.location.origin}/auth?teamCode=${code}`;
+      const fullUrl = `${window.location.origin}/?teamCode=${code}`;
       await navigator.clipboard.writeText(fullUrl);
       // Could show a temporary toast message here
       alert('Join link copied to clipboard!');
@@ -189,7 +189,7 @@ export const TeamDetailPage: React.FC = () =>
     {
       console.error('Failed to copy to clipboard:', err);
       // Fallback for older browsers
-      const fullUrl = `${window.location.origin}/auth?teamCode=${code}`;
+      const fullUrl = `${window.location.origin}/?teamCode=${code}`;
       const textArea = document.createElement('textarea');
       textArea.value = fullUrl;
       document.body.appendChild(textArea);
