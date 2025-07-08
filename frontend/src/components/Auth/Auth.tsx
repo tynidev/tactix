@@ -31,7 +31,7 @@ export const Auth: React.FC = () =>
     {
       const apiUrl = getApiUrl();
       console.log('Validating team code:', code, 'API URL:', apiUrl);
-      
+
       const response = await fetch(`${apiUrl}/api/teams/join-codes/${code}/validate`, {
         method: 'GET',
         headers: {
@@ -51,7 +51,7 @@ export const Auth: React.FC = () =>
 
       const data = await response.json();
       console.log('Validation success data:', data);
-      
+
       return {
         name: data.team_name,
         role: data.team_role || 'guardian', // Default to guardian if no role specified
