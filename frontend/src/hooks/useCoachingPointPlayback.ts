@@ -160,9 +160,10 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
   // Store duration in a ref so it can be accessed in the animation loop without dependencies
   const durationRef = useRef<number>(0);
   const lastUpdateTimeRef = useRef<number>(0);
-  
+
   // Update duration ref when duration state changes
-  useEffect(() => {
+  useEffect(() =>
+  {
     durationRef.current = duration;
   }, [duration]);
 
@@ -188,7 +189,8 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
 
     // Throttle UI updates to ~10Hz instead of 60Hz to improve React rendering performance
     const now = Date.now();
-    if (now - lastUpdateTimeRef.current >= 100) { // Update every 100ms
+    if (now - lastUpdateTimeRef.current >= 100)
+    { // Update every 100ms
       setCurrentTime(time);
       setProgress(dur > 0 ? (time / dur) * 100 : 0);
       lastUpdateTimeRef.current = now;
@@ -351,7 +353,6 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
       setIsLoading(false);
       setIsPlaying(false);
     });
-
 
     // Start playing
     audio.play().catch(err =>
