@@ -354,7 +354,7 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
         cancelAnimationFrame(animationFrameRef.current);
         animationFrameRef.current = null;
       }
-      
+
       // Call completion handler to notify parent component (e.g., to clear canvas)
       handlersRef.current.onPlaybackComplete?.();
     });
