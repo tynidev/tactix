@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { DashboardPage, GamesPage, ReviewPage, TeamDetailPage, TeamsPage } from '../../pages';
 import { Navigation } from '../Navigation/Navigation';
 import UserProfilePage from '../UserProfile/UserProfile';
+import { Auth } from '../Auth/Auth';
 
 export const AppRouter: React.FC = () =>
 {
@@ -11,6 +12,7 @@ export const AppRouter: React.FC = () =>
       <Navigation />
       <Routes>
         <Route path='/' element={<Navigate to='/dashboard' replace />} />
+        <Route path='/auth' element={<Auth />} />
         <Route path='/dashboard' element={<DashboardPage />} />
         <Route path='/teams' element={<TeamsPage />} />
         <Route path='/team/:teamId' element={<TeamDetailPage />} />
