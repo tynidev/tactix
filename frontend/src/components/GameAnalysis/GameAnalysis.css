@@ -71,7 +71,7 @@
 }
 
 .coaching-point-sidebar {
-  flex: 0 0 30%;
+  flex: 0 0 400px;
   background: var(--color-bg-secondary);
   border-left: 1px solid var(--border-color);
   display: flex;

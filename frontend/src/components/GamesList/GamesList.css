@@ -50,7 +50,9 @@
   min-width: 0;
 }
 
+.game-team,
 .game-opponent {
+  text-align: left;
   margin: 0 0 var(--space-xs) 0;
   font-size: 1.125rem;
   font-weight: 600;
@@ -216,5 +218,307 @@
   .game-actions .btn {
     flex: 0 1 auto;
     min-width: 70px;
+  }
+}
+
+
+/* Filter Section */
+.filter-section {
+  background: var(--color-bg-card);
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+  margin-bottom: var(--space-2xl);
+  position: relative; /* Add this for date picker positioning */
+}
+
+.filter-container {
+  display: flex;
+  gap: var(--space-md);
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.filter-group {
+  flex: 1;
+  min-width: 200px;
+}
+
+.filter-group label {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filter-input {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  font-size: var(--text-base);
+  font-family: var(--font-family);
+  transition: all var(--transition-fast);
+}
+
+.filter-input:focus {
+  outline: none;
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+}
+
+.filter-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right var(--space-sm) center;
+  background-size: 20px;
+  padding-right: var(--space-2xl);
+}
+
+.filter-date-range {
+  position: relative;
+}
+
+/* Date Range Picker - Floating */
+.date-range-picker {
+  position: absolute;
+  top: calc(100% + var(--space-xs));
+  left: 0;
+  z-index: 1000;
+  background: var(--color-bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-lg);
+  min-width: 320px;
+  max-width: 90vw;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all var(--transition-normal);
+}
+
+.date-range-picker.active {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+/* Date picker header */
+.date-picker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.date-picker-header h3 {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+}
+
+/* Quick select options */
+.date-quick-select {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-lg);
+}
+
+.date-quick-option {
+  padding: var(--space-sm) var(--space-md);
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: left;
+  transition: all var(--transition-fast);
+  color: var(--color-text-primary);
+  font-family: var(--font-family);
+}
+
+.date-quick-option:hover {
+  background: var(--color-bg-input);
+  border-color: var(--color-accent-primary);
+}
+
+.date-quick-option.selected {
+  background: var(--color-accent-primary);
+  color: white;
+  border-color: var(--color-accent-primary);
+}
+
+/* Date range inputs */
+.date-range-inputs {
+  display: flex;
+  gap: var(--space-md);
+  align-items: center;
+  margin-bottom: var(--space-lg);
+}
+
+.date-range-inputs input {
+  flex: 1;
+}
+
+.date-range-separator {
+  color: var(--color-text-secondary);
+}
+
+/* Calendar styles */
+.date-calendar {
+  margin-bottom: var(--space-md);
+}
+
+/* Action buttons inside date picker */
+.date-picker-actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border-color);
+}
+
+/* Move Add Game button outside of filter groups */
+.filter-actions {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+  flex-shrink: 0; /* Prevent shrinking */
+}
+
+/* Overlay for closing date picker when clicking outside */
+.date-picker-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 999;
+  display: none;
+}
+
+.date-picker-overlay.active {
+  display: block;
+}
+
+/* Mobile responsive filters */
+@media (max-width: 768px) {
+  .filter-container {
+    flex-direction: column;
+  }
+  
+  .filter-group {
+    width: 100%;
+  }
+  
+  .filter-actions {
+    width: 100%;
+    margin-top: var(--space-md);
+  }
+  
+  .filter-actions .btn {
+    flex: 1;
+  }
+  
+  .date-range-picker {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  
+  .date-range-picker.active {
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* Dark mode filter adjustments */
+@media (prefers-color-scheme: dark) {
+  .filter-input,
+  .filter-select {
+    background: var(--bg-tertiary);
+    border-color: var(--border-color);
+  }
+
+  .filter-input:focus,
+  .filter-select:focus {
+    border-color: var(--primary-400);
+    box-shadow: 0 0 0 2px var(--primary-900);
+  }
+}
+
+/* React DatePicker Overrides */
+.react-datepicker-wrapper {
+  width: 100%;
+}
+
+.react-datepicker__input-container {
+  width: 100%;
+}
+
+.react-datepicker {
+  font-family: var(--font-family);
+  background: var(--color-bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.react-datepicker__header {
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.react-datepicker__day--selected,
+.react-datepicker__day--in-selecting-range,
+.react-datepicker__day--in-range {
+  background: var(--color-accent-primary);
+  color: white;
+}
+
+.react-datepicker__day--selected:hover,
+.react-datepicker__day--in-selecting-range:hover,
+.react-datepicker__day--in-range:hover {
+  background: var(--color-accent-secondary);
+}
+
+.react-datepicker__day:hover {
+  background: var(--color-bg-input);
+}
+
+.react-datepicker__close-icon::after {
+  background-color: var(--color-text-secondary);
+}
+
+/* Dark mode adjustments for datepicker */
+@media (prefers-color-scheme: dark) {
+  .react-datepicker {
+    background: var(--bg-secondary);
+  }
+  
+  .react-datepicker__header {
+    background: var(--bg-tertiary);
+  }
+  
+  .react-datepicker__day {
+    color: var(--color-text-primary);
+  }
+  
+  .react-datepicker__day--disabled {
+    color: var(--color-text-secondary);
   }
 }

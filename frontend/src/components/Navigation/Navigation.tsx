@@ -1,53 +1,50 @@
 import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import ThemeToggle from '../ThemeToggle/ThemeToggle';
 
-interface NavigationProps {
-  currentPage?: string;
-  onNavigate?: (page: string) => void;
-}
-
-export const Navigation: React.FC<NavigationProps> = ({
-  currentPage = 'dashboard',
-  onNavigate = () => {}
-}) => {
+export const Navigation: React.FC = () => {
   const { user, signOut } = useAuth();
+  const location = useLocation();
 
-  const handleNavigation = (page: string) => {
-    onNavigate(page);
+  const isActive = (path: string) => {
+    if (path === '/dashboard') {
+      return location.pathname === '/' || location.pathname === '/dashboard';
+    }
+    return location.pathname.startsWith(path);
   };
 
   return (
     <nav className="header-nav">
       <div className="header-nav-content">
-        <a href="#" className="nav-brand" onClick={() => handleNavigation('dashboard')}>
+        <Link to="/dashboard" className="nav-brand">
           TACTIX
-        </a>
+        </Link>
         
         <ul className="nav-items">
           <li>
-            <a
-              href="#"
-              className={`nav-item ${currentPage === 'dashboard' ? 'active' : ''}`}
-              onClick={(e) => {
-                e.preventDefault();
-                handleNavigation('dashboard');
-              }}
+            <Link
+              to="/dashboard"
+              className={`nav-item ${isActive('/dashboard') ? 'active' : ''}`}
             >
               Dashboard
-            </a>
+            </Link>
           </li>
           <li>
-            <a
-              href="#"
-              className={`nav-item ${currentPage === 'games' ? 'active' : ''}`}
-              onClick={(e) => {
-                e.preventDefault();
-                handleNavigation('games');
-              }}
+            <Link
+              to="/teams"
+              className={`nav-item ${isActive('/teams') ? 'active' : ''}`}
+            >
+              Teams
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/games"
+              className={`nav-item ${isActive('/games') ? 'active' : ''}`}
             >
               Games
-            </a>
+            </Link>
           </li>
         </ul>
 
@@ -55,16 +52,12 @@ export const Navigation: React.FC<NavigationProps> = ({
           <span className="user-info">
             Welcome, {user?.email?.split('@')[0] || 'User'}
           </span>
-          <a
-            href="#"
-            className={`nav-item ${currentPage === 'profile' ? 'active' : ''}`}
-            onClick={(e) => {
-              e.preventDefault();
-              handleNavigation('profile');
-            }}
+          <Link
+            to="/profile"
+            className={`nav-item ${isActive('/profile') ? 'active' : ''}`}
           >
             Profile
-          </a>
+          </Link>
           <ThemeToggle />
           <button onClick={signOut} className="btn btn-error btn-sm">
             Sign Out

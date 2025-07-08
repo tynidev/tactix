@@ -9,6 +9,86 @@ const router = Router();
 // All routes require authentication
 router.use(authenticateUser);
 
+// Get all games from teams the user has access to
+router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
+    }
+
+    // Get all teams the user is a member of
+    const { data: memberships, error: membershipError } = await supabase
+      .from('team_memberships')
+      .select('team_id, role')
+      .eq('user_id', userId);
+
+    if (membershipError) {
+      res.status(400).json({ error: membershipError.message });
+      return;
+    }
+
+    if (!memberships || memberships.length === 0) {
+      res.json([]);
+      return;
+    }
+
+    const teamIds = memberships.map(m => m.team_id);
+
+    // Get games for all teams with team information and coaching points count
+    const { data: games, error: gamesError } = await supabase
+      .from('games')
+      .select(`
+        id,
+        team_id,
+        opponent,
+        date,
+        location,
+        video_id,
+        team_score,
+        opp_score,
+        game_type,
+        home_away,
+        notes,
+        created_at,
+        teams!inner(id, name)
+      `)
+      .in('team_id', teamIds)
+      .order('date', { ascending: false });
+
+    if (gamesError) {
+      res.status(400).json({ error: gamesError.message });
+      return;
+    }
+
+    // Add user role for each game and coaching points count
+    const gamesWithRolesAndCounts = await Promise.all(
+      (games || []).map(async (game) => {
+        const membership = memberships.find(m => m.team_id === game.team_id);
+        
+        // Get coaching points count for this game
+        const { count: coachingPointsCount } = await supabase
+          .from('coaching_points')
+          .select('*', { count: 'exact', head: true })
+          .eq('game_id', game.id);
+
+        return {
+          ...game,
+          user_role: membership?.role || 'player',
+          coaching_points_count: coachingPointsCount || 0,
+        };
+      })
+    );
+
+    res.json(gamesWithRolesAndCounts);
+  } catch (error) {
+    console.error('Get all games error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Create a new game for a team
 router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void> =>
 {
@@ -135,7 +215,7 @@ router.get('/team/:teamId', async (req: AuthenticatedRequest, res: Response): Pr
       return;
     }
 
-    // Get games for the team
+    // Get games for the team with team information
     const { data: games, error: gamesError } = await supabase
       .from('games')
       .select(`
@@ -149,7 +229,8 @@ router.get('/team/:teamId', async (req: AuthenticatedRequest, res: Response): Pr
         game_type,
         home_away,
         notes,
-        created_at
+        created_at,
+        teams!inner(id, name)
       `)
       .eq('team_id', teamId)
       .order('date', { ascending: false });

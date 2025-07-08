@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { Auth } from './components/Auth/Auth'
-import { Dashboard } from './components/Dashboard/Dashboard'
+import { AppRouter } from './components/Router/Router'
 import './App.css'
 
 const AppContent: React.FC = () => {
@@ -20,7 +20,7 @@ const AppContent: React.FC = () => {
     )
   }
 
-  return user ? <Dashboard /> : <Auth />
+  return user ? <AppRouter /> : <Auth />
 }
 
 function App() {

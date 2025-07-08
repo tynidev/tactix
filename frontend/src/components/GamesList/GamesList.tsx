@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import DatePicker from 'react-datepicker';
 import { getApiUrl, getValidAccessToken } from '../../utils/api';
 import './GamesList.css';
+import 'react-datepicker/dist/react-datepicker.css';
 
 interface Game {
   id: string;
@@ -15,11 +17,28 @@ interface Game {
   notes: string | null;
   created_at: string;
   coaching_points_count?: number;
+  teams?: {
+    id: string;
+    name: string;
+  };
+  user_role?: string;
+}
+
+interface Team {
+  role: string;
+  teams: {
+    id: string;
+    name: string;
+    created_at: string;
+  };
 }
 
 interface GamesListProps {
-  teamId: string;
-  userRole: string;
+  teamId?: string;
+  userRole?: string;
+  teams: Team[];
+  selectedTeam: Team | null;
+  onTeamChange: (event: React.ChangeEvent<HTMLSelectElement>) => void;
   onEditGame: (game: Game) => void;
   onAnalyzeGame: (game: Game) => void;
 }
@@ -27,12 +46,22 @@ interface GamesListProps {
 export const GamesList: React.FC<GamesListProps> = ({
   teamId,
   userRole,
+  teams,
+  selectedTeam,
+  onTeamChange,
   onEditGame,
   onAnalyzeGame
 }) => {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Filter states
+  const [searchText, setSearchText] = useState('');
+  const [homeAwayFilter, setHomeAwayFilter] = useState('');
+  const [gameTypeFilter, setGameTypeFilter] = useState('');
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
 
   useEffect(() => {
     fetchGames();
@@ -48,7 +77,9 @@ export const GamesList: React.FC<GamesListProps> = ({
       }
 
       const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/api/games/team/${teamId}`, {
+      // Use different endpoint based on whether teamId is provided
+      const endpoint = teamId ? `${apiUrl}/api/games/team/${teamId}` : `${apiUrl}/api/games`;
+      const response = await fetch(endpoint, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -130,6 +161,78 @@ export const GamesList: React.FC<GamesListProps> = ({
     }
   };
 
+  // Date range handlers
+  const handleDateChange = useCallback((dates: [Date | null, Date | null]) => {
+    const [start, end] = dates;
+    setStartDate(start);
+    setEndDate(end);
+  }, []);
+
+  const clearDateRange = useCallback(() => {
+    setStartDate(null);
+    setEndDate(null);
+  }, []);
+
+  // Filter logic
+  const filteredGames = useMemo(() => {
+    return games.filter((game) => {
+      // Text search filter
+      if (searchText) {
+        const searchLower = searchText.toLowerCase();
+        const teamName = game.teams?.name?.toLowerCase() || '';
+        const opponent = game.opponent.toLowerCase();
+        const notes = game.notes?.toLowerCase() || '';
+        
+        const matchesSearch = teamName.includes(searchLower) || 
+                            opponent.includes(searchLower) || 
+                            notes.includes(searchLower);
+        
+        if (!matchesSearch) return false;
+      }
+
+      // Home/Away filter
+      if (homeAwayFilter && game.home_away !== homeAwayFilter) {
+        return false;
+      }
+
+      // Game type filter
+      if (gameTypeFilter && game.game_type !== gameTypeFilter) {
+        return false;
+      }
+
+      // Date range filter
+      if (startDate || endDate) {
+        const gameDate = new Date(game.date);
+        gameDate.setHours(0, 0, 0, 0); // Reset time for date comparison
+        
+        if (startDate) {
+          const start = new Date(startDate);
+          start.setHours(0, 0, 0, 0);
+          if (gameDate < start) return false;
+        }
+        
+        if (endDate) {
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+          if (gameDate > end) return false;
+        }
+      }
+
+      return true;
+    });
+  }, [games, searchText, homeAwayFilter, gameTypeFilter, startDate, endDate]);
+
+  // Clear all filters
+  const clearFilters = useCallback(() => {
+    setSearchText('');
+    setHomeAwayFilter('');
+    setGameTypeFilter('');
+    clearDateRange();
+  }, [clearDateRange]);
+
+  // Check if any filters are active
+  const hasActiveFilters = searchText || homeAwayFilter || gameTypeFilter || startDate || endDate;
+
   if (loading) {
     return (
       <div className="games-list">
@@ -142,17 +245,118 @@ export const GamesList: React.FC<GamesListProps> = ({
     <div className="games-list">
       {error && <div className="alert alert-error">{error}</div>}
 
+      {/* Filter Section */}
+      <div className="filter-section">
+        <div className="filter-container">
+          <div className="filter-group">
+            <label htmlFor="search">Search</label>
+            <input
+              type="text"
+              id="search"
+              className="filter-input"
+              placeholder="Search teams, opponents, notes..."
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+            />
+          </div>
+
+          <div className="filter-group">
+            <label htmlFor="team">Team</label>
+            <select
+              id="team"
+              className="filter-input filter-select"
+              value={selectedTeam?.teams.id || ''}
+              onChange={onTeamChange}
+            >
+              <option value="">All Teams</option>
+              {teams.map((team) => (
+                <option key={team.teams.id} value={team.teams.id}>
+                  {team.teams.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="filter-group">
+            <label htmlFor="location">Location</label>
+            <select
+              id="location"
+              className="filter-input filter-select"
+              value={homeAwayFilter}
+              onChange={(e) => setHomeAwayFilter(e.target.value)}
+            >
+              <option value="">Home/Away</option>
+              <option value="home">Home</option>
+              <option value="away">Away</option>
+              <option value="neutral">Neutral</option>
+            </select>
+          </div>
+
+          <div className="filter-group">
+            <label htmlFor="game-type">Game Type</label>
+            <select
+              id="game-type"
+              className="filter-input filter-select"
+              value={gameTypeFilter}
+              onChange={(e) => setGameTypeFilter(e.target.value)}
+            >
+              <option value="">All Game Types</option>
+              <option value="regular">Regular</option>
+              <option value="tournament">Tournament</option>
+              <option value="scrimmage">Scrimmage</option>
+            </select>
+          </div>
+
+          <div className="filter-group">
+            <label>Date Range</label>
+            <DatePicker
+              selectsRange
+              startDate={startDate}
+              endDate={endDate}
+              onChange={handleDateChange}
+              placeholderText="Select date range"
+              className="filter-input"
+              isClearable
+              dateFormat="MM/dd/yyyy"
+            />
+          </div>
+
+          <div className="filter-actions">
+            {hasActiveFilters && (
+              <button onClick={clearFilters} className="btn btn-secondary">
+                Clear All
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
       {games.length === 0 ? (
         <div className="empty-state">
           <h3>No Games Yet</h3>
           <p>Get started by adding your first game to analyze.</p>
         </div>
+      ) : filteredGames.length === 0 ? (
+        <div className="empty-state">
+          <h3>No Games Match Filters</h3>
+          <p>Try adjusting your filters to see more games.</p>
+          {hasActiveFilters && (
+            <button onClick={clearFilters} className="btn btn-secondary btn-sm" style={{ marginTop: 'var(--space-md)' }}>
+              Clear All Filters
+            </button>
+          )}
+        </div>
       ) : (
         <div className="games-grid">
-          {games.map((game) => (
+          {filteredGames.map((game) => (
             <div key={game.id} className="game-card">
               <div className="game-header">
                 <div className="game-info">
+                  {game.teams && (
+                    <h3 className="game-team" style={{ fontWeight: 'bold', color: 'var(--primary-500)', marginBottom: 'var(--space-xs)' }}>
+                      {game.teams.name}
+                    </h3>
+                  )}
                   <h3 className="game-opponent">vs {game.opponent}</h3>
                   <div className="game-meta">
                     <span className="game-date">
@@ -196,7 +400,7 @@ export const GamesList: React.FC<GamesListProps> = ({
                   {game.video_id ? 'Analyze' : 'No Video'}
                 </button>
                 
-                {(userRole === 'coach' || userRole === 'admin') && (
+                {((game.user_role || userRole) === 'coach' || (game.user_role || userRole) === 'admin') && (
                   <>
                     <button
                       onClick={() => onEditGame(game)}
