@@ -271,17 +271,20 @@ export const TeamDetailPage: React.FC = () =>
   {
     const roles = ['guardian', 'player', 'coach', 'admin'];
     const visibleRoles = roles.filter(role => isJoinCodeVisible(role) && getJoinCodesByRole(role).length > 0);
-    
+
     if (visibleRoles.length === 0) return null;
 
     return (
       <div style={{ marginBottom: 'var(--space-2xl)' }}>
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-          gap: 'var(--space-lg)' 
-        }}>
-          {visibleRoles.map(role => {
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: 'var(--space-lg)',
+          }}
+        >
+          {visibleRoles.map(role =>
+          {
             const codes = getJoinCodesByRole(role);
             return (
               <div key={role}>
