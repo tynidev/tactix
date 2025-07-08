@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { DashboardPage, GamesPage, ReviewPage, TeamDetailPage, TeamsPage } from '../../pages';
 import { Auth } from '../Auth/Auth';
 import { Navigation } from '../Navigation/Navigation';
@@ -7,9 +7,14 @@ import UserProfilePage from '../UserProfile/UserProfile';
 
 export const AppRouter: React.FC = () =>
 {
+  const location = useLocation();
+  
+  // Hide navigation when viewing a specific game for analysis
+  const hideNavigation = location.pathname.startsWith('/review/') && location.pathname.split('/').length > 2;
+
   return (
     <div className='dashboard-container'>
-      <Navigation />
+      {!hideNavigation && <Navigation />}
       <Routes>
         <Route path='/' element={<Navigate to='/dashboard' replace />} />
         <Route path='/auth' element={<Auth />} />
