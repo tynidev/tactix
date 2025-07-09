@@ -303,9 +303,9 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
   {
     e.preventDefault();
 
-    if (!formData.title.trim() || !formData.feedback.trim())
+    if (!formData.title.trim())
     {
-      setError('Title and feedback are required');
+      setError('Title is required');
       return;
     }
 
@@ -533,7 +533,7 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
 
           <div className='form-group'>
             <label htmlFor='title' className='form-label'>
-              Title *
+              Short Description
             </label>
             <input
               id='title'
@@ -550,7 +550,7 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
 
           <div className='form-group'>
             <label htmlFor='feedback' className='form-label'>
-              Feedback *
+              Detailed Feedback
             </label>
             <textarea
               id='feedback'
@@ -558,8 +558,7 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
               value={formData.feedback}
               onChange={handleInputChange}
               className='form-textarea'
-              placeholder='Detailed feedback and coaching notes...'
-              required
+              placeholder='Optional detailed feedback and coaching notes...'
               rows={4}
             />
           </div>

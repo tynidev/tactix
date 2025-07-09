@@ -27,10 +27,10 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res: Respon
     } = req.body;
 
     // Validate required fields
-    if (!game_id || !title || !feedback || !timestamp)
+    if (!game_id || !title || !timestamp)
     {
       res.status(400).json({
-        message: 'Missing required fields: game_id, title, feedback, timestamp',
+        message: 'Missing required fields: game_id, title, timestamp',
       });
       return;
     }

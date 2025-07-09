@@ -1,6 +1,6 @@
 # Game Analysis Page
 * [X] Recording indicator overlays the stop recording button
-* [ ] Coaching point doesn't automatically stop when it reaches the end - it just pauses instead of stopping
+* [X] Coaching point doesn't automatically stop when it reaches the end - it just pauses instead of stopping
 * [ ] Feedback should be optional for coaching points
 * [ ] Video should not have any parts cut off or overlaid by UI elements
 * [ ] Labels and player tags should be larger in the coaching point sidebar
@@ -27,3 +27,8 @@
 
 # Auth
 * [ ] Sign out doesn't properly invalidate the session - users can navigate back to protected pages
+
+# Signup
+* [ ] Email verification redirects to localhost for some reason
+* [ ] The initial join to a team didn't work when signing up
+* [ ] Need to test joining a team when signing in
