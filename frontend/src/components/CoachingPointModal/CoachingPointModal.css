@@ -36,6 +36,17 @@
   margin-top: var(--space-xs);
 }
 
+.sidebar-content .label-tag,
+.sidebar-content .player-tag {
+  padding: var(--space-sm) var(--space-md);
+  font-size: 0.85rem;
+}
+
+.sidebar-content .label-tags,
+.sidebar-content .player-tags {
+  gap: var(--space-sm);
+}
+
 .tag {
   display: inline-flex;
   align-items: center;

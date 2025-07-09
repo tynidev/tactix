@@ -12,6 +12,7 @@ import DrawingCanvas from '../DrawingCanvas/DrawingCanvas';
 import DrawingToolbar from '../DrawingToolbar/DrawingToolbar';
 import YouTubePlayer from '../YouTubePlayer/YouTubePlayer';
 import './GameAnalysis.css';
+import { FaPause, FaPlay, FaSpinner, FaStop } from 'react-icons/fa';
 
 interface Game
 {
@@ -720,27 +721,31 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) =>
                 </div>
                 {selectedCoachingPoint.coaching_point_tagged_players &&
                   selectedCoachingPoint.coaching_point_tagged_players.length > 0 && (
-                  <div className='point-players'>
-                    <h5>Tagged Players:</h5>
-                    <div className='player-tags'>
-                      {selectedCoachingPoint.coaching_point_tagged_players.map((taggedPlayer) => (
-                        <span key={taggedPlayer.id} className='player-tag'>
-                          {taggedPlayer.player_profiles.name}
-                        </span>
-                      ))}
+                  <div>
+                    <h5 style={{ margin: '6px 0px 0px 0px' }}>Tagged Players:</h5>
+                    <div className='point-players'>
+                      <div className='player-tags'>
+                        {selectedCoachingPoint.coaching_point_tagged_players.map((taggedPlayer) => (
+                          <span key={taggedPlayer.id} className='player-tag'>
+                            {taggedPlayer.player_profiles.name}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )}
                 {selectedCoachingPoint.coaching_point_labels &&
                   selectedCoachingPoint.coaching_point_labels.length > 0 && (
-                  <div className='point-labels'>
-                    <h5>Labels:</h5>
-                    <div className='label-tags'>
-                      {selectedCoachingPoint.coaching_point_labels.map((labelAssignment) => (
-                        <span key={labelAssignment.id} className='label-tag'>
-                          {labelAssignment.labels.name}
-                        </span>
-                      ))}
+                  <div>
+                    <h5 style={{ margin: '6px 0px 0px 0px' }}>Labels:</h5>
+                    <div className='point-labels'>
+                      <div className='label-tags'>
+                        {selectedCoachingPoint.coaching_point_labels.map((labelAssignment) => (
+                          <span key={labelAssignment.id} className='label-tag'>
+                            {labelAssignment.labels.name}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -748,7 +753,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) =>
                 {/* Playback Controls - Only show if audio is available */}
                 {selectedCoachingPoint.audio_url && (
                   <div className='playback-controls'>
-                    <h5>Playback Controls:</h5>
+                    <h5>Playback Recording:</h5>
 
                     {/* Event Count Display */}
                     {playback.totalEvents > 0 && (
@@ -796,7 +801,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) =>
                         disabled={playback.isLoading || !selectedCoachingPoint.audio_url || playback.isPlaying}
                         title='Start or resume playback'
                       >
-                        {playback.isLoading ? '⏳' : '▶️ Play'}
+                        {playback.isLoading ? <FaSpinner className='spinning' /> : <FaPlay />}
                       </button>
 
                       <button
@@ -805,7 +810,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) =>
                         disabled={!playback.isPlaying}
                         title='Pause playback'
                       >
-                        ⏸️ Pause
+                        <FaPause />
                       </button>
 
                       <button
@@ -814,7 +819,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) =>
                         disabled={!playback.isPlaying && playback.currentTime === 0}
                         title='Stop playback and reset'
                       >
-                        ⏹️ Stop
+                        <FaStop />
                       </button>
                     </div>
 

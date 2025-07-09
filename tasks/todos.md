@@ -1,11 +1,11 @@
 # Game Analysis Page
 * [X] Recording indicator overlays the stop recording button
 * [X] Coaching point doesn't automatically stop when it reaches the end - it just pauses instead of stopping
-* [ ] Feedback should be optional for coaching points
+* [X] Feedback should be optional for coaching points
 * [ ] Video should not have any parts cut off or overlaid by UI elements
-* [ ] Labels and player tags should be larger in the coaching point sidebar
+* [X] Labels and player tags should be larger in the coaching point sidebar
 * [ ] Redesign game analysis header to match the footer styling
-* [ ] Remove play, pause, and stop icons from coaching point sidebar
+* [X] Remove play, pause, and stop icons from coaching point sidebar
 * [ ] Pull and display YouTube video description somewhere in the interface
 
 # Team Detail Page
