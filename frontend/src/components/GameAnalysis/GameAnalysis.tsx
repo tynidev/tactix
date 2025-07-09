@@ -12,7 +12,7 @@ import DrawingCanvas from '../DrawingCanvas/DrawingCanvas';
 import DrawingToolbar from '../DrawingToolbar/DrawingToolbar';
 import YouTubePlayer from '../YouTubePlayer/YouTubePlayer';
 import './GameAnalysis.css';
-import { FaArrowLeft, FaCircle, FaPause, FaPlay, FaPlus, FaSpinner, FaStop } from 'react-icons/fa';
+import { FaArrowLeft, FaPause, FaPlay, FaSpinner, FaStop } from 'react-icons/fa';
 
 interface Game
 {

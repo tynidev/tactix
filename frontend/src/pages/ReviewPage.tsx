@@ -100,11 +100,6 @@ export const ReviewPage: React.FC = () =>
     }
   };
 
-  const handleBackFromAnalysis = () =>
-  {
-    navigate('/review');
-  };
-
   const handleAnalyzeGame = (selectedGame: Game) =>
   {
     navigate(`/review/${selectedGame.id}`);
@@ -132,7 +127,7 @@ export const ReviewPage: React.FC = () =>
   // If we have a specific game, show the analysis component
   if (game)
   {
-    return <GameAnalysis game={game} onBack={handleBackFromAnalysis} />;
+    return <GameAnalysis game={game} />;
   }
 
   // Otherwise, show game selection interface
