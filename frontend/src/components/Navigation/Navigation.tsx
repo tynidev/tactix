@@ -25,14 +25,16 @@ export const Navigation: React.FC = () =>
         </Link>
 
         <ul className='nav-items'>
-          {/* <li>
+          {
+            /* <li>
             <Link
               to='/dashboard'
               className={`nav-item ${isActive('/dashboard') ? 'active' : ''}`}
             >
               Dashboard
             </Link>
-          </li> */}
+          </li> */
+          }
           <li>
             <Link
               to='/teams'
