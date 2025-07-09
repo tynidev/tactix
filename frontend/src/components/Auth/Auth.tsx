@@ -64,47 +64,6 @@ export const Auth: React.FC = () =>
     }
   };
 
-  // Function to join team with code
-  const joinTeamWithCode = async (code: string) =>
-  {
-    try
-    {
-      const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/api/teams/join`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ joinCode: code }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok)
-      {
-        // Handle "already a member" case gracefully
-        if (data.error?.includes('already a member'))
-        {
-          setTeamJoinStatus('success');
-          setSuccessMessage(`Welcome back! You're already a member of ${teamInfo?.name}.`);
-          return true;
-        }
-        throw new Error(data.error || 'Failed to join team');
-      }
-
-      setTeamJoinStatus('success');
-      setSuccessMessage(`Successfully joined ${data.team.name} as ${data.team.role}!`);
-      return true;
-    }
-    catch (error)
-    {
-      console.error('Team join error:', error);
-      setTeamJoinStatus('error');
-      setTeamJoinError(error instanceof Error ? error.message : 'Failed to join team');
-      return false;
-    }
-  };
-
   // Check for team code in URL on component mount
   useEffect(() =>
   {
@@ -150,10 +109,21 @@ export const Auth: React.FC = () =>
 
     try
     {
-      let result;
       if (isLogin)
       {
-        result = await signIn(email, password);
+        const result = await signIn(email, password);
+        if (result.error)
+        {
+          setError(result.error);
+        }
+        else
+        {
+          // Normal login without team code - navigate to dashboard
+          setTimeout(() =>
+          {
+            navigate('/dashboard');
+          }, 1000);
+        }
       }
       else
       {
@@ -163,45 +133,46 @@ export const Auth: React.FC = () =>
           setLoading(false);
           return;
         }
-        result = await signUp(email, password, name);
-      }
 
-      if (result.error)
-      {
-        setError(result.error);
-      }
-      else
-      {
-        // Authentication successful
-        if (!isLogin)
+        const result = await signUp(email, password, name, teamCode || undefined);
+        if (result.error)
         {
-          setSuccessMessage('Account created successfully! Check your email for verification.');
+          setError(result.error);
+        }
+        else
+        {
+          // Authentication successful
+          let message = 'Account created successfully! Check your email for verification.';
+
+          // Handle team join result for signup
+          if (result.teamJoin)
+          {
+            if (result.teamJoin.success)
+            {
+              message += ` ${result.teamJoin.message}`;
+              setSuccessMessage(message);
+              // Navigate to dashboard after successful team join
+              setTimeout(() =>
+              {
+                navigate('/dashboard');
+              }, 2000);
+            }
+            else
+            {
+              setSuccessMessage(message);
+              setTeamJoinStatus('error');
+              setTeamJoinError(result.teamJoin.error || 'Failed to join team');
+            }
+          }
+          else
+          {
+            setSuccessMessage(message);
+          }
+
           // Clear the form
           setEmail('');
           setPassword('');
           setName('');
-        }
-
-        // If we have a team code, attempt to join the team
-        if (teamCode && teamInfo)
-        {
-          const joinSuccess = await joinTeamWithCode(teamCode);
-          if (joinSuccess)
-          {
-            // Navigate to dashboard after successful team join
-            setTimeout(() =>
-            {
-              navigate('/dashboard');
-            }, 2000);
-          }
-        }
-        else if (isLogin)
-        {
-          // Normal login without team code - navigate to dashboard
-          setTimeout(() =>
-          {
-            navigate('/dashboard');
-          }, 1000);
         }
       }
     }

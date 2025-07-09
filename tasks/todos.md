@@ -29,6 +29,7 @@
 * [ ] Sign out doesn't properly invalidate the session - users can navigate back to protected pages
 
 # Signup
-* [ ] Email verification redirects to localhost for some reason
+* [X] Email verification redirects to localhost for some reason
+    - [ ] Test change
 * [ ] The initial join to a team didn't work when signing up
 * [ ] Need to test joining a team when signing in

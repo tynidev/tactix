@@ -8,7 +8,12 @@ interface AuthContextType
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string, name: string) => Promise<{ error?: string; }>;
+  signUp: (
+    email: string,
+    password: string,
+    name: string,
+    teamCode?: string,
+  ) => Promise<{ error?: string; success?: boolean; teamJoin?: any; }>;
   signIn: (email: string, password: string) => Promise<{ error?: string; }>;
   signOut: () => Promise<void>;
   isSessionValid: () => boolean;
@@ -95,18 +100,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; }> = ({ childre
     return () => clearInterval(sessionCheckInterval);
   }, [session]);
 
-  const signUp = async (email: string, password: string, name: string) =>
+  const signUp = async (email: string, password: string, name: string, teamCode?: string) =>
   {
     try
     {
       // Use backend API for signup to ensure user record is created properly
       const apiUrl = getApiUrl();
+      const requestBody: any = { email, password, name };
+
+      // Include team code if provided
+      if (teamCode && teamCode.trim())
+      {
+        requestBody.teamCode = teamCode.trim();
+      }
+
       const response = await fetch(`${apiUrl}/api/auth/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password, name }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok)
@@ -115,7 +128,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; }> = ({ childre
         return { error: errorData.error || 'Signup failed' };
       }
 
-      return {};
+      const responseData = await response.json();
+      return {
+        success: true,
+        teamJoin: responseData.teamJoin,
+      };
     }
     catch (error)
     {
