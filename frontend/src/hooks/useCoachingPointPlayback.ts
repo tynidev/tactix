@@ -345,18 +345,8 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
 
     audio.addEventListener('ended', () =>
     {
-      setIsPlaying(false);
-      setProgress(100);
-      setActiveEventIndex(null);
-      executedEventsRef.current.clear();
-      if (animationFrameRef.current)
-      {
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
-      }
-
-      // Call completion handler to notify parent component (e.g., to clear canvas)
-      handlersRef.current.onPlaybackComplete?.();
+      // Stop playback completely instead of just pausing
+      stopPlayback();
     });
 
     audio.addEventListener('error', (e) =>
