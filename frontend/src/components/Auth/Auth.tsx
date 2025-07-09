@@ -64,6 +64,56 @@ export const Auth: React.FC = () =>
     }
   };
 
+  // Function to join team with code (for authenticated users)
+  const joinTeamWithCode = async (code: string) =>
+  {
+    try
+    {
+      const { supabase } = await import('../../lib/supabase');
+      const session = await supabase.auth.getSession();
+
+      if (!session.data.session?.access_token)
+      {
+        throw new Error('No access token available');
+      }
+
+      const apiUrl = getApiUrl();
+      const response = await fetch(`${apiUrl}/api/teams/join`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.data.session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ joinCode: code }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok)
+      {
+        // Handle "already a member" case gracefully
+        if (data.error?.includes('already a member'))
+        {
+          setTeamJoinStatus('success');
+          setSuccessMessage(`Welcome back! You're already a member of ${teamInfo?.name}.`);
+          return true;
+        }
+        throw new Error(data.error || 'Failed to join team');
+      }
+
+      setTeamJoinStatus('success');
+      setSuccessMessage(`Successfully joined ${data.team.name} as ${data.team.role}!`);
+      return true;
+    }
+    catch (error)
+    {
+      console.error('Team join error:', error);
+      setTeamJoinStatus('error');
+      setTeamJoinError(error instanceof Error ? error.message : 'Failed to join team');
+      return false;
+    }
+  };
+
   // Check for team code in URL on component mount
   useEffect(() =>
   {
@@ -118,11 +168,35 @@ export const Auth: React.FC = () =>
         }
         else
         {
-          // Normal login without team code - navigate to dashboard
-          setTimeout(() =>
+          // Sign in successful - check if we need to join a team
+          if (teamCode && teamInfo)
           {
-            navigate('/dashboard');
-          }, 1000);
+            const joinSuccess = await joinTeamWithCode(teamCode);
+            if (joinSuccess)
+            {
+              // Navigate to dashboard after successful team join
+              setTimeout(() =>
+              {
+                navigate('/dashboard');
+              }, 2000);
+            }
+            else
+            {
+              // Team join failed, but user is still signed in
+              setTimeout(() =>
+              {
+                navigate('/dashboard');
+              }, 3000);
+            }
+          }
+          else
+          {
+            // Normal login without team code - navigate to dashboard
+            setTimeout(() =>
+            {
+              navigate('/dashboard');
+            }, 1000);
+          }
         }
       }
       else

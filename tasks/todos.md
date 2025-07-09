@@ -30,6 +30,7 @@
 
 # Signup
 * [X] Email verification redirects to localhost for some reason
-    - [ ] Test change
-* [ ] The initial join to a team didn't work when signing up
+    - [ ] Need to test change
+* [X] The initial join to a team didn't work when signing up
+    - [ ] Need to test change
 * [ ] Need to test joining a team when signing in
