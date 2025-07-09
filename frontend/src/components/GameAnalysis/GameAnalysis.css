@@ -68,6 +68,11 @@
   align-items: flex-start;
   justify-content: center;
   overflow: hidden; /* Ensure controls stay within container bounds */
+  transition: padding-bottom var(--transition-normal);
+}
+
+.video-container.flyout-collapsed {
+  padding-bottom: 50px; /* Reserve space for collapsed flyout */
 }
 
 .coaching-point-sidebar {

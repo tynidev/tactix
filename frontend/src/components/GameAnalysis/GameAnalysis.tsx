@@ -672,7 +672,11 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) =>
       </div>
 
       <div className={`analysis-workspace ${selectedCoachingPoint ? 'with-sidebar' : ''}`}>
-        <div className={`video-container ${selectedCoachingPoint ? 'with-sidebar' : ''}`}>
+        <div
+          className={`video-container ${selectedCoachingPoint ? 'with-sidebar' : ''} ${
+            !isFlyoutExpanded ? 'flyout-collapsed' : ''
+          }`}
+        >
           <YouTubePlayer className={isReady ? '' : 'loading'} />
           <DrawingCanvas
             canvasRef={canvasRef}
