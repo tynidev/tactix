@@ -496,7 +496,8 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
             <div className='analysis-controls'>
               <button
                 className='analysis-btn'
-                onClick={(e) => {
+                onClick={(e) =>
+                {
                   e.stopPropagation();
                   onCreateCoachingPoint();
                 }}
@@ -507,7 +508,8 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
               </button>
               <button
                 className={`analysis-btn ${isRecording ? 'recording' : ''}`}
-                onClick={(e) => {
+                onClick={(e) =>
+                {
                   e.stopPropagation();
                   onToggleRecording();
                 }}

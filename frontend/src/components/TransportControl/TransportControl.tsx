@@ -132,13 +132,13 @@ const TransportControl: React.FC<TransportControlProps> = ({
 
     const newTime = calculateTimeFromPosition(e.clientX);
     const rect = timelineRef.current?.getBoundingClientRect();
-    
+
     if (rect)
     {
       setHoverTime(newTime);
       setTooltipPosition({
         x: e.clientX,
-        y: -30 // Position tooltip above the timeline
+        y: -30, // Position tooltip above the timeline
       });
     }
   }, [disabled, duration, calculateTimeFromPosition]);
