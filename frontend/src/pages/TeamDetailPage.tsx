@@ -413,7 +413,7 @@ export const TeamDetailPage: React.FC = () =>
 
       // Refresh team members data
       await fetchTeamMembers();
-      
+
       // Close dialog
       setRemovePlayerDialog({ isOpen: false, player: null });
     }
@@ -557,7 +557,8 @@ export const TeamDetailPage: React.FC = () =>
                     {isPlayersSection && 'can_remove' in member && member.can_remove && (
                       <div style={{ marginLeft: 'var(--space-md)' }}>
                         <button
-                          onClick={() => handleRemovePlayer(member as Player)}
+                          onClick={() =>
+                            handleRemovePlayer(member as Player)}
                           className='btn btn-secondary btn-sm'
                           title='Leave team'
                           style={{
@@ -761,19 +762,17 @@ export const TeamDetailPage: React.FC = () =>
         isOpen={removePlayerDialog.isOpen}
         onClose={cancelRemovePlayer}
         onConfirm={confirmRemovePlayer}
-        title="Leave Team"
-        message={
-          removePlayerDialog.player
-            ? `Are you sure you want to remove ${removePlayerDialog.player.name}${
-                removePlayerDialog.player.jersey_number
-                  ? ` (#${removePlayerDialog.player.jersey_number})`
-                  : ''
-              } from this team? They can be re-added later if needed.`
-            : ''
-        }
-        confirmButtonText="Leave Team"
-        cancelButtonText="Cancel"
-        variant="warning"
+        title='Leave Team'
+        message={removePlayerDialog.player ?
+          `Are you sure you want to remove ${removePlayerDialog.player.name}${
+            removePlayerDialog.player.jersey_number ?
+              ` (#${removePlayerDialog.player.jersey_number})` :
+              ''
+          } from this team? They can be re-added later if needed.` :
+          ''}
+        confirmButtonText='Leave Team'
+        cancelButtonText='Cancel'
+        variant='warning'
         loading={removeLoading}
       />
     </main>

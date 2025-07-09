@@ -991,7 +991,7 @@ router.get(
       // Get guardian relationships for current user if they're a guardian
       let userGuardianRelationships: string[] = [];
       const currentUserMembership = memberships?.find(m => m.user_profiles?.id === userId);
-      
+
       if (currentUserMembership?.role === TeamRole.Guardian && userId)
       {
         const { data: guardianRels, error: guardianRelError } = await supabase
@@ -1058,12 +1058,12 @@ router.get(
             joined_at: teamPlayer.created_at,
             profile_created_at: playerProfile.created_at,
             user_created_at: playerProfile.user_profiles?.created_at || null,
-            can_remove: currentUserMembership?.role === TeamRole.Coach || 
-                       currentUserMembership?.role === TeamRole.Admin ||
-                       (currentUserMembership?.role === TeamRole.Guardian && 
-                        userGuardianRelationships.includes(playerProfile.id)) ||
-                       (currentUserMembership?.role === TeamRole.Player && 
-                        playerProfile.user_id === userId),
+            can_remove: currentUserMembership?.role === TeamRole.Coach ||
+              currentUserMembership?.role === TeamRole.Admin ||
+              (currentUserMembership?.role === TeamRole.Guardian &&
+                userGuardianRelationships.includes(playerProfile.id)) ||
+              (currentUserMembership?.role === TeamRole.Player &&
+                playerProfile.user_id === userId),
           };
           membersByRole.players.push(player);
         }
@@ -1449,9 +1449,9 @@ router.put(
         const isSelfRemoval = playerProfile?.user_id === userId;
 
         res.json({
-          message: isSelfRemoval
-            ? 'You have left the team successfully'
-            : `${playerName}${jerseyNumber ? ` (#${jerseyNumber})` : ''} has been removed from the team`,
+          message: isSelfRemoval ?
+            'You have left the team successfully' :
+            `${playerName}${jerseyNumber ? ` (#${jerseyNumber})` : ''} has been removed from the team`,
         });
       }
       catch (removeError)

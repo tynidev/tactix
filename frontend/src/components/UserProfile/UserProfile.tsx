@@ -44,7 +44,7 @@ export const UserProfilePage: React.FC = () =>
   const [editName, setEditName] = useState('');
   const [showJoinTeamModal, setShowJoinTeamModal] = useState(false);
   const [showPlayerProfileModal, setShowPlayerProfileModal] = useState(false);
-  
+
   // Guardian players state
   const [guardianPlayers, setGuardianPlayers] = useState<GuardianPlayer[]>([]);
   const [playersLoading, setPlayersLoading] = useState(false);
@@ -259,7 +259,7 @@ export const UserProfilePage: React.FC = () =>
 
       // Refresh guardian players list
       await fetchGuardianPlayers();
-      
+
       // Close dialog
       setDeletePlayerDialog({ isOpen: false, player: null });
     }
@@ -476,85 +476,89 @@ export const UserProfilePage: React.FC = () =>
             My Players
           </h3>
 
-          {playersLoading ? (
-            <div className='loading' style={{ padding: 'var(--space-lg) 0' }}>
-              Loading players...
-            </div>
-          ) : guardianPlayers.length === 0 ? (
-            <div
-              style={{
-                textAlign: 'center',
-                padding: 'var(--space-xl)',
-                color: 'var(--color-text-secondary)',
-              }}
-            >
-              No players found. Use "Add My Player" to create player profiles you can manage.
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gap: 'var(--space-md)' }}>
-              {guardianPlayers.map((player) => (
-                <div
-                  key={player.id}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: 'var(--space-md)',
-                    backgroundColor: 'var(--color-bg-secondary)',
-                    borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--border-color)',
-                  }}
-                >
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: '600', marginBottom: 'var(--space-xs)' }}>
-                      {player.name}
-                      {player.jersey_number && (
-                        <span
-                          style={{
-                            marginLeft: 'var(--space-sm)',
-                            color: 'var(--color-accent-primary)',
-                            fontSize: '15px',
-                            fontWeight: 'bold',
-                          }}
-                        >
-                          #{player.jersey_number}
-                        </span>
-                      )}
+          {playersLoading ?
+            (
+              <div className='loading' style={{ padding: 'var(--space-lg) 0' }}>
+                Loading players...
+              </div>
+            ) :
+            guardianPlayers.length === 0 ?
+            (
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: 'var(--space-xl)',
+                  color: 'var(--color-text-secondary)',
+                }}
+              >
+                No players found. Use "Add My Player" to create player profiles you can manage.
+              </div>
+            ) :
+            (
+              <div style={{ display: 'grid', gap: 'var(--space-md)' }}>
+                {guardianPlayers.map((player) => (
+                  <div
+                    key={player.id}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: 'var(--space-md)',
+                      backgroundColor: 'var(--color-bg-secondary)',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid var(--border-color)',
+                    }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: '600', marginBottom: 'var(--space-xs)' }}>
+                        {player.name}
+                        {player.jersey_number && (
+                          <span
+                            style={{
+                              marginLeft: 'var(--space-sm)',
+                              color: 'var(--color-accent-primary)',
+                              fontSize: '15px',
+                              fontWeight: 'bold',
+                            }}
+                          >
+                            #{player.jersey_number}
+                          </span>
+                        )}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: '14px',
+                          color: 'var(--color-text-secondary)',
+                          marginBottom: 'var(--space-xs)',
+                        }}
+                      >
+                        {player.relationship_type === 'owner' ? 'Your player profile' : 'Guardian of'}
+                      </div>
+                      <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                        Added: {new Date(player.relationship_created).toLocaleDateString()}
+                      </div>
                     </div>
-                    <div
-                      style={{
-                        fontSize: '14px',
-                        color: 'var(--color-text-secondary)',
-                        marginBottom: 'var(--space-xs)',
-                      }}
-                    >
-                      {player.relationship_type === 'owner' ? 'Your player profile' : 'Guardian of'}
-                    </div>
-                    <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                      Added: {new Date(player.relationship_created).toLocaleDateString()}
+                    <div style={{ marginLeft: 'var(--space-md)' }}>
+                      <button
+                        onClick={() => handleDeletePlayer(player)}
+                        className='btn btn-danger btn-sm'
+                        title='Delete player permanently'
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          minWidth: '32px',
+                          height: '32px',
+                          padding: '0',
+                        }}
+                      >
+                        <FaTrash />
+                      </button>
                     </div>
                   </div>
-                  <div style={{ marginLeft: 'var(--space-md)' }}>
-                    <button
-                      onClick={() => handleDeletePlayer(player)}
-                      className='btn btn-danger btn-sm'
-                      title='Delete player permanently'
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        minWidth: '32px',
-                        height: '32px',
-                        padding: '0',
-                      }}
-                    >
-                      <FaTrash />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
         </div>
       </div>
 
@@ -578,19 +582,17 @@ export const UserProfilePage: React.FC = () =>
         isOpen={deletePlayerDialog.isOpen}
         onClose={cancelDeletePlayer}
         onConfirm={confirmDeletePlayer}
-        title="Delete Player"
-        message={
-          deletePlayerDialog.player
-            ? `Are you sure you want to permanently delete ${deletePlayerDialog.player.name}${
-                deletePlayerDialog.player.jersey_number
-                  ? ` (#${deletePlayerDialog.player.jersey_number})`
-                  : ''
-              }? This action cannot be undone and will remove all associated data including team memberships, coaching points, and views.`
-            : ''
-        }
-        confirmButtonText="Delete Player"
-        cancelButtonText="Cancel"
-        variant="danger"
+        title='Delete Player'
+        message={deletePlayerDialog.player ?
+          `Are you sure you want to permanently delete ${deletePlayerDialog.player.name}${
+            deletePlayerDialog.player.jersey_number ?
+              ` (#${deletePlayerDialog.player.jersey_number})` :
+              ''
+          }? This action cannot be undone and will remove all associated data including team memberships, coaching points, and views.` :
+          ''}
+        confirmButtonText='Delete Player'
+        cancelButtonText='Cancel'
+        variant='danger'
         loading={deleteLoading}
       />
     </div>
