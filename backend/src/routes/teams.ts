@@ -935,6 +935,7 @@ router.get(
     try
     {
       const { teamId } = req.params;
+      const userId = req.user?.id;
 
       // Get all team memberships (coaches, admins, guardians, players)
       const { data: memberships, error: membershipsError } = await supabase
@@ -985,6 +986,23 @@ router.get(
       {
         res.status(400).json({ error: playersError.message });
         return;
+      }
+
+      // Get guardian relationships for current user if they're a guardian
+      let userGuardianRelationships: string[] = [];
+      const currentUserMembership = memberships?.find(m => m.user_profiles?.id === userId);
+      
+      if (currentUserMembership?.role === TeamRole.Guardian && userId)
+      {
+        const { data: guardianRels, error: guardianRelError } = await supabase
+          .from('guardian_player_relationships')
+          .select('player_profile_id')
+          .eq('guardian_id', userId);
+
+        if (!guardianRelError && guardianRels)
+        {
+          userGuardianRelationships = guardianRels.map(rel => rel.player_profile_id);
+        }
       }
 
       // Group members by role
@@ -1040,6 +1058,12 @@ router.get(
             joined_at: teamPlayer.created_at,
             profile_created_at: playerProfile.created_at,
             user_created_at: playerProfile.user_profiles?.created_at || null,
+            can_remove: currentUserMembership?.role === TeamRole.Coach || 
+                       currentUserMembership?.role === TeamRole.Admin ||
+                       (currentUserMembership?.role === TeamRole.Guardian && 
+                        userGuardianRelationships.includes(playerProfile.id)) ||
+                       (currentUserMembership?.role === TeamRole.Player && 
+                        playerProfile.user_id === userId),
           };
           membersByRole.players.push(player);
         }
@@ -1292,6 +1316,153 @@ router.post(
     catch (error)
     {
       console.error('Create player profile error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+);
+
+// Remove player from team - require coach, admin, guardian with relationship, or player themselves
+router.put(
+  '/:teamId/players/:playerId/remove',
+  authenticateUser,
+  async (req: AuthenticatedRequest, res: Response): Promise<void> =>
+  {
+    try
+    {
+      const { teamId, playerId } = req.params;
+      const userId = req.user?.id;
+
+      if (!userId)
+      {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
+      }
+
+      // Check if user is a member of this team
+      const { data: userMembership, error: membershipError } = await supabase
+        .from('team_memberships')
+        .select('role')
+        .eq('team_id', teamId)
+        .eq('user_id', userId)
+        .single();
+
+      if (membershipError || !userMembership)
+      {
+        res.status(403).json({ error: 'User is not a member of this team' });
+        return;
+      }
+
+      const userRole = userMembership.role as TeamRole;
+
+      // Check if player exists and belongs to this team
+      const { data: teamPlayer, error: teamPlayerError } = await supabase
+        .from('team_players')
+        .select(`
+          id,
+          player_profiles (
+            id,
+            name,
+            jersey_number,
+            user_id
+          )
+        `)
+        .eq('team_id', teamId)
+        .eq('player_id', playerId)
+        .single();
+
+      if (teamPlayerError || !teamPlayer)
+      {
+        res.status(404).json({ error: 'Player not found in this team' });
+        return;
+      }
+
+      // Check permissions
+      let hasPermission = false;
+
+      if (userRole === TeamRole.Coach || userRole === TeamRole.Admin)
+      {
+        // Coaches and admins can remove any player
+        hasPermission = true;
+      }
+      else if (userRole === TeamRole.Guardian)
+      {
+        // Guardians can only remove players they have a relationship with
+        const { data: guardianRelationship, error: relationshipError } = await supabase
+          .from('guardian_player_relationships')
+          .select('id')
+          .eq('guardian_id', userId)
+          .eq('player_profile_id', playerId)
+          .single();
+
+        if (!relationshipError && guardianRelationship)
+        {
+          hasPermission = true;
+        }
+      }
+      else if (userRole === TeamRole.Player)
+      {
+        // Players can remove themselves from the team
+        const playerProfile = teamPlayer.player_profiles;
+        if (playerProfile?.user_id === userId)
+        {
+          hasPermission = true;
+        }
+      }
+
+      if (!hasPermission)
+      {
+        res.status(403).json({ error: 'Insufficient permissions to remove this player from team' });
+        return;
+      }
+
+      // Perform removal (preserving player profile and guardian relationships)
+      try
+      {
+        // Delete coaching point views for this player
+        await supabase
+          .from('coaching_point_views')
+          .delete()
+          .eq('player_id', playerId);
+
+        // Delete coaching point tagged players for this player
+        await supabase
+          .from('coaching_point_tagged_players')
+          .delete()
+          .eq('player_id', playerId);
+
+        // Remove team player relationship (removes from team)
+        const { error: removePlayerError } = await supabase
+          .from('team_players')
+          .delete()
+          .eq('team_id', teamId)
+          .eq('player_id', playerId);
+
+        if (removePlayerError)
+        {
+          res.status(400).json({ error: 'Failed to remove player from team' });
+          return;
+        }
+
+        const playerProfile = teamPlayer.player_profiles;
+        const playerName = playerProfile?.name || 'Unknown';
+        const jerseyNumber = playerProfile?.jersey_number;
+        const isSelfRemoval = playerProfile?.user_id === userId;
+
+        res.json({
+          message: isSelfRemoval
+            ? 'You have left the team successfully'
+            : `${playerName}${jerseyNumber ? ` (#${jerseyNumber})` : ''} has been removed from the team`,
+        });
+      }
+      catch (removeError)
+      {
+        console.error('Remove player error:', removeError);
+        res.status(500).json({ error: 'Failed to remove player from team' });
+      }
+    }
+    catch (error)
+    {
+      console.error('Remove player error:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
   },

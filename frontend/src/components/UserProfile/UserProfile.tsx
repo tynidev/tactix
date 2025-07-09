@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { FaTrash } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { getApiUrl } from '../../utils/api';
+import { ConfirmationDialog } from '../ConfirmationDialog';
 import { JoinTeamModal } from '../JoinTeamModal/JoinTeamModal';
 import { PlayerProfileModal } from '../PlayerProfileModal/PlayerProfileModal';
 
@@ -20,6 +22,17 @@ interface UserStats
   lastActivity: string;
 }
 
+interface GuardianPlayer
+{
+  id: string;
+  name: string;
+  jersey_number: string | null;
+  user_id: string | null;
+  created_at: string;
+  relationship_type: 'guardian' | 'owner';
+  relationship_created: string;
+}
+
 export const UserProfilePage: React.FC = () =>
 {
   const { user } = useAuth();
@@ -31,10 +44,20 @@ export const UserProfilePage: React.FC = () =>
   const [editName, setEditName] = useState('');
   const [showJoinTeamModal, setShowJoinTeamModal] = useState(false);
   const [showPlayerProfileModal, setShowPlayerProfileModal] = useState(false);
+  
+  // Guardian players state
+  const [guardianPlayers, setGuardianPlayers] = useState<GuardianPlayer[]>([]);
+  const [playersLoading, setPlayersLoading] = useState(false);
+  const [deletePlayerDialog, setDeletePlayerDialog] = useState<{
+    isOpen: boolean;
+    player: GuardianPlayer | null;
+  }>({ isOpen: false, player: null });
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() =>
   {
     fetchUserProfile();
+    fetchGuardianPlayers();
   }, []);
 
   const fetchUserProfile = async () =>
@@ -151,8 +174,109 @@ export const UserProfilePage: React.FC = () =>
   const handlePlayerProfileSuccess = () =>
   {
     setShowPlayerProfileModal(false);
-    // Optionally refresh stats here if needed
+    // Refresh both profile and guardian players
     fetchUserProfile();
+    fetchGuardianPlayers();
+  };
+
+  const fetchGuardianPlayers = async () =>
+  {
+    setPlayersLoading(true);
+    try
+    {
+      const token = (await import('../../lib/supabase')).supabase.auth.getSession();
+      const session = await token;
+
+      if (!session.data.session?.access_token)
+      {
+        throw new Error('No access token');
+      }
+
+      const apiUrl = getApiUrl();
+      const response = await fetch(`${apiUrl}/api/auth/guardian-players`, {
+        headers: {
+          'Authorization': `Bearer ${session.data.session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok)
+      {
+        throw new Error('Failed to fetch guardian players');
+      }
+
+      const data = await response.json();
+      setGuardianPlayers(data);
+    }
+    catch (err)
+    {
+      console.error('Error fetching guardian players:', err);
+      // Don't show error for this since it's not critical
+    }
+    finally
+    {
+      setPlayersLoading(false);
+    }
+  };
+
+  const handleDeletePlayer = (player: GuardianPlayer) =>
+  {
+    setDeletePlayerDialog({ isOpen: true, player });
+  };
+
+  const confirmDeletePlayer = async () =>
+  {
+    if (!deletePlayerDialog.player) return;
+
+    setDeleteLoading(true);
+    try
+    {
+      const token = (await import('../../lib/supabase')).supabase.auth.getSession();
+      const session = await token;
+
+      if (!session.data.session?.access_token)
+      {
+        throw new Error('No access token');
+      }
+
+      const apiUrl = getApiUrl();
+      const response = await fetch(`${apiUrl}/api/auth/players/${deletePlayerDialog.player.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.data.session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok)
+      {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete player');
+      }
+
+      const data = await response.json();
+      alert(data.message || 'Player deleted successfully');
+
+      // Refresh guardian players list
+      await fetchGuardianPlayers();
+      
+      // Close dialog
+      setDeletePlayerDialog({ isOpen: false, player: null });
+    }
+    catch (err)
+    {
+      console.error('Error deleting player:', err);
+      alert(err instanceof Error ? err.message : 'Failed to delete player');
+    }
+    finally
+    {
+      setDeleteLoading(false);
+    }
+  };
+
+  const cancelDeletePlayer = () =>
+  {
+    setDeletePlayerDialog({ isOpen: false, player: null });
   };
 
   const getInitials = () =>
@@ -345,6 +469,93 @@ export const UserProfilePage: React.FC = () =>
             </div>
           </div>
         </div>
+
+        {/* My Players Section */}
+        <div className='card' style={{ marginBottom: 'var(--space-xl)' }}>
+          <h3 style={{ marginBottom: 'var(--space-lg)', color: 'var(--color-text-primary)' }}>
+            My Players
+          </h3>
+
+          {playersLoading ? (
+            <div className='loading' style={{ padding: 'var(--space-lg) 0' }}>
+              Loading players...
+            </div>
+          ) : guardianPlayers.length === 0 ? (
+            <div
+              style={{
+                textAlign: 'center',
+                padding: 'var(--space-xl)',
+                color: 'var(--color-text-secondary)',
+              }}
+            >
+              No players found. Use "Add My Player" to create player profiles you can manage.
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gap: 'var(--space-md)' }}>
+              {guardianPlayers.map((player) => (
+                <div
+                  key={player.id}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: 'var(--space-md)',
+                    backgroundColor: 'var(--color-bg-secondary)',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border-color)',
+                  }}
+                >
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: '600', marginBottom: 'var(--space-xs)' }}>
+                      {player.name}
+                      {player.jersey_number && (
+                        <span
+                          style={{
+                            marginLeft: 'var(--space-sm)',
+                            color: 'var(--color-accent-primary)',
+                            fontSize: '15px',
+                            fontWeight: 'bold',
+                          }}
+                        >
+                          #{player.jersey_number}
+                        </span>
+                      )}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '14px',
+                        color: 'var(--color-text-secondary)',
+                        marginBottom: 'var(--space-xs)',
+                      }}
+                    >
+                      {player.relationship_type === 'owner' ? 'Your player profile' : 'Guardian of'}
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                      Added: {new Date(player.relationship_created).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <div style={{ marginLeft: 'var(--space-md)' }}>
+                    <button
+                      onClick={() => handleDeletePlayer(player)}
+                      className='btn btn-danger btn-sm'
+                      title='Delete player permanently'
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minWidth: '32px',
+                        height: '32px',
+                        padding: '0',
+                      }}
+                    >
+                      <FaTrash />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Join Team Modal */}
@@ -360,6 +571,27 @@ export const UserProfilePage: React.FC = () =>
         onClose={() => setShowPlayerProfileModal(false)}
         onSuccess={handlePlayerProfileSuccess}
         forceGuardianRole={true}
+      />
+
+      {/* Delete Player Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={deletePlayerDialog.isOpen}
+        onClose={cancelDeletePlayer}
+        onConfirm={confirmDeletePlayer}
+        title="Delete Player"
+        message={
+          deletePlayerDialog.player
+            ? `Are you sure you want to permanently delete ${deletePlayerDialog.player.name}${
+                deletePlayerDialog.player.jersey_number
+                  ? ` (#${deletePlayerDialog.player.jersey_number})`
+                  : ''
+              }? This action cannot be undone and will remove all associated data including team memberships, coaching points, and views.`
+            : ''
+        }
+        confirmButtonText="Delete Player"
+        cancelButtonText="Cancel"
+        variant="danger"
+        loading={deleteLoading}
       />
     </div>
   );

@@ -30,7 +30,14 @@
 
 # Signup
 * [X] Email verification redirects to localhost for some reason
-    - [ ] Need to test change
+    - [X] Need to test change
 * [X] The initial join to a team didn't work when signing up
-    - [ ] Need to test change
+    - [X] Need to test change
 * [ ] Need to test joining a team when signing in
+
+# delete player
+- Guardians/Coaches/Admins need to be able to delete a player. Coaches/Admins can delete any player. Guardians can delete a player that they have a guardian_player_relationship with.
+- A guardians player's should be listed on thier profile page.
+
+# team card
+- the number of coaching points isn't showing correctly

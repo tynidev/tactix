@@ -3,12 +3,14 @@ import {
   FaCopy,
   FaPlus,
   FaSearch,
+  FaSignOutAlt,
   FaSortAlphaDown,
   FaSortAlphaUp,
   FaSortNumericDown,
   FaSortNumericUp,
 } from 'react-icons/fa';
 import { Link, useParams } from 'react-router-dom';
+import { ConfirmationDialog } from '../components/ConfirmationDialog';
 import { PlayerProfileModal } from '../components/PlayerProfileModal';
 import { getApiUrl } from '../utils/api';
 
@@ -56,6 +58,7 @@ interface Player
   joined_at: string;
   profile_created_at: string;
   user_created_at: string | null;
+  can_remove?: boolean;
 }
 
 interface Member
@@ -93,6 +96,11 @@ export const TeamDetailPage: React.FC = () =>
 
   // Modal states
   const [isPlayerProfileModalOpen, setIsPlayerProfileModalOpen] = useState(false);
+  const [removePlayerDialog, setRemovePlayerDialog] = useState<{
+    isOpen: boolean;
+    player: Player | null;
+  }>({ isOpen: false, player: null });
+  const [removeLoading, setRemoveLoading] = useState(false);
 
   useEffect(() =>
   {
@@ -365,6 +373,66 @@ export const TeamDetailPage: React.FC = () =>
     fetchTeamMembers();
   };
 
+  const handleRemovePlayer = (player: Player) =>
+  {
+    setRemovePlayerDialog({ isOpen: true, player });
+  };
+
+  const confirmRemovePlayer = async () =>
+  {
+    if (!removePlayerDialog.player || !teamId) return;
+
+    setRemoveLoading(true);
+    try
+    {
+      const token = (await import('../lib/supabase')).supabase.auth.getSession();
+      const session = await token;
+
+      if (!session.data.session?.access_token)
+      {
+        throw new Error('No access token');
+      }
+
+      const apiUrl = getApiUrl();
+      const response = await fetch(`${apiUrl}/api/teams/${teamId}/players/${removePlayerDialog.player.id}/remove`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${session.data.session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok)
+      {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to remove player from team');
+      }
+
+      const data = await response.json();
+      alert(data.message || 'Player removed from team successfully');
+
+      // Refresh team members data
+      await fetchTeamMembers();
+      
+      // Close dialog
+      setRemovePlayerDialog({ isOpen: false, player: null });
+    }
+    catch (err)
+    {
+      console.error('Error removing player:', err);
+      alert(err instanceof Error ? err.message : 'Failed to remove player from team');
+    }
+    finally
+    {
+      setRemoveLoading(false);
+    }
+  };
+
+  const cancelRemovePlayer = () =>
+  {
+    setRemovePlayerDialog({ isOpen: false, player: null });
+  };
+
   const renderMemberSection = (
     title: string,
     members: (Player | Member)[],
@@ -455,7 +523,7 @@ export const TeamDetailPage: React.FC = () =>
                       border: '1px solid var(--border-color)',
                     }}
                   >
-                    <div>
+                    <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: '600', marginBottom: 'var(--space-xs)' }}>
                         {member.name}
                         {'jersey_number' in member && member.jersey_number && (
@@ -486,6 +554,25 @@ export const TeamDetailPage: React.FC = () =>
                         Joined: {new Date(member.joined_at).toLocaleDateString()}
                       </div>
                     </div>
+                    {isPlayersSection && 'can_remove' in member && member.can_remove && (
+                      <div style={{ marginLeft: 'var(--space-md)' }}>
+                        <button
+                          onClick={() => handleRemovePlayer(member as Player)}
+                          className='btn btn-secondary btn-sm'
+                          title='Leave team'
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            minWidth: '32px',
+                            height: '32px',
+                            padding: '0',
+                          }}
+                        >
+                          <FaSignOutAlt />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -667,6 +754,27 @@ export const TeamDetailPage: React.FC = () =>
         onClose={() => setIsPlayerProfileModalOpen(false)}
         onSuccess={handlePlayerProfileSuccess}
         currentTeamId={teamId}
+      />
+
+      {/* Remove Player Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={removePlayerDialog.isOpen}
+        onClose={cancelRemovePlayer}
+        onConfirm={confirmRemovePlayer}
+        title="Leave Team"
+        message={
+          removePlayerDialog.player
+            ? `Are you sure you want to remove ${removePlayerDialog.player.name}${
+                removePlayerDialog.player.jersey_number
+                  ? ` (#${removePlayerDialog.player.jersey_number})`
+                  : ''
+              } from this team? They can be re-added later if needed.`
+            : ''
+        }
+        confirmButtonText="Leave Team"
+        cancelButtonText="Cancel"
+        variant="warning"
+        loading={removeLoading}
       />
     </main>
   );

@@ -384,6 +384,208 @@ router.get('/test-connection', async (req: Request, res: Response): Promise<void
   }
 });
 
+// Get guardian players - players the user has relationships with or owns
+router.get('/guardian-players', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> =>
+{
+  try
+  {
+    const userId = req.user?.id;
+
+    if (!userId)
+    {
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
+    }
+
+    // Get players where user is guardian
+    const { data: guardianRelationships, error: guardianError } = await supabase
+      .from('guardian_player_relationships')
+      .select(`
+        player_profile_id,
+        created_at,
+        player_profiles (
+          id,
+          name,
+          jersey_number,
+          user_id,
+          created_at
+        )
+      `)
+      .eq('guardian_id', userId);
+
+    if (guardianError)
+    {
+      res.status(400).json({ error: guardianError.message });
+      return;
+    }
+
+    // Get players owned by user
+    const { data: ownedPlayers, error: ownedError } = await supabase
+      .from('player_profiles')
+      .select('*')
+      .eq('user_id', userId);
+
+    if (ownedError)
+    {
+      res.status(400).json({ error: ownedError.message });
+      return;
+    }
+
+    // Combine and format the results
+    const allPlayers: any[] = [];
+
+    // Add guardian players
+    guardianRelationships?.forEach((rel: any) =>
+    {
+      if (rel.player_profiles)
+      {
+        allPlayers.push({
+          ...rel.player_profiles,
+          relationship_type: 'guardian',
+          relationship_created: rel.created_at,
+        });
+      }
+    });
+
+    // Add owned players (avoid duplicates)
+    ownedPlayers?.forEach((player: any) =>
+    {
+      const exists = allPlayers.some((p: any) => p.id === player.id);
+      if (!exists)
+      {
+        allPlayers.push({
+          ...player,
+          relationship_type: 'owner',
+          relationship_created: player.created_at,
+        });
+      }
+    });
+
+    res.json(allPlayers);
+  }
+  catch (error)
+  {
+    console.error('Get guardian players error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Delete player profile - accessible by guardians or the player owner
+router.delete('/players/:playerId', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> =>
+{
+  try
+  {
+    const { playerId } = req.params;
+    const userId = req.user?.id;
+
+    if (!userId)
+    {
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
+    }
+
+    // Check if player exists
+    const { data: playerProfile, error: playerError } = await supabase
+      .from('player_profiles')
+      .select('id, name, jersey_number, user_id')
+      .eq('id', playerId)
+      .single();
+
+    if (playerError || !playerProfile)
+    {
+      res.status(404).json({ error: 'Player not found' });
+      return;
+    }
+
+    // Check permissions
+    let hasPermission = false;
+
+    // Check if user owns the player profile
+    if (playerProfile.user_id === userId)
+    {
+      hasPermission = true;
+    }
+    else
+    {
+      // Check if user is a guardian of this player
+      const { data: guardianRelationship, error: relationshipError } = await supabase
+        .from('guardian_player_relationships')
+        .select('id')
+        .eq('guardian_id', userId)
+        .eq('player_profile_id', playerId)
+        .single();
+
+      if (!relationshipError && guardianRelationship)
+      {
+        hasPermission = true;
+      }
+    }
+
+    if (!hasPermission)
+    {
+      res.status(403).json({ error: 'Insufficient permissions to delete this player' });
+      return;
+    }
+
+    // Perform deletion in correct order (dependent tables first)
+    try
+    {
+      // Delete coaching point views
+      await supabase
+        .from('coaching_point_views')
+        .delete()
+        .eq('player_id', playerId);
+
+      // Delete coaching point tagged players
+      await supabase
+        .from('coaching_point_tagged_players')
+        .delete()
+        .eq('player_id', playerId);
+
+      // Delete team player relationships
+      await supabase
+        .from('team_players')
+        .delete()
+        .eq('player_id', playerId);
+
+      // Delete guardian relationships
+      await supabase
+        .from('guardian_player_relationships')
+        .delete()
+        .eq('player_profile_id', playerId);
+
+      // Delete player profile
+      const { error: deletePlayerError } = await supabase
+        .from('player_profiles')
+        .delete()
+        .eq('id', playerId);
+
+      if (deletePlayerError)
+      {
+        res.status(400).json({ error: 'Failed to delete player profile' });
+        return;
+      }
+
+      const playerName = playerProfile.name || 'Unknown';
+      const jerseyNumber = playerProfile.jersey_number;
+
+      res.json({
+        message: `Player ${playerName}${jerseyNumber ? ` (#${jerseyNumber})` : ''} deleted successfully`,
+      });
+    }
+    catch (deleteError)
+    {
+      console.error('Delete player error:', deleteError);
+      res.status(500).json({ error: 'Failed to delete player' });
+    }
+  }
+  catch (error)
+  {
+    console.error('Delete player error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Test Supabase Auth connection
 router.get('/test-auth', async (req: Request, res: Response): Promise<void> =>
 {
