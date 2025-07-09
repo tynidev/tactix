@@ -65,6 +65,11 @@ export const GamesPage: React.FC = () =>
       const team = teams.find(t => t.teams.id === teamId);
       setSelectedTeam(team || null);
     }
+    else
+    {
+      // Reset selectedTeam when there's no teamId (All Teams case)
+      setSelectedTeam(null);
+    }
   }, [teamId, teams]);
 
   const fetchTeams = async () =>

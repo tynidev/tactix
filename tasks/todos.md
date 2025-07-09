@@ -19,7 +19,7 @@
 # Team List
 * [ ] "Add Team" should open a modal dialog
 * [ ] Team edit button should open the same team modal
-* [ ] "Select All Teams" functionality is not working
+* [X] "Select All Teams" functionality is not working
 * [ ] Delete action should open a confirmation modal - need a generic dialog component
 
 # Dashboard
