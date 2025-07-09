@@ -8,6 +8,7 @@ interface PlayerProfileModalProps
   onClose: () => void;
   onSuccess: () => void;
   currentTeamId?: string;
+  forceGuardianRole?: boolean;
 }
 
 interface Team
@@ -32,6 +33,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   onClose,
   onSuccess,
   currentTeamId,
+  forceGuardianRole = false,
 }) =>
 {
   const [currentStep, setCurrentStep] = useState<Step>('role');
@@ -53,17 +55,20 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
     {
       fetchUserTeams();
       // Reset form when modal opens
-      setCurrentStep('role');
+      const initialStep = forceGuardianRole ? (currentTeamId ? 'profile' : 'team') : 'role';
+      const initialRole = forceGuardianRole ? 'guardian' : 'staff';
+
+      setCurrentStep(initialStep);
       setFormData({
         name: '',
         jerseyNumber: '',
-        role: 'staff',
+        role: initialRole,
         teamId: currentTeamId || '',
       });
       setError('');
       setSuccess('');
     }
-  }, [isOpen, currentTeamId]);
+  }, [isOpen, currentTeamId, forceGuardianRole]);
 
   const fetchUserTeams = async () =>
   {
@@ -218,11 +223,22 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   {
     if (currentStep === 'team')
     {
-      setCurrentStep('role');
+      if (!forceGuardianRole)
+      {
+        setCurrentStep('role');
+      }
     }
     else if (currentStep === 'profile')
     {
-      setCurrentStep(currentTeamId ? 'role' : 'team');
+      if (forceGuardianRole && !currentTeamId)
+      {
+        setCurrentStep('team');
+      }
+      else if (!forceGuardianRole)
+      {
+        setCurrentStep(currentTeamId ? 'role' : 'team');
+      }
+      // If forceGuardianRole && currentTeamId, there's no previous step
     }
     else if (currentStep === 'confirmation')
     {
@@ -293,23 +309,25 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
 
           {/* Progress indicator */}
           <div className='progress-indicator'>
-            <div className={`progress-step ${currentStep === 'role' ? 'active' : ''}`}>
-              <span>1</span>
-              <label>Role</label>
-            </div>
+            {!forceGuardianRole && (
+              <div className={`progress-step ${currentStep === 'role' ? 'active' : ''}`}>
+                <span>1</span>
+                <label>Role</label>
+              </div>
+            )}
             {!currentTeamId && (
               <div className={`progress-step ${currentStep === 'team' ? 'active' : ''}`}>
-                <span>2</span>
+                <span>{forceGuardianRole ? '1' : '2'}</span>
                 <label>Team</label>
               </div>
             )}
             <div className={`progress-step ${currentStep === 'profile' ? 'active' : ''}`}>
-              <span>{currentTeamId ? '2' : '3'}</span>
+              <span>{forceGuardianRole ? (currentTeamId ? '1' : '2') : (currentTeamId ? '2' : '3')}</span>
               <label>Profile</label>
             </div>
             {formData.role === 'guardian' && (
               <div className={`progress-step ${currentStep === 'confirmation' ? 'active' : ''}`}>
-                <span>{currentTeamId ? '3' : '4'}</span>
+                <span>{forceGuardianRole ? (currentTeamId ? '2' : '3') : (currentTeamId ? '3' : '4')}</span>
                 <label>Confirm</label>
               </div>
             )}
@@ -445,7 +463,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
 
           {/* Action Buttons */}
           <div className='form-actions'>
-            {currentStep !== 'role' && (
+            {currentStep !== 'role' && !(forceGuardianRole && currentTeamId && currentStep === 'profile') && (
               <button
                 onClick={handleBack}
                 className='btn btn-secondary'

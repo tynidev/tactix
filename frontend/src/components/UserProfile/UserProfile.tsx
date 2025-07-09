@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getApiUrl } from '../../utils/api';
 import { JoinTeamModal } from '../JoinTeamModal/JoinTeamModal';
+import { PlayerProfileModal } from '../PlayerProfileModal/PlayerProfileModal';
 
 interface UserProfile
 {
@@ -29,6 +30,7 @@ export const UserProfilePage: React.FC = () =>
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [showJoinTeamModal, setShowJoinTeamModal] = useState(false);
+  const [showPlayerProfileModal, setShowPlayerProfileModal] = useState(false);
 
   useEffect(() =>
   {
@@ -143,6 +145,13 @@ export const UserProfilePage: React.FC = () =>
   const handleJoinTeamSuccess = () =>
   {
     // Refresh the user profile to update team count
+    fetchUserProfile();
+  };
+
+  const handlePlayerProfileSuccess = () =>
+  {
+    setShowPlayerProfileModal(false);
+    // Optionally refresh stats here if needed
     fetchUserProfile();
   };
 
@@ -320,8 +329,15 @@ export const UserProfilePage: React.FC = () =>
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 'var(--space-lg)' }}>
             <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
               <button
+                onClick={() => setShowPlayerProfileModal(true)}
+                className='btn btn-secondary btn-md'
+                style={{ minWidth: '150px' }}
+              >
+                Add My Player
+              </button>
+              <button
                 onClick={() => setShowJoinTeamModal(true)}
-                className='btn btn-primary btn-md'
+                className='btn btn-secondary btn-md'
                 style={{ minWidth: '150px' }}
               >
                 Join Team
@@ -336,6 +352,14 @@ export const UserProfilePage: React.FC = () =>
         isOpen={showJoinTeamModal}
         onClose={() => setShowJoinTeamModal(false)}
         onSuccess={handleJoinTeamSuccess}
+      />
+
+      {/* Player Profile Modal */}
+      <PlayerProfileModal
+        isOpen={showPlayerProfileModal}
+        onClose={() => setShowPlayerProfileModal(false)}
+        onSuccess={handlePlayerProfileSuccess}
+        forceGuardianRole={true}
       />
     </div>
   );
