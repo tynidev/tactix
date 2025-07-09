@@ -12,7 +12,7 @@ import DrawingCanvas from '../DrawingCanvas/DrawingCanvas';
 import DrawingToolbar from '../DrawingToolbar/DrawingToolbar';
 import YouTubePlayer from '../YouTubePlayer/YouTubePlayer';
 import './GameAnalysis.css';
-import { FaPause, FaPlay, FaSpinner, FaStop } from 'react-icons/fa';
+import { FaArrowLeft, FaCircle, FaPause, FaPlay, FaPlus, FaSpinner, FaStop } from 'react-icons/fa';
 
 interface Game
 {
@@ -79,10 +79,9 @@ interface CoachingPoint
 interface GameAnalysisProps
 {
   game: Game;
-  onBack: () => void;
 }
 
-export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) =>
+export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
 {
   const [isRecording, setIsRecording] = useState(false);
   const [showCoachingPointModal, setShowCoachingPointModal] = useState(false);
@@ -592,25 +591,14 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) =>
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const formatGameResult = (teamScore: number | null, oppScore: number | null) =>
-  {
-    if (teamScore === null || oppScore === null)
-    {
-      return 'No score recorded';
-    }
-    return `${teamScore} - ${oppScore}`;
-  };
-
   if (!game.video_id)
   {
     return (
       <div className='game-analysis'>
-        <div className='analysis-header'>
-          <button onClick={onBack} className='btn btn-secondary'>
-            ← Back to Games
-          </button>
-          <h1>Game Analysis</h1>
-        </div>
+        {/* Circular Back Button */}
+        <button onClick={() => window.history.back()} className='circular-back-button' title='Back'>
+          <FaArrowLeft />
+        </button>
         <div className='error-state'>
           <h2>No Video Available</h2>
           <p>This game doesn't have a video URL. Please add a YouTube video URL to begin analysis.</p>
@@ -621,55 +609,10 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) =>
 
   return (
     <div className='game-analysis'>
-      <div className='analysis-header'>
-        <button onClick={onBack} className='btn btn-secondary'>
-          ← Back to Games
-        </button>
-
-        <div className='game-info'>
-          <h1>vs {game.opponent}</h1>
-        </div>
-
-        <div className='game-meta'>
-          <span>Game Date: {new Date(game.date).toLocaleDateString()}</span>
-          <span>Score: {formatGameResult(game.team_score, game.opp_score)}</span>
-        </div>
-
-        <div className='analysis-controls'>
-          <button
-            onClick={handleCreateCoachingPoint}
-            className='btn btn-primary'
-            disabled={!isReady || isPlaying}
-            title={isPlaying ? 'Pause video to add coaching point' : 'Add coaching point'}
-          >
-            Add Coaching Point
-          </button>
-
-          <button
-            onClick={handleToggleRecording}
-            className={`btn recording-button ${isRecording ? 'btn-error recording-active' : 'btn-success'}`}
-            disabled={!isReady}
-          >
-            {isRecording ?
-              (
-                <div className='recording-button-content'>
-                  <div className='recording-dot'></div>
-                  <span>Recording</span>
-                  {audioRecording.recordingTime > 0 && (
-                    <span className='recording-time'>
-                      {Math.floor(audioRecording.recordingTime / 1000 / 60)}:
-                      {Math.floor((audioRecording.recordingTime / 1000) % 60).toString().padStart(2, '0')}
-                    </span>
-                  )}
-                  {audioRecording.error && <span className='recording-error'>{audioRecording.error}</span>}
-                </div>
-              ) :
-              (
-                '⏺ Start Recording'
-              )}
-          </button>
-        </div>
-      </div>
+      {/* Circular Back Button */}
+      <button onClick={() => window.history.back()} className='circular-back-button' title='Back'>
+        <FaArrowLeft />
+      </button>
 
       <div className={`analysis-workspace ${selectedCoachingPoint ? 'with-sidebar' : ''}`}>
         <div
@@ -891,6 +834,11 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) =>
         onPlaybackRateChange={handlePlaybackRateChange}
         isCoachingPointPlaybackActive={playback.isPlaying ||
           (!!selectedCoachingPoint?.audio_url && playback.currentTime > 0)}
+        onCreateCoachingPoint={handleCreateCoachingPoint}
+        onToggleRecording={handleToggleRecording}
+        isRecording={isRecording}
+        isReady={isReady}
+        audioRecording={audioRecording}
       />
     </div>
   );

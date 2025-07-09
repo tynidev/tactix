@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { FaCircle, FaPlus } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import type { Drawing } from '../../types/drawing';
 import { getApiUrl } from '../../utils/api';
@@ -74,6 +75,15 @@ interface CoachingPointsFlyoutProps
   onSeekTo: (time: number) => void;
   onPlaybackRateChange: (rate: number) => void;
   isCoachingPointPlaybackActive?: boolean; // Disable transport controls during coaching point playback
+  // Analysis control props
+  onCreateCoachingPoint: () => void;
+  onToggleRecording: () => void;
+  isRecording: boolean;
+  isReady: boolean;
+  audioRecording: {
+    recordingTime: number;
+    error: string | null;
+  };
 }
 
 export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
@@ -95,6 +105,12 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
     onSeekTo,
     onPlaybackRateChange,
     isCoachingPointPlaybackActive = false,
+    // Analysis control props
+    onCreateCoachingPoint,
+    onToggleRecording,
+    isRecording,
+    isReady,
+    audioRecording,
   }) =>
   {
     const { user } = useAuth();
@@ -475,6 +491,38 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
               onPlaybackRateChange={onPlaybackRateChange}
               disabled={isCoachingPointPlaybackActive}
             />
+
+            {/* Analysis Controls */}
+            <div className='analysis-controls'>
+              <button
+                className='analysis-btn'
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCreateCoachingPoint();
+                }}
+                disabled={!isReady || isPlaying}
+                title={isPlaying ? 'Pause video to add coaching point' : 'Add coaching point'}
+              >
+                <FaPlus />
+              </button>
+              <button
+                className={`analysis-btn ${isRecording ? 'recording' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleRecording();
+                }}
+                disabled={!isReady || isPlaying}
+                title={isPlaying ? 'Pause video to record' : (isRecording ? 'Stop recording' : 'Start recording')}
+              >
+                <FaCircle />
+                {isRecording && audioRecording.recordingTime > 0 && (
+                  <span className='recording-time'>
+                    {Math.floor(audioRecording.recordingTime / 1000 / 60)}:
+                    {Math.floor((audioRecording.recordingTime / 1000) % 60).toString().padStart(2, '0')}
+                  </span>
+                )}
+              </button>
+            </div>
 
             <div className='header-right' onClick={() => setIsExpanded(!isExpanded)}>
               <h3>Coaching Points</h3>

@@ -4,48 +4,143 @@
   display: flex;
   flex-direction: column;
   background: var(--color-bg-primary);
+  position: relative;
+}
+
+/* Circular Back Button */
+.circular-back-button {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(20px);
+  border: none;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  transition: all var(--transition-normal);
+  box-shadow: var(--shadow-lg);
+}
+
+.circular-back-button:hover {
+  background: rgba(0, 0, 0, 0.5);
+  transform: scale(1.1);
+  box-shadow: var(--shadow-lg);
+}
+
+.circular-back-button:active {
+  transform: scale(0.95);
+}
+
+.circular-back-button:focus {
+  outline: 2px solid var(--color-accent-primary);
+  outline-offset: 2px;
 }
 
 .analysis-header {
+  height: 50px;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(4px);
+  border: none;
+  box-shadow: none;
+  flex-shrink: 0;
+  transition: background-color var(--transition-normal), backdrop-filter var(--transition-normal);
+}
+
+.analysis-header:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.header-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-md) var(--space-lg);
-  background: rgba(0, 0, 0, 0.3);
-  flex-shrink: 0;
+  width: 100%;
+  height: 100%;
   gap: var(--space-lg);
 }
 
-.game-info {
-  flex: 1;
-  text-align: center;
-}
-
-.game-info h1 {
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 900;
-}
-
-.game-meta {
+.header-left {
   display: flex;
   align-items: center;
   gap: var(--space-md);
-  color: var(--color-text-secondary);
+  flex: 1;
 }
 
-.game-meta span {
-  position: relative;
-  top:2px;
+.back-button {
+  background: none !important;
+  border: none !important;
+  color: white !important;
+  font-size: 0.9rem !important;
+  font-weight: 500 !important;
+  padding: var(--space-xs) var(--space-sm) !important;
+  transition: color var(--transition-normal) !important;
+  cursor: pointer !important;
+  white-space: nowrap;
+}
+
+.back-button:hover {
+  color: #efefef !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.header-right-section {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  height: 50px;
+  padding: 0 var(--space-md);
+  min-width: 399px;
+}
+
+.header-right-section .game-info {
+  flex: 1;
+  text-align: left;
+}
+
+.header-right-section .game-info h1 {
+  color: white;
   font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  transition: color var(--transition-normal);
+}
+
+.header-right-section .game-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 2px;
+}
+
+.header-right-section .game-meta span {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.75rem;
   font-weight: 500;
-  background: var(--color-bg-card);
-  border-radius: var(--radius-sm);
+  background: none;
+  border-radius: 0;
+  position: relative;
+  top: 0;
+}
+
+.header-right-section:hover .game-info h1,
+.header-right-section:hover .game-meta span {
+  color: #efefef;
+  text-shadow: none;
 }
 
 .analysis-controls {
   display: flex;
-  gap: var(--space-sm);
+  gap: 0;
+  flex-shrink: 0;
 }
 
 .analysis-workspace {
@@ -182,15 +277,253 @@
   line-height: 1.5;
 }
 
-/* Recording Button Styles */
-.recording-button {
+/* Modern Button Styles */
+.btn-modern {
+  position: relative;
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: 0;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  width:200px;
+}
+
+.btn-modern:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  z-index: 2;
+}
+
+.btn-modern:active {
+  transform: translateY(0);
+}
+
+.btn-modern:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-modern:disabled:hover {
+  transform: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.btn-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-md) var(--space-lg);
+  height: 100%;
+  position: relative;
+  z-index: 2;
+}
+
+.btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  transition: all 0.2s ease;
+}
+
+.btn-text {
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.btn-text-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+/* Add Point Button */
+.btn-add-point {
+  background: linear-gradient(135deg, var(--color-accent-primary) 0%, var(--color-accent-secondary) 100%);
+  color: white;
+}
+
+.btn-add-point::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, var(--color-accent-secondary) 0%, var(--color-accent-primary) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 1;
+}
+
+.btn-add-point:hover::before {
+  opacity: 1;
+}
+
+.btn-add-point:hover .btn-icon {
+  transform: rotate(90deg);
+}
+
+/* Record Button - Ready State */
+.btn-record-ready {
+  background: linear-gradient(135deg, var(--color-success) 0%, #46ac53 100%);
+  color: white;
+}
+
+.btn-record-ready::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #46ac53 0%, var(--color-success) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 1;
+}
+
+.btn-record-ready:hover::before {
+  opacity: 1;
+}
+
+.btn-record-ready:hover .btn-icon {
+  transform: scale(1.1);
+}
+
+/* Record Button - Recording State */
+.btn-recording-active {
+  background: linear-gradient(135deg, var(--color-error) 0%, #dc2626 100%);
+  color: white;
+  animation: recording-glow 2s ease-in-out infinite alternate;
+}
+
+.btn-recording-active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #dc2626 0%, var(--color-error) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 1;
+}
+
+.btn-recording-active:hover::before {
+  opacity: 1;
+}
+
+.recording-dot-modern {
+  width: 12px;
+  height: 12px;
+  background: white;
+  border-radius: 50%;
+  animation: recording-pulse-modern 1.5s ease-in-out infinite;
+}
+
+.recording-time-modern {
+  font-family: 'Courier New', monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.recording-error-modern {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 4px;
+  border-radius: var(--radius-xs);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes recording-glow {
+  0% {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1), 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  100% {
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15), 0 0 0 8px rgba(239, 68, 68, 0.1);
+  }
+}
+
+@keyframes recording-pulse-modern {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Responsive adjustments for modern buttons */
+@media (max-width: 768px) {
+  .btn-modern {
+    min-width: 120px;
+    min-height: 48px;
+  }
+  
+  .btn-content {
+    padding: var(--space-sm) var(--space-md);
+    gap: var(--space-xs);
+  }
+  
+  .btn-text {
+    font-size: 0.8rem;
+  }
+  
+  .btn-icon {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .btn-modern {
+    min-width: 100px;
+    min-height: 44px;
+  }
+  
+  .btn-text {
+    font-size: 0.75rem;
+  }
+  
+  .recording-time-modern {
+    font-size: 0.7rem;
+  }
+}
+
+/* Legacy Recording Button Styles (for backward compatibility) */
+.recording-button:not(.btn-modern) {
   position: relative;
   overflow: hidden;
   min-width: 150px;
   transition: all 0.2s ease;
 }
 
-.recording-button.recording-active {
+.recording-button.recording-active:not(.btn-modern) {
   background: var(--color-error);
   border-color: var(--color-error);
   color: white;
@@ -257,39 +590,60 @@
 
 /* Responsive design */
 @media (max-width: 768px) {
-  .analysis-header {
-    flex-direction: column;
-    gap: var(--space-md);
-    padding: var(--space-md);
-    align-items: stretch;
+  .circular-back-button {
+    top: 15px;
+    left: 15px;
+    width: 44px;
+    height: 44px;
+    font-size: 18px;
   }
 
-  .game-info {
+  .analysis-header {
+    height: auto;
+    min-height: 50px;
+  }
+
+  .header-content {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-sm);
+    padding: var(--space-sm);
+  }
+
+  .header-left {
+    flex: none;
+    justify-content: center;
+    order: 2;
+  }
+
+  .header-right-section {
+    min-width: auto;
+    height: auto;
+    padding: var(--space-sm);
     order: 1;
+  }
+
+  .header-right-section .game-info {
     text-align: center;
   }
 
-  .game-meta {
-    order: 2;
+  .header-right-section .game-info h1 {
+    font-size: 1.25rem;
+  }
+
+  .header-right-section .game-meta {
+    align-items: center;
+    flex-direction: row;
+    gap: var(--space-sm);
     justify-content: center;
   }
 
   .analysis-controls {
-    order: 3;
     justify-content: center;
     flex-wrap: wrap;
   }
 
-  .game-info h1 {
-    font-size: 1.25rem;
-  }
-
-  .game-meta {
-    flex-direction: column;
-    gap: var(--space-xs);
-  }
-
-  .recording-button {
+  .recording-button:not(.btn-modern) {
     min-width: 120px;
   }
 
@@ -306,11 +660,35 @@
     flex-direction: column;
   }
 
-
   .coaching-point-sidebar {
     flex: 0 0 40%;
     border-left: none;
     border-top: 1px solid var(--border-color);
+  }
+}
+
+@media (max-width: 480px) {
+  .header-content {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-xs);
+  }
+  
+  .header-left {
+    order: 2;
+    justify-content: center;
+  }
+  
+  .header-right-section {
+    order: 1;
+    justify-content: center;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .analysis-controls {
+    flex-direction: column;
+    gap: var(--space-xs);
   }
 }
 

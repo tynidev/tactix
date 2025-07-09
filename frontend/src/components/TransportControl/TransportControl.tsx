@@ -32,6 +32,9 @@ const TransportControl: React.FC<TransportControlProps> = ({
   const [dragTime, setDragTime] = useState(0);
   const [isSeekingFromClick, setIsSeekingFromClick] = useState(false);
   const [lastSeekTime, setLastSeekTime] = useState(0);
+  const [isHovering, setIsHovering] = useState(false);
+  const [hoverTime, setHoverTime] = useState(0);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const timelineRef = useRef<HTMLDivElement>(null);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -121,6 +124,37 @@ const TransportControl: React.FC<TransportControlProps> = ({
       }, 16); // ~60fps
     }
   }, [isDragging, duration, calculateTimeFromPosition]);
+
+  // Handle timeline hover for tooltip
+  const handleTimelineMouseMove = useCallback((e: React.MouseEvent) =>
+  {
+    if (disabled || duration === 0) return;
+
+    const newTime = calculateTimeFromPosition(e.clientX);
+    const rect = timelineRef.current?.getBoundingClientRect();
+    
+    if (rect)
+    {
+      setHoverTime(newTime);
+      setTooltipPosition({
+        x: e.clientX,
+        y: -30 // Position tooltip above the timeline
+      });
+    }
+  }, [disabled, duration, calculateTimeFromPosition]);
+
+  const handleTimelineMouseEnter = useCallback(() =>
+  {
+    if (!disabled && duration > 0)
+    {
+      setIsHovering(true);
+    }
+  }, [disabled, duration]);
+
+  const handleTimelineMouseLeave = useCallback(() =>
+  {
+    setIsHovering(false);
+  }, []);
 
   // Handle global mouse events for dragging
   useEffect(() =>
@@ -242,6 +276,9 @@ const TransportControl: React.FC<TransportControlProps> = ({
             className={`timeline ${disabled ? 'disabled' : ''}`}
             onClick={disabled ? undefined : handleTimelineClick}
             onMouseDown={disabled ? undefined : handleMouseDown}
+            onMouseMove={disabled ? undefined : handleTimelineMouseMove}
+            onMouseEnter={disabled ? undefined : handleTimelineMouseEnter}
+            onMouseLeave={disabled ? undefined : handleTimelineMouseLeave}
             role='slider'
             aria-label='Video timeline'
             aria-valuemin={0}
@@ -263,6 +300,17 @@ const TransportControl: React.FC<TransportControlProps> = ({
             {disabled && (
               <div className='timeline-locked-icon'>
                 <MdLock />
+              </div>
+            )}
+            {isHovering && !disabled && !isDragging && (
+              <div
+                className='timeline-tooltip'
+                style={{
+                  left: `${tooltipPosition.x}px`,
+                  top: `${tooltipPosition.y}px`,
+                }}
+              >
+                {formatTime(hoverTime)}
               </div>
             )}
           </div>
