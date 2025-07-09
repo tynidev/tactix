@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Modal } from '../Modal';
 import './GameForm.css';
 
@@ -52,14 +52,29 @@ export const GameForm: React.FC<GameFormProps> = ({
     date: initialData.date || '',
     location: initialData.location || null,
     video_id: isEditing ? getVideoUrlForEditing(initialData.video_id) : (initialData.video_id || null),
-    team_score: initialData.team_score || null,
-    opp_score: initialData.opp_score || null,
+    team_score: initialData.team_score !== undefined ? initialData.team_score : null,
+    opp_score: initialData.opp_score !== undefined ? initialData.opp_score : null,
     game_type: initialData.game_type || 'regular',
     home_away: initialData.home_away || 'home',
     notes: initialData.notes || null,
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Update form data when initialData changes (for editing existing games)
+  useEffect(() => {
+    setFormData({
+      opponent: initialData.opponent || '',
+      date: initialData.date || '',
+      location: initialData.location || null,
+      video_id: isEditing ? getVideoUrlForEditing(initialData.video_id) : (initialData.video_id || null),
+      team_score: initialData.team_score !== undefined ? initialData.team_score : null,
+      opp_score: initialData.opp_score !== undefined ? initialData.opp_score : null,
+      game_type: initialData.game_type || 'regular',
+      home_away: initialData.home_away || 'home',
+      notes: initialData.notes || null,
+    });
+  }, [initialData, isEditing]);
 
   // Helper function to extract YouTube video ID from URL
   const extractYouTubeId = (url: string): string =>
@@ -245,7 +260,7 @@ export const GameForm: React.FC<GameFormProps> = ({
               name='team_score'
               type='number'
               min='0'
-              value={formData.team_score || ''}
+              value={formData.team_score !== null ? formData.team_score : ''}
               onChange={handleInputChange}
               className='form-input'
               placeholder='0'
@@ -261,7 +276,7 @@ export const GameForm: React.FC<GameFormProps> = ({
               name='opp_score'
               type='number'
               min='0'
-              value={formData.opp_score || ''}
+              value={formData.opp_score !== null ? formData.opp_score : ''}
               onChange={handleInputChange}
               className='form-input'
               placeholder='0'
