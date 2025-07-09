@@ -17,10 +17,10 @@
 # Add Game Modal
 
 # Team List
-* [ ] "Add Team" should open a modal dialog
-* [ ] Team edit button should open the same team modal
+* [X] "Add Team" should open a modal dialog
+* [X] Team edit button should open the same team modal
 * [X] "Select All Teams" functionality is not working
-* [ ] Delete action should open a confirmation modal - need a generic dialog component
+* [X] Delete action should open a confirmation modal - need a generic dialog component
 
 # Dashboard
 * [ ] Games analyzed and sessions statistics are incorrect - need to fix or replace with other meaningful stats

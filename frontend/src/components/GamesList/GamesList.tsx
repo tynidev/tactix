@@ -2,6 +2,7 @@ import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo
 import DatePicker from 'react-datepicker';
 import { FaPencilAlt, FaTrash } from 'react-icons/fa';
 import { getApiUrl, getValidAccessToken } from '../../utils/api';
+import { ConfirmationDialog } from '../ConfirmationDialog';
 import './GamesList.css';
 import 'react-datepicker/dist/react-datepicker.css';
 
@@ -73,6 +74,19 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
 
+  // Delete confirmation state
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    isOpen: boolean;
+    gameId: string | null;
+    gameOpponent: string;
+    loading: boolean;
+  }>({
+    isOpen: false,
+    gameId: null,
+    gameOpponent: '',
+    loading: false,
+  });
+
   useEffect(() =>
   {
     fetchGames();
@@ -124,12 +138,34 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
     }
   };
 
-  const handleDeleteGame = async (gameId: string) =>
+  const handleDeleteGame = (gameId: string) =>
   {
-    if (!confirm('Are you sure you want to delete this game? This will also delete all coaching points.'))
-    {
-      return;
-    }
+    const game = games.find(g => g.id === gameId);
+    const gameOpponent = game?.opponent || 'this game';
+
+    setDeleteConfirmation({
+      isOpen: true,
+      gameId,
+      gameOpponent,
+      loading: false,
+    });
+  };
+
+  const handleDeleteConfirmationClose = () =>
+  {
+    setDeleteConfirmation({
+      isOpen: false,
+      gameId: null,
+      gameOpponent: '',
+      loading: false,
+    });
+  };
+
+  const handleDeleteConfirmationConfirm = async () =>
+  {
+    if (!deleteConfirmation.gameId) return;
+
+    setDeleteConfirmation(prev => ({ ...prev, loading: true }));
 
     try
     {
@@ -141,7 +177,7 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
       }
 
       const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/api/games/${gameId}`, {
+      const response = await fetch(`${apiUrl}/api/games/${deleteConfirmation.gameId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -154,11 +190,15 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
         throw new Error('Failed to delete game');
       }
 
+      // Close confirmation dialog
+      handleDeleteConfirmationClose();
+
       // Refresh games list
       fetchGames();
     }
     catch (err)
     {
+      setDeleteConfirmation(prev => ({ ...prev, loading: false }));
       alert('Failed to delete game');
       console.error('Error deleting game:', err);
     }
@@ -524,6 +564,17 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
             ))}
           </div>
         )}
+
+      <ConfirmationDialog
+        isOpen={deleteConfirmation.isOpen}
+        onClose={handleDeleteConfirmationClose}
+        onConfirm={handleDeleteConfirmationConfirm}
+        title='Delete Game'
+        message={`Are you sure you want to delete the game against "${deleteConfirmation.gameOpponent}"? This will also delete all coaching points. This action cannot be undone.`}
+        confirmButtonText='Delete Game'
+        variant='danger'
+        loading={deleteConfirmation.loading}
+      />
     </div>
   );
 });

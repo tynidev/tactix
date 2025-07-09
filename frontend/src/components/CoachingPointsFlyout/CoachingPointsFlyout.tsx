@@ -3,6 +3,7 @@ import { FaCircle, FaPlus } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import type { Drawing } from '../../types/drawing';
 import { getApiUrl } from '../../utils/api';
+import { ConfirmationDialog } from '../ConfirmationDialog';
 import TransportControl from '../TransportControl/TransportControl';
 import './CoachingPointsFlyout.css';
 import { supabase } from '../../lib/supabase';
@@ -123,6 +124,19 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
     const [titleFilter, setTitleFilter] = useState('');
     const [selectedPlayerFilter, setSelectedPlayerFilter] = useState('');
     const [selectedLabelFilter, setSelectedLabelFilter] = useState('');
+
+    // Delete confirmation state
+    const [deleteConfirmation, setDeleteConfirmation] = useState<{
+      isOpen: boolean;
+      pointId: string | null;
+      pointTitle: string;
+      loading: boolean;
+    }>({
+      isOpen: false,
+      pointId: null,
+      pointTitle: '',
+      loading: false,
+    });
 
     const loadCoachingPoints = useCallback(async () =>
     {
@@ -259,55 +273,77 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
     );
 
     const handleDeletePoint = useCallback(
-      async (pointId: string, event: React.MouseEvent) =>
+      (pointId: string, event: React.MouseEvent) =>
       {
         // Stop event propagation to prevent triggering the point click
         event.stopPropagation();
 
-        if (
-          !confirm(
-            'Are you sure you want to delete this coaching point? This action cannot be undone.',
-          )
-        )
-        {
-          return;
-        }
+        const point = coachingPoints.find(p => p.id === pointId);
+        const pointTitle = point?.title || 'this coaching point';
 
-        try
-        {
-          const session = await supabase.auth.getSession();
-
-          if (!session.data.session?.access_token)
-          {
-            throw new Error('No access token');
-          }
-
-          const apiUrl = getApiUrl();
-          const response = await fetch(`${apiUrl}/api/coaching-points/${pointId}`, {
-            method: 'DELETE',
-            headers: {
-              Authorization: `Bearer ${session.data.session.access_token}`,
-              'Content-Type': 'application/json',
-            },
-          });
-
-          if (!response.ok)
-          {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Failed to delete coaching point');
-          }
-
-          // Remove the deleted point from the local state
-          setCoachingPoints((prev) => prev.filter((point) => point.id !== pointId));
-        }
-        catch (err)
-        {
-          console.error('Error deleting coaching point:', err);
-          alert(err instanceof Error ? err.message : 'Failed to delete coaching point');
-        }
+        setDeleteConfirmation({
+          isOpen: true,
+          pointId,
+          pointTitle,
+          loading: false,
+        });
       },
-      [],
+      [coachingPoints],
     );
+
+    const handleDeleteConfirmationClose = () =>
+    {
+      setDeleteConfirmation({
+        isOpen: false,
+        pointId: null,
+        pointTitle: '',
+        loading: false,
+      });
+    };
+
+    const handleDeleteConfirmationConfirm = async () =>
+    {
+      if (!deleteConfirmation.pointId) return;
+
+      setDeleteConfirmation(prev => ({ ...prev, loading: true }));
+
+      try
+      {
+        const session = await supabase.auth.getSession();
+
+        if (!session.data.session?.access_token)
+        {
+          throw new Error('No access token');
+        }
+
+        const apiUrl = getApiUrl();
+        const response = await fetch(`${apiUrl}/api/coaching-points/${deleteConfirmation.pointId}`, {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${session.data.session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok)
+        {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to delete coaching point');
+        }
+
+        // Remove the deleted point from the local state
+        setCoachingPoints((prev) => prev.filter((point) => point.id !== deleteConfirmation.pointId));
+
+        // Close confirmation dialog
+        handleDeleteConfirmationClose();
+      }
+      catch (err)
+      {
+        setDeleteConfirmation(prev => ({ ...prev, loading: false }));
+        console.error('Error deleting coaching point:', err);
+        alert(err instanceof Error ? err.message : 'Failed to delete coaching point');
+      }
+    };
 
     const canDeletePoint = useCallback(
       (point: CoachingPoint): boolean =>
@@ -704,6 +740,17 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
             )}
           </div>
         )}
+
+        <ConfirmationDialog
+          isOpen={deleteConfirmation.isOpen}
+          onClose={handleDeleteConfirmationClose}
+          onConfirm={handleDeleteConfirmationConfirm}
+          title='Delete Coaching Point'
+          message={`Are you sure you want to delete "${deleteConfirmation.pointTitle}"? This action cannot be undone.`}
+          confirmButtonText='Delete Coaching Point'
+          variant='danger'
+          loading={deleteConfirmation.loading}
+        />
       </div>
     );
   },

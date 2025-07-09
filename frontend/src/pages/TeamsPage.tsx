@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ConfirmationDialog } from '../components/ConfirmationDialog';
 import { CreateTeamModal } from '../components/CreateTeamModal';
 import { TeamsGrid } from '../components/TeamsGrid';
 import { useAuth } from '../contexts/AuthContext';
@@ -28,6 +29,17 @@ export const TeamsPage: React.FC = () =>
   const [error, setError] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [teamToEdit, setTeamToEdit] = useState<{ id: string; name: string; } | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    isOpen: boolean;
+    teamId: string | null;
+    teamName: string;
+    loading: boolean;
+  }>({
+    isOpen: false,
+    teamId: null,
+    teamName: '',
+    loading: false,
+  });
 
   useEffect(() =>
   {
@@ -104,16 +116,34 @@ export const TeamsPage: React.FC = () =>
     setIsCreateModalOpen(true);
   };
 
-  const handleDeleteTeam = async (teamId: string) =>
+  const handleDeleteTeam = (teamId: string) =>
   {
-    if (
-      !confirm(
-        'Are you sure you want to delete this team? This will also delete all games, coaching points, and join codes.',
-      )
-    )
-    {
-      return;
-    }
+    const team = teams.find(t => t.teams.id === teamId);
+    const teamName = team?.teams.name || 'this team';
+
+    setDeleteConfirmation({
+      isOpen: true,
+      teamId,
+      teamName,
+      loading: false,
+    });
+  };
+
+  const handleDeleteConfirmationClose = () =>
+  {
+    setDeleteConfirmation({
+      isOpen: false,
+      teamId: null,
+      teamName: '',
+      loading: false,
+    });
+  };
+
+  const handleDeleteConfirmationConfirm = async () =>
+  {
+    if (!deleteConfirmation.teamId) return;
+
+    setDeleteConfirmation(prev => ({ ...prev, loading: true }));
 
     try
     {
@@ -126,7 +156,7 @@ export const TeamsPage: React.FC = () =>
       }
 
       const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/api/teams/${teamId}`, {
+      const response = await fetch(`${apiUrl}/api/teams/${deleteConfirmation.teamId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${session.data.session.access_token}`,
@@ -139,11 +169,15 @@ export const TeamsPage: React.FC = () =>
         throw new Error('Failed to delete team');
       }
 
+      // Close confirmation dialog
+      handleDeleteConfirmationClose();
+
       // Refresh teams list
       fetchTeams();
     }
     catch (err)
     {
+      setDeleteConfirmation(prev => ({ ...prev, loading: false }));
       alert('Failed to delete team');
       console.error('Error deleting team:', err);
     }
@@ -191,6 +225,17 @@ export const TeamsPage: React.FC = () =>
         onClose={handleCreateModalClose}
         onSuccess={handleCreateModalSuccess}
         teamToEdit={teamToEdit}
+      />
+
+      <ConfirmationDialog
+        isOpen={deleteConfirmation.isOpen}
+        onClose={handleDeleteConfirmationClose}
+        onConfirm={handleDeleteConfirmationConfirm}
+        title='Delete Team'
+        message={`Are you sure you want to delete "${deleteConfirmation.teamName}"? This will also delete all games, coaching points, and join codes. This action cannot be undone.`}
+        confirmButtonText='Delete Team'
+        variant='danger'
+        loading={deleteConfirmation.loading}
       />
     </main>
   );

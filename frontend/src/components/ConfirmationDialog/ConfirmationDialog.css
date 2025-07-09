@@ -1,0 +1,110 @@
+/* Confirmation Dialog Styles */
+.confirmation-dialog .modal-content {
+  max-width: 420px;
+}
+
+.confirmation-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-lg);
+}
+
+.confirmation-icon {
+  font-size: 3rem;
+  margin-bottom: var(--space-sm);
+}
+
+.confirmation-icon-danger {
+  color: var(--color-error);
+}
+
+.confirmation-icon-warning {
+  color: var(--color-warning);
+}
+
+.confirmation-icon-info {
+  color: var(--color-info);
+}
+
+.confirmation-message {
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--color-text-primary);
+  margin: 0;
+  max-width: 100%;
+}
+
+.confirmation-actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: center;
+  width: 100%;
+  margin-top: var(--space-md);
+}
+
+.confirmation-actions .btn {
+  min-width: 100px;
+  padding: var(--space-sm) var(--space-lg);
+  font-weight: 600;
+}
+
+.confirmation-confirm-btn.btn-danger {
+  background: var(--color-error);
+  border-color: var(--color-error);
+  color: white;
+}
+
+.confirmation-confirm-btn.btn-danger:hover:not(:disabled) {
+  background: var(--color-error-dark, #dc2626);
+  border-color: var(--color-error-dark, #dc2626);
+}
+
+.confirmation-confirm-btn.btn-warning {
+  background: var(--color-warning);
+  border-color: var(--color-warning);
+  color: var(--color-text-primary);
+}
+
+.confirmation-confirm-btn.btn-warning:hover:not(:disabled) {
+  background: var(--color-warning-dark, #d97706);
+  border-color: var(--color-warning-dark, #d97706);
+}
+
+.confirmation-confirm-btn.btn-info {
+  background: var(--color-info);
+  border-color: var(--color-info);
+  color: white;
+}
+
+.confirmation-confirm-btn.btn-info:hover:not(:disabled) {
+  background: var(--color-info-dark, #0369a1);
+  border-color: var(--color-info-dark, #0369a1);
+}
+
+/* Focus states */
+.confirmation-actions .btn:focus {
+  outline: 2px solid var(--color-accent-primary);
+  outline-offset: 2px;
+}
+
+/* Mobile responsive */
+@media (max-width: 480px) {
+  .confirmation-actions {
+    flex-direction: column;
+  }
+  
+  .confirmation-actions .btn {
+    width: 100%;
+    min-width: auto;
+  }
+  
+  .confirmation-icon {
+    font-size: 2.5rem;
+  }
+  
+  .confirmation-message {
+    font-size: 0.9rem;
+  }
+}
