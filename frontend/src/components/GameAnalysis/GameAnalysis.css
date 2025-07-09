@@ -177,46 +177,56 @@
   line-height: 1.5;
 }
 
-.recording-indicator {
-  position: fixed;
-  top: var(--space-lg);
-  right: var(--space-lg);
+/* Recording Button Styles */
+.recording-button {
+  position: relative;
+  overflow: hidden;
+  min-width: 150px;
+  transition: all 0.2s ease;
+}
+
+.recording-button.recording-active {
   background: var(--color-error);
+  border-color: var(--color-error);
   color: white;
-  padding: var(--space-sm) var(--space-md);
-  border-radius: var(--radius-full);
-  font-size: 0.875rem;
-  font-weight: 500;
+}
+
+.recording-button-content {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  z-index: 1000;
-  box-shadow: var(--shadow-lg);
-  max-width: 300px;
+  font-size: 0.875rem;
+  font-weight: 500;
 }
 
-.recording-time {
-  font-family: monospace;
-  font-weight: 600;
-  background: rgba(255, 255, 255, 0.2);
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-}
-
-.recording-error {
-  font-size: 0.75rem;
-  background: rgba(255, 255, 255, 0.1);
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-.recording-dot {
+.recording-button-content .recording-dot {
   width: 8px;
   height: 8px;
   background: white;
   border-radius: 50%;
   animation: recording-pulse 1.5s ease-in-out infinite alternate;
+  flex-shrink: 0;
+}
+
+.recording-button-content .recording-time {
+  font-family: monospace;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+}
+
+.recording-button-content .recording-error {
+  font-size: 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @keyframes recording-pulse {
@@ -274,11 +284,16 @@
     gap: var(--space-xs);
   }
 
-  .recording-indicator {
-    top: var(--space-md);
-    right: var(--space-md);
+  .recording-button {
+    min-width: 120px;
+  }
+
+  .recording-button-content {
     font-size: 0.75rem;
-    padding: 6px var(--space-sm);
+  }
+
+  .recording-button-content .recording-time {
+    font-size: 0.7rem;
   }
 
   /* Stack sidebar below video on mobile */

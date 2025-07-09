@@ -646,10 +646,26 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) =>
 
           <button
             onClick={handleToggleRecording}
-            className={`btn ${isRecording ? 'btn-error' : 'btn-success'}`}
+            className={`btn recording-button ${isRecording ? 'btn-error recording-active' : 'btn-success'}`}
             disabled={!isReady}
           >
-            {isRecording ? '⏹ Stop Recording' : '⏺ Start Recording'}
+            {isRecording ?
+              (
+                <div className='recording-button-content'>
+                  <div className='recording-dot'></div>
+                  <span>Recording</span>
+                  {audioRecording.recordingTime > 0 && (
+                    <span className='recording-time'>
+                      {Math.floor(audioRecording.recordingTime / 1000 / 60)}:
+                      {Math.floor((audioRecording.recordingTime / 1000) % 60).toString().padStart(2, '0')}
+                    </span>
+                  )}
+                  {audioRecording.error && <span className='recording-error'>{audioRecording.error}</span>}
+                </div>
+              ) :
+              (
+                '⏺ Start Recording'
+              )}
           </button>
         </div>
       </div>
@@ -819,20 +835,6 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game, onBack }) =>
           </div>
         )}
       </div>
-
-      {(isRecording || audioRecording.isRecording) && (
-        <div className='recording-indicator'>
-          <div className='recording-dot'></div>
-          <span>Recording Session</span>
-          {audioRecording.recordingTime > 0 && (
-            <span className='recording-time'>
-              {Math.floor(audioRecording.recordingTime / 1000 / 60)}:
-              {Math.floor((audioRecording.recordingTime / 1000) % 60).toString().padStart(2, '0')}
-            </span>
-          )}
-          {audioRecording.error && <span className='recording-error'>{audioRecording.error}</span>}
-        </div>
-      )}
 
       {/* Coaching Point Modal */}
       <CoachingPointModal
