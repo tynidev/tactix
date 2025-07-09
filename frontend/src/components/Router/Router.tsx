@@ -16,7 +16,7 @@ export const AppRouter: React.FC = () =>
     <div className='dashboard-container'>
       {!hideNavigation && <Navigation />}
       <Routes>
-        <Route path='/' element={<Navigate to='/dashboard' replace />} />
+        <Route path='/' element={<Navigate to='/games' replace />} />
         <Route path='/auth' element={<Auth />} />
         <Route path='/dashboard' element={<DashboardPage />} />
         <Route path='/teams' element={<TeamsPage />} />
@@ -25,8 +25,8 @@ export const AppRouter: React.FC = () =>
         <Route path='/games/:teamId' element={<GamesPage />} />
         <Route path='/profile' element={<UserProfilePage />} />
         <Route path='/review/:gameId' element={<ReviewPage />} />
-        {/* Catch all route - redirect to dashboard */}
-        <Route path='*' element={<Navigate to='/dashboard' replace />} />
+        {/* Catch all route - redirect to games */}
+        <Route path='*' element={<Navigate to='/games' replace />} />
       </Routes>
     </div>
   );

@@ -10,9 +10,9 @@ export const Navigation: React.FC = () =>
 
   const isActive = (path: string) =>
   {
-    if (path === '/dashboard')
+    if (path === '/games')
     {
-      return location.pathname === '/' || location.pathname === '/dashboard';
+      return location.pathname === '/' || location.pathname === '/games' || location.pathname.startsWith('/games');
     }
     return location.pathname.startsWith(path);
   };
@@ -20,19 +20,19 @@ export const Navigation: React.FC = () =>
   return (
     <nav className='header-nav'>
       <div className='header-nav-content'>
-        <Link to='/dashboard' className='nav-brand'>
+        <Link to='/games' className='nav-brand'>
           <img src='/tactix-logo.png' alt='TACTIX' />
         </Link>
 
         <ul className='nav-items'>
-          <li>
+          {/* <li>
             <Link
               to='/dashboard'
               className={`nav-item ${isActive('/dashboard') ? 'active' : ''}`}
             >
               Dashboard
             </Link>
-          </li>
+          </li> */}
           <li>
             <Link
               to='/teams'
