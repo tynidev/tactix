@@ -1,0 +1,366 @@
+/* Player Profile Modal Styles */
+.player-profile-modal {
+  width: 100%;
+  max-width: 600px;
+}
+
+/* Progress Indicator */
+.progress-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-xl);
+  padding: var(--space-lg);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.progress-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  margin: 0 var(--space-md);
+}
+
+.progress-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 16px;
+  right: -24px;
+  width: 32px;
+  height: 2px;
+  background: var(--border-color);
+}
+
+.progress-step.active:not(:last-child)::after {
+  background: var(--color-accent-primary);
+}
+
+.progress-step span {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: var(--space-xs);
+  background: var(--color-bg-input);
+  color: var(--color-text-secondary);
+  border: 2px solid var(--border-color);
+}
+
+.progress-step.active span {
+  background: var(--color-accent-primary);
+  color: white;
+  border-color: var(--color-accent-primary);
+}
+
+.progress-step label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.progress-step.active label {
+  color: var(--color-accent-primary);
+}
+
+/* Step Content */
+.step-content {
+  min-height: 300px;
+  padding: var(--space-lg) 0;
+}
+
+.step-content h3 {
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-md);
+  font-size: 1.25rem;
+}
+
+.step-description {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-xl);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* Role Options */
+.role-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.role-option {
+  display: flex;
+  align-items: center;
+  padding: var(--space-lg);
+  background: var(--color-bg-secondary);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.role-option:hover {
+  border-color: var(--color-accent-primary);
+  background: var(--color-bg-input);
+}
+
+.role-option.selected {
+  border-color: var(--color-accent-primary);
+  background: rgba(255, 107, 53, 0.1);
+}
+
+.role-icon {
+  font-size: 2rem;
+  margin-right: var(--space-lg);
+  min-width: 3rem;
+  text-align: center;
+}
+
+.role-info h4 {
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-xs) 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.role-info p {
+  color: var(--color-text-secondary);
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+/* Selected Team Info */
+.selected-team-info {
+  background: var(--color-bg-secondary);
+  padding: var(--space-lg);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-lg);
+  border: 1px solid var(--border-color);
+}
+
+.selected-team-info p {
+  margin: 0 0 var(--space-sm) 0;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.selected-team-info p:last-child {
+  margin-bottom: 0;
+}
+
+.selected-team-info strong {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+/* Confirmation Details */
+.confirmation-details {
+  background: var(--color-bg-secondary);
+  padding: var(--space-lg);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-lg);
+  border: 1px solid var(--border-color);
+}
+
+.confirmation-details p {
+  margin: 0 0 var(--space-sm) 0;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.confirmation-details p:last-child {
+  margin-bottom: 0;
+}
+
+.confirmation-details strong {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+/* Guardian Info */
+.guardian-info {
+  background: rgba(255, 107, 53, 0.1);
+  padding: var(--space-lg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-accent-primary);
+}
+
+.guardian-info h4 {
+  color: var(--color-accent-primary);
+  margin: 0 0 var(--space-md) 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.guardian-info p {
+  color: var(--color-text-secondary);
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* Form Elements */
+.player-profile-modal .form-group {
+  margin-bottom: var(--space-lg);
+}
+
+.player-profile-modal .form-label {
+  display: block;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-sm);
+  font-size: 0.9rem;
+}
+
+.player-profile-modal .form-input {
+  width: 100%;
+  padding: var(--space-md);
+  background: var(--color-bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  font-family: var(--font-family);
+}
+
+.player-profile-modal .form-input:focus {
+  outline: none;
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+}
+
+.player-profile-modal .form-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.player-profile-modal .form-help {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin-top: var(--space-sm);
+  line-height: 1.4;
+}
+
+/* Role Badge */
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-accent-primary);
+  color: white;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  margin-left: var(--space-xs);
+}
+
+/* Form Actions */
+.player-profile-modal .form-actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+  margin-top: var(--space-xl);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--border-color);
+}
+
+.player-profile-modal .form-actions .btn {
+  min-width: 100px;
+}
+
+/* Loading States */
+.player-profile-modal .btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .player-profile-modal {
+    max-width: 95vw;
+    margin: var(--space-md);
+  }
+  
+  .progress-indicator {
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+  
+  .progress-step {
+    margin: 0 var(--space-sm);
+  }
+  
+  .progress-step:not(:last-child)::after {
+    display: none;
+  }
+  
+  .role-options {
+    gap: var(--space-sm);
+  }
+  
+  .role-option {
+    flex-direction: column;
+    text-align: center;
+    padding: var(--space-md);
+  }
+  
+  .role-icon {
+    margin-right: 0;
+    margin-bottom: var(--space-sm);
+  }
+  
+  .step-content {
+    min-height: 250px;
+  }
+  
+  .player-profile-modal .form-actions {
+    flex-direction: column;
+  }
+  
+  .player-profile-modal .form-actions .btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .step-content {
+    min-height: 200px;
+  }
+  
+  .progress-step span {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+  
+  .progress-step label {
+    font-size: 11px;
+  }
+  
+  .role-option {
+    padding: var(--space-sm);
+  }
+  
+  .role-icon {
+    font-size: 1.5rem;
+  }
+  
+  .role-info h4 {
+    font-size: 1rem;
+  }
+  
+  .role-info p {
+    font-size: 0.8rem;
+  }
+}

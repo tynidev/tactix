@@ -1101,6 +1101,202 @@ router.get(
   },
 );
 
+// Create player profile - require coach, admin, or guardian role
+router.post(
+  '/:teamId/player-profiles',
+  requireTeamRole([TeamRole.Coach, TeamRole.Admin, TeamRole.Guardian]),
+  async (req: AuthenticatedRequest, res: Response): Promise<void> =>
+  {
+    try
+    {
+      const { teamId } = req.params;
+      const { name, jerseyNumber, userRole } = req.body;
+      const userId = req.user?.id;
+
+      if (!userId)
+      {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
+      }
+
+      if (!name || !name.trim())
+      {
+        res.status(400).json({ error: 'Player name is required' });
+        return;
+      }
+
+      if (!userRole || !['guardian', 'coach', 'admin', 'staff'].includes(userRole))
+      {
+        res.status(400).json({ error: 'Valid user role is required' });
+        return;
+      }
+
+      // Get user's role on this team to verify permissions
+      const { data: userMembership, error: membershipError } = await supabase
+        .from('team_memberships')
+        .select('role')
+        .eq('team_id', teamId)
+        .eq('user_id', userId)
+        .single();
+
+      if (membershipError || !userMembership)
+      {
+        res.status(403).json({ error: 'User is not a member of this team' });
+        return;
+      }
+
+      // Check if jersey number is already taken (if provided)
+      if (jerseyNumber && jerseyNumber.trim())
+      {
+        const { data: existingPlayer, error: jerseyCheckError } = await supabase
+          .from('team_players')
+          .select(`
+            player_profiles (
+              jersey_number
+            )
+          `)
+          .eq('team_id', teamId);
+
+        if (jerseyCheckError)
+        {
+          res.status(400).json({ error: 'Failed to check jersey number availability' });
+          return;
+        }
+
+        const takenJerseys = existingPlayer
+          ?.map((tp: any) => tp.player_profiles?.jersey_number)
+          .filter(Boolean) || [];
+
+        if (takenJerseys.includes(jerseyNumber.trim()))
+        {
+          res.status(409).json({ error: 'Jersey number is already taken' });
+          return;
+        }
+      }
+
+      // Perform database operations with error handling for rollback
+      let playerProfileId: string | null = null;
+      let teamPlayerCreated = false;
+
+      try
+      {
+        // Create player profile
+        const { data: playerProfile, error: playerError } = await supabase
+          .from('player_profiles')
+          .insert({
+            name: name.trim(),
+            jersey_number: jerseyNumber?.trim() || null,
+            user_id: null, // Player profiles created this way don't have associated users initially
+          })
+          .select()
+          .single();
+
+        if (playerError)
+        {
+          res.status(400).json({ error: 'Failed to create player profile' });
+          return;
+        }
+
+        playerProfileId = playerProfile.id;
+
+        // Link player to team
+        const { error: linkError } = await supabase
+          .from('team_players')
+          .insert({
+            team_id: teamId,
+            player_id: playerProfile.id,
+          });
+
+        if (linkError)
+        {
+          // Rollback player profile creation
+          await supabase
+            .from('player_profiles')
+            .delete()
+            .eq('id', playerProfile.id);
+
+          res.status(400).json({ error: 'Failed to link player to team' });
+          return;
+        }
+
+        teamPlayerCreated = true;
+
+        // If user role is guardian, create guardian relationship
+        if (userRole === 'guardian')
+        {
+          const { error: guardianError } = await supabase
+            .from('guardian_player_relationships')
+            .insert({
+              guardian_id: userId,
+              player_user_id: null, // No user account associated yet
+              player_profile_id: playerProfile.id,
+            });
+
+          if (guardianError)
+          {
+            // Rollback team player and player profile creation
+            await supabase
+              .from('team_players')
+              .delete()
+              .eq('team_id', teamId)
+              .eq('player_id', playerProfile.id);
+
+            await supabase
+              .from('player_profiles')
+              .delete()
+              .eq('id', playerProfile.id);
+
+            res.status(400).json({ error: 'Failed to create guardian relationship' });
+            return;
+          }
+        }
+
+        const roleDescription = userRole === 'guardian' ?
+          'Player profile created with guardian relationship' :
+          'Player profile created';
+
+        res.status(201).json({
+          message: roleDescription,
+          player: {
+            id: playerProfile.id,
+            name: playerProfile.name,
+            jersey_number: playerProfile.jersey_number,
+            team_id: teamId,
+            has_guardian_relationship: userRole === 'guardian',
+          },
+        });
+      }
+      catch (error)
+      {
+        // Cleanup on unexpected error
+        if (teamPlayerCreated && playerProfileId)
+        {
+          await supabase
+            .from('team_players')
+            .delete()
+            .eq('team_id', teamId)
+            .eq('player_id', playerProfileId);
+        }
+
+        if (playerProfileId)
+        {
+          await supabase
+            .from('player_profiles')
+            .delete()
+            .eq('id', playerProfileId);
+        }
+
+        throw error;
+      }
+    }
+    catch (error)
+    {
+      console.error('Create player profile error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+);
+
 // Delete team - require coach or admin role
 router.delete(
   '/:teamId',

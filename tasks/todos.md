@@ -10,9 +10,9 @@
 
 # Team Detail Page
 * [X] Player numbers need to be displayed larger
-* [ ] Need to add a player modal
-    * [ ] Guardian/Coach/Admin role selection
-        * [ ] If Guardian is selected, also add relationship field
+* [X] Need to add a player modal
+    * [X] Guardian/Coach/Admin role selection
+        * [X] If Guardian is selected, also add relationship field
 
 # Add Game Modal
 

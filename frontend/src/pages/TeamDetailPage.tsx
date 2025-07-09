@@ -1,6 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { FaCopy, FaSearch, FaSortAlphaDown, FaSortAlphaUp, FaSortNumericDown, FaSortNumericUp } from 'react-icons/fa';
+import {
+  FaCopy,
+  FaPlus,
+  FaSearch,
+  FaSortAlphaDown,
+  FaSortAlphaUp,
+  FaSortNumericDown,
+  FaSortNumericUp,
+} from 'react-icons/fa';
 import { Link, useParams } from 'react-router-dom';
+import { PlayerProfileModal } from '../components/PlayerProfileModal';
 import { getApiUrl } from '../utils/api';
 
 interface TeamDetails
@@ -81,6 +90,9 @@ export const TeamDetailPage: React.FC = () =>
   const [coachSort, setCoachSort] = useState<SortOption>('name-asc');
   const [adminSort, setAdminSort] = useState<SortOption>('name-asc');
   const [guardianSort, setGuardianSort] = useState<SortOption>('name-asc');
+
+  // Modal states
+  const [isPlayerProfileModalOpen, setIsPlayerProfileModalOpen] = useState(false);
 
   useEffect(() =>
   {
@@ -341,6 +353,18 @@ export const TeamDetailPage: React.FC = () =>
     );
   };
 
+  const canAddPlayers = () =>
+  {
+    return teamDetails && ['coach', 'admin', 'guardian'].includes(teamDetails.user_role);
+  };
+
+  const handlePlayerProfileSuccess = () =>
+  {
+    setIsPlayerProfileModalOpen(false);
+    // Refresh team members data
+    fetchTeamMembers();
+  };
+
   const renderMemberSection = (
     title: string,
     members: (Player | Member)[],
@@ -352,6 +376,7 @@ export const TeamDetailPage: React.FC = () =>
   {
     const filteredMembers = filterMembers(members, searchTerm);
     const sortedMembers = sortMembers(filteredMembers, sortOption);
+    const isPlayersSection = title === 'Players';
 
     return (
       <div className='member-section' style={{ marginBottom: 'var(--space-xl)' }}>
@@ -365,6 +390,15 @@ export const TeamDetailPage: React.FC = () =>
         >
           <h3>{title} ({members.length})</h3>
           <div style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'center' }}>
+            {isPlayersSection && canAddPlayers() && (
+              <button
+                onClick={() => setIsPlayerProfileModalOpen(true)}
+                className='btn btn-primary btn-sm'
+                title='Add new player'
+              >
+                <FaPlus /> Add Player
+              </button>
+            )}
             {renderSortButton(sortOption, setSortOption)}
             <div style={{ position: 'relative' }}>
               <FaSearch
@@ -626,6 +660,14 @@ export const TeamDetailPage: React.FC = () =>
           setGuardianSort,
         )}
       </div>
+
+      {/* Player Profile Modal */}
+      <PlayerProfileModal
+        isOpen={isPlayerProfileModalOpen}
+        onClose={() => setIsPlayerProfileModalOpen(false)}
+        onSuccess={handlePlayerProfileSuccess}
+        currentTeamId={teamId}
+      />
     </main>
   );
 };
