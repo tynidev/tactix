@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Modal } from '../Modal';
 import { getApiUrl } from '../../utils/api';
+import { Modal } from '../Modal';
 import './JoinTeamModal.css';
 
 interface JoinTeamModalProps
@@ -143,91 +143,91 @@ export const JoinTeamModal: React.FC<JoinTeamModalProps> = ({ isOpen, onClose, o
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title="Join Team"
-      size="sm"
-      className="join-team-modal"
+      title='Join Team'
+      size='sm'
+      className='join-team-modal'
     >
       <div className='form'>
-          {error && <div className='alert alert-error'>{error}</div>}
-          {success && <div className='alert alert-success'>{success}</div>}
+        {error && <div className='alert alert-error'>{error}</div>}
+        {success && <div className='alert alert-success'>{success}</div>}
 
-          {!validatedTeam ?
-            (
-              // Step 1: Enter join code
-              <>
-                <div className='form-group'>
-                  <label className='form-label'>Join Code</label>
-                  <input
-                    type='text'
-                    value={joinCode}
-                    onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                    className='form-input'
-                    placeholder='Enter 4-character join code'
-                    maxLength={4}
-                    onKeyDown={handleKeyDown}
-                    autoFocus
-                    disabled={loading}
-                  />
-                  <div className='form-help'>
-                    Enter the 4-character join code provided by your team coach or admin.
-                  </div>
+        {!validatedTeam ?
+          (
+            // Step 1: Enter join code
+            <>
+              <div className='form-group'>
+                <label className='form-label'>Join Code</label>
+                <input
+                  type='text'
+                  value={joinCode}
+                  onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                  className='form-input'
+                  placeholder='Enter 4-character join code'
+                  maxLength={4}
+                  onKeyDown={handleKeyDown}
+                  autoFocus
+                  disabled={loading}
+                />
+                <div className='form-help'>
+                  Enter the 4-character join code provided by your team coach or admin.
                 </div>
+              </div>
 
-                <div className='form-actions'>
-                  <button
-                    onClick={handleClose}
-                    className='btn btn-secondary'
-                    disabled={loading}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleValidateCode}
-                    className='btn btn-primary'
-                    disabled={loading || !joinCode.trim()}
-                  >
-                    {loading ? 'Validating...' : 'Validate Code'}
-                  </button>
+              <div className='form-actions'>
+                <button
+                  onClick={handleClose}
+                  className='btn btn-secondary'
+                  disabled={loading}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleValidateCode}
+                  className='btn btn-primary'
+                  disabled={loading || !joinCode.trim()}
+                >
+                  {loading ? 'Validating...' : 'Validate Code'}
+                </button>
+              </div>
+            </>
+          ) :
+          (
+            // Step 2: Confirm team join
+            <>
+              <div className='team-info'>
+                <h3>Team Information</h3>
+                <div className='team-details'>
+                  <p>
+                    <strong>Team Name:</strong> {validatedTeam.team_name}
+                  </p>
+                  <p>
+                    <strong>You will join as:</strong> <span className='role-badge'>{validatedTeam.team_role}</span>
+                  </p>
                 </div>
-              </>
-            ) :
-            (
-              // Step 2: Confirm team join
-              <>
-                <div className='team-info'>
-                  <h3>Team Information</h3>
-                  <div className='team-details'>
-                    <p>
-                      <strong>Team Name:</strong> {validatedTeam.team_name}
-                    </p>
-                    <p>
-                      <strong>You will join as:</strong> <span className='role-badge'>{validatedTeam.team_role}</span>
-                    </p>
-                  </div>
-                </div>
+              </div>
 
-                <div className='form-actions'>
-                  <button
-                    onClick={() =>
-                    {
-                      setValidatedTeam(null);
-                      setError('');
-                    }}
-                    className='btn btn-secondary'
-                    disabled={loading}
-                  >
-                    Back
-                  </button>
-                  <button
-                    onClick={handleJoinTeam}
-                    className='btn btn-success'
-                    disabled={loading}
-                  >
-                    {loading ? 'Joining...' : 'Join Team'}
-                  </button>
-                </div>
-              </>
-            )}
+              <div className='form-actions'>
+                <button
+                  onClick={() =>
+                  {
+                    setValidatedTeam(null);
+                    setError('');
+                  }}
+                  className='btn btn-secondary'
+                  disabled={loading}
+                >
+                  Back
+                </button>
+                <button
+                  onClick={handleJoinTeam}
+                  className='btn btn-success'
+                  disabled={loading}
+                >
+                  {loading ? 'Joining...' : 'Join Team'}
+                </button>
+              </div>
+            </>
+          )}
       </div>
     </Modal>
   );

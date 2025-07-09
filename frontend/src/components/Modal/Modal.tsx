@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import './Modal.css';
 
-interface ModalProps {
+interface ModalProps
+{
   isOpen: boolean;
   onClose: () => void;
   title: string;
@@ -17,64 +18,76 @@ export const Modal: React.FC<ModalProps> = ({
   children,
   className = '',
   size = 'md',
-}) => {
+}) =>
+{
   const modalRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+  useEffect(() =>
+  {
+    const handleKeyDown = (e: KeyboardEvent) =>
+    {
+      if (e.key === 'Escape')
+      {
         onClose();
       }
     };
 
-    if (isOpen) {
+    if (isOpen)
+    {
       document.addEventListener('keydown', handleKeyDown);
       // Prevent body scroll when modal is open
       document.body.style.overflow = 'hidden';
-    } else {
+    }
+    else
+    {
       document.body.style.overflow = 'auto';
     }
 
-    return () => {
+    return () =>
+    {
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'auto';
     };
   }, [isOpen, onClose]);
 
   // Focus the modal only when it first opens
-  useEffect(() => {
-    if (isOpen && modalRef.current) {
+  useEffect(() =>
+  {
+    if (isOpen && modalRef.current)
+    {
       modalRef.current.focus();
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
+  const handleBackdropClick = (e: React.MouseEvent) =>
+  {
+    if (e.target === e.currentTarget)
+    {
       onClose();
     }
   };
 
   return (
-    <div className="modal-overlay" onClick={handleBackdropClick}>
+    <div className='modal-overlay' onClick={handleBackdropClick}>
       <div
         ref={modalRef}
         className={`modal-content modal-${size} ${className}`}
         onClick={(e) => e.stopPropagation()}
         tabIndex={-1}
       >
-        <div className="modal-header">
-          <h2 className="modal-title">{title}</h2>
+        <div className='modal-header'>
+          <h2 className='modal-title'>{title}</h2>
           <button
             onClick={onClose}
-            className="modal-close-button"
-            aria-label="Close modal"
+            className='modal-close-button'
+            aria-label='Close modal'
           >
             ✕
           </button>
         </div>
-        <div className="modal-body">
+        <div className='modal-body'>
           {children}
         </div>
       </div>

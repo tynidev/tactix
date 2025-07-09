@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Modal } from '../Modal';
 import { getApiUrl } from '../../utils/api';
+import { Modal } from '../Modal';
 import './PlayerProfileModal.css';
 
 interface PlayerProfileModalProps
@@ -288,210 +288,210 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title="Add Player Profile"
-      size="lg"
-      className="player-profile-modal"
+      title='Add Player Profile'
+      size='lg'
+      className='player-profile-modal'
     >
       <div className='form'>
-          {error && <div className='alert alert-error'>{error}</div>}
-          {success && <div className='alert alert-success'>{success}</div>}
+        {error && <div className='alert alert-error'>{error}</div>}
+        {success && <div className='alert alert-success'>{success}</div>}
 
-          {/* Progress indicator */}
-          <div className='progress-indicator'>
-            {!forceGuardianRole && (
-              <div className={`progress-step ${currentStep === 'role' ? 'active' : ''}`}>
-                <span>1</span>
-                <label>Role</label>
-              </div>
-            )}
-            {!currentTeamId && (
-              <div className={`progress-step ${currentStep === 'team' ? 'active' : ''}`}>
-                <span>{forceGuardianRole ? '1' : '2'}</span>
-                <label>Team</label>
-              </div>
-            )}
-            <div className={`progress-step ${currentStep === 'profile' ? 'active' : ''}`}>
-              <span>{forceGuardianRole ? (currentTeamId ? '1' : '2') : (currentTeamId ? '2' : '3')}</span>
-              <label>Profile</label>
+        {/* Progress indicator */}
+        <div className='progress-indicator'>
+          {!forceGuardianRole && (
+            <div className={`progress-step ${currentStep === 'role' ? 'active' : ''}`}>
+              <span>1</span>
+              <label>Role</label>
             </div>
-            {formData.role === 'guardian' && (
-              <div className={`progress-step ${currentStep === 'confirmation' ? 'active' : ''}`}>
-                <span>{forceGuardianRole ? (currentTeamId ? '2' : '3') : (currentTeamId ? '3' : '4')}</span>
-                <label>Confirm</label>
-              </div>
-            )}
+          )}
+          {!currentTeamId && (
+            <div className={`progress-step ${currentStep === 'team' ? 'active' : ''}`}>
+              <span>{forceGuardianRole ? '1' : '2'}</span>
+              <label>Team</label>
+            </div>
+          )}
+          <div className={`progress-step ${currentStep === 'profile' ? 'active' : ''}`}>
+            <span>{forceGuardianRole ? (currentTeamId ? '1' : '2') : (currentTeamId ? '2' : '3')}</span>
+            <label>Profile</label>
           </div>
+          {formData.role === 'guardian' && (
+            <div className={`progress-step ${currentStep === 'confirmation' ? 'active' : ''}`}>
+              <span>{forceGuardianRole ? (currentTeamId ? '2' : '3') : (currentTeamId ? '3' : '4')}</span>
+              <label>Confirm</label>
+            </div>
+          )}
+        </div>
 
-          {/* Step 1: Role Selection */}
-          {currentStep === 'role' && (
-            <div className='step-content'>
-              <div className='role-options'>
-                <div
-                  className={`role-option ${formData.role === 'guardian' ? 'selected' : ''}`}
-                  onClick={() => setFormData({ ...formData, role: 'guardian' })}
-                >
-                  <div className='role-icon'>👨‍👩‍👧‍👦</div>
-                  <div className='role-info'>
-                    <h4>Guardian</h4>
-                    <p>Create a player profile and establish a guardian relationship</p>
-                  </div>
+        {/* Step 1: Role Selection */}
+        {currentStep === 'role' && (
+          <div className='step-content'>
+            <div className='role-options'>
+              <div
+                className={`role-option ${formData.role === 'guardian' ? 'selected' : ''}`}
+                onClick={() => setFormData({ ...formData, role: 'guardian' })}
+              >
+                <div className='role-icon'>👨‍👩‍👧‍👦</div>
+                <div className='role-info'>
+                  <h4>Guardian</h4>
+                  <p>Create a player profile and establish a guardian relationship</p>
                 </div>
+              </div>
 
-                <div
-                  className={`role-option ${formData.role === 'staff' ? 'selected' : ''}`}
-                  onClick={() => setFormData({ ...formData, role: 'staff' })}
-                >
-                  <div className='role-icon'>⚙️</div>
-                  <div className='role-info'>
-                    <h4>Team Staff</h4>
-                    <p>Create a player profile for team management (Coach/Admin)</p>
-                  </div>
+              <div
+                className={`role-option ${formData.role === 'staff' ? 'selected' : ''}`}
+                onClick={() => setFormData({ ...formData, role: 'staff' })}
+              >
+                <div className='role-icon'>⚙️</div>
+                <div className='role-info'>
+                  <h4>Team Staff</h4>
+                  <p>Create a player profile for team management (Coach/Admin)</p>
                 </div>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Step 2: Team Selection */}
-          {currentStep === 'team' && (
-            <div className='step-content'>
-              <h3>Select Team</h3>
-              <p className='step-description'>
-                Choose the team for this player profile:
-              </p>
+        {/* Step 2: Team Selection */}
+        {currentStep === 'team' && (
+          <div className='step-content'>
+            <h3>Select Team</h3>
+            <p className='step-description'>
+              Choose the team for this player profile:
+            </p>
 
-              <div className='form-group'>
-                <label className='form-label'>Team</label>
-                <select
-                  value={formData.teamId}
-                  onChange={(e) => setFormData({ ...formData, teamId: e.target.value })}
-                  className='form-input'
-                  autoFocus
-                  onKeyDown={handleKeyDown}
-                >
-                  <option value=''>Select a team...</option>
-                  {teams.map(team => (
-                    <option key={team.id} value={team.id}>
-                      {team.name} (as {team.role})
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className='form-group'>
+              <label className='form-label'>Team</label>
+              <select
+                value={formData.teamId}
+                onChange={(e) => setFormData({ ...formData, teamId: e.target.value })}
+                className='form-input'
+                autoFocus
+                onKeyDown={handleKeyDown}
+              >
+                <option value=''>Select a team...</option>
+                {teams.map(team => (
+                  <option key={team.id} value={team.id}>
+                    {team.name} (as {team.role})
+                  </option>
+                ))}
+              </select>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Step 3: Player Profile */}
-          {currentStep === 'profile' && (
-            <div className='step-content'>
-              <h3>Player Profile Details</h3>
-              {getSelectedTeam() && (
-                <div className='selected-team-info'>
-                  <p>
-                    <strong>Team:</strong> {getSelectedTeam()?.name}
-                  </p>
-                </div>
-              )}
-
-              <div className='form-group'>
-                <label className='form-label'>Player Name *</label>
-                <input
-                  type='text'
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className='form-input'
-                  placeholder="Enter player's full name"
-                  autoFocus
-                  onKeyDown={handleKeyDown}
-                />
-              </div>
-
-              <div className='form-group'>
-                <label className='form-label'>Jersey Number</label>
-                <input
-                  type='text'
-                  value={formData.jerseyNumber}
-                  onChange={(e) => setFormData({ ...formData, jerseyNumber: e.target.value })}
-                  className='form-input'
-                  placeholder='Optional jersey number'
-                  onKeyDown={handleKeyDown}
-                />
-                <div className='form-help'>
-                  Jersey numbers are optional and can be updated later.
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Step 4: Guardian Confirmation */}
-          {currentStep === 'confirmation' && formData.role === 'guardian' && (
-            <div className='step-content'>
-              <h3>Confirm Guardian Relationship</h3>
-              <div className='confirmation-details'>
+        {/* Step 3: Player Profile */}
+        {currentStep === 'profile' && (
+          <div className='step-content'>
+            <h3>Player Profile Details</h3>
+            {getSelectedTeam() && (
+              <div className='selected-team-info'>
                 <p>
                   <strong>Team:</strong> {getSelectedTeam()?.name}
                 </p>
-                <p>
-                  <strong>Player Name:</strong> {formData.name}
-                </p>
-                <p>
-                  <strong>Jersey Number:</strong> {formData.jerseyNumber || 'Not specified'}
-                </p>
-                <p>
-                  <strong>Your Role:</strong> <span className='role-badge'>{formData.role}</span>
-                </p>
               </div>
-
-              <div className='guardian-info'>
-                <h4>Guardian Relationship</h4>
-                <p>
-                  By proceeding, you will be established as the guardian for this player profile. This will allow you to
-                  view their coaching points and team information.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className='form-actions'>
-            {currentStep !== 'role' && !(forceGuardianRole && currentTeamId && currentStep === 'profile') && (
-              <button
-                onClick={handleBack}
-                className='btn btn-secondary'
-                disabled={loading}
-              >
-                Back
-              </button>
             )}
 
+            <div className='form-group'>
+              <label className='form-label'>Player Name *</label>
+              <input
+                type='text'
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className='form-input'
+                placeholder="Enter player's full name"
+                autoFocus
+                onKeyDown={handleKeyDown}
+              />
+            </div>
+
+            <div className='form-group'>
+              <label className='form-label'>Jersey Number</label>
+              <input
+                type='text'
+                value={formData.jerseyNumber}
+                onChange={(e) => setFormData({ ...formData, jerseyNumber: e.target.value })}
+                className='form-input'
+                placeholder='Optional jersey number'
+                onKeyDown={handleKeyDown}
+              />
+              <div className='form-help'>
+                Jersey numbers are optional and can be updated later.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: Guardian Confirmation */}
+        {currentStep === 'confirmation' && formData.role === 'guardian' && (
+          <div className='step-content'>
+            <h3>Confirm Guardian Relationship</h3>
+            <div className='confirmation-details'>
+              <p>
+                <strong>Team:</strong> {getSelectedTeam()?.name}
+              </p>
+              <p>
+                <strong>Player Name:</strong> {formData.name}
+              </p>
+              <p>
+                <strong>Jersey Number:</strong> {formData.jerseyNumber || 'Not specified'}
+              </p>
+              <p>
+                <strong>Your Role:</strong> <span className='role-badge'>{formData.role}</span>
+              </p>
+            </div>
+
+            <div className='guardian-info'>
+              <h4>Guardian Relationship</h4>
+              <p>
+                By proceeding, you will be established as the guardian for this player profile. This will allow you to
+                view their coaching points and team information.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className='form-actions'>
+          {currentStep !== 'role' && !(forceGuardianRole && currentTeamId && currentStep === 'profile') && (
             <button
-              onClick={handleClose}
+              onClick={handleBack}
               className='btn btn-secondary'
               disabled={loading}
             >
-              Cancel
+              Back
             </button>
+          )}
 
-            {currentStep === 'confirmation' ?
-              (
-                <button
-                  onClick={handleSubmit}
-                  className='btn btn-success'
-                  disabled={loading || !canProceed()}
-                >
-                  {loading ? 'Creating...' : 'Create Profile'}
-                </button>
-              ) :
-              (
-                <button
-                  onClick={handleNext}
-                  className='btn btn-primary'
-                  disabled={loading || !canProceed()}
-                >
-                  {currentStep === 'profile' && formData.role !== 'guardian' ?
-                    (loading ? 'Creating...' : 'Create Profile') :
-                    'Next'}
-                </button>
-              )}
-          </div>
+          <button
+            onClick={handleClose}
+            className='btn btn-secondary'
+            disabled={loading}
+          >
+            Cancel
+          </button>
+
+          {currentStep === 'confirmation' ?
+            (
+              <button
+                onClick={handleSubmit}
+                className='btn btn-success'
+                disabled={loading || !canProceed()}
+              >
+                {loading ? 'Creating...' : 'Create Profile'}
+              </button>
+            ) :
+            (
+              <button
+                onClick={handleNext}
+                className='btn btn-primary'
+                disabled={loading || !canProceed()}
+              >
+                {currentStep === 'profile' && formData.role !== 'guardian' ?
+                  (loading ? 'Creating...' : 'Create Profile') :
+                  'Next'}
+              </button>
+            )}
+        </div>
       </div>
     </Modal>
   );

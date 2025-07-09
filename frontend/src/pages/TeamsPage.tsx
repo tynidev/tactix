@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TeamsGrid } from '../components/TeamsGrid';
 import { CreateTeamModal } from '../components/CreateTeamModal';
+import { TeamsGrid } from '../components/TeamsGrid';
 import { useAuth } from '../contexts/AuthContext';
 import { getApiUrl } from '../utils/api';
 
@@ -27,7 +27,7 @@ export const TeamsPage: React.FC = () =>
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [teamToEdit, setTeamToEdit] = useState<{ id: string; name: string } | null>(null);
+  const [teamToEdit, setTeamToEdit] = useState<{ id: string; name: string; } | null>(null);
 
   useEffect(() =>
   {

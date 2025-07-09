@@ -47,7 +47,6 @@ export const TeamsGrid: React.FC<TeamsGridProps> = ({
     }
   };
 
-
   const renderTeamActions = (teamMembership: Team) =>
   {
     if (customActions)

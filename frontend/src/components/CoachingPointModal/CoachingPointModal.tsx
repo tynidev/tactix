@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Modal } from '../Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import type { Drawing } from '../../types/drawing';
 import { createCoachingPointWithRecording, getApiUrl } from '../../utils/api';
+import { Modal } from '../Modal';
 import './CoachingPointModal.css';
 
 interface CoachingPointModalProps
@@ -495,200 +495,200 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Add Coaching Point"
-      size="lg"
-      className="coaching-point-modal"
+      title='Add Coaching Point'
+      size='lg'
+      className='coaching-point-modal'
     >
       <form onSubmit={handleSubmit} className='form'>
-          <div className='coaching-point-info'>
-            <p>
-              <strong>Timestamp:</strong> {formatTime(timestamp)}
-            </p>
-            <p>
-              <strong>Drawings:</strong> {drawingData.length} drawing elements
-            </p>
-            {recordingData && (
-              <>
+        <div className='coaching-point-info'>
+          <p>
+            <strong>Timestamp:</strong> {formatTime(timestamp)}
+          </p>
+          <p>
+            <strong>Drawings:</strong> {drawingData.length} drawing elements
+          </p>
+          {recordingData && (
+            <>
+              <p>
+                <strong>Recording:</strong> {Math.floor(recordingData.recordingDuration / 1000)}s with{' '}
+                {recordingData.recordingEvents.length} events
+              </p>
+              {recordingData.audioBlob && (
                 <p>
-                  <strong>Recording:</strong> {Math.floor(recordingData.recordingDuration / 1000)}s with{' '}
-                  {recordingData.recordingEvents.length} events
+                  <strong>Audio:</strong> {(recordingData.audioBlob.size / 1024).toFixed(1)} KB
                 </p>
-                {recordingData.audioBlob && (
-                  <p>
-                    <strong>Audio:</strong> {(recordingData.audioBlob.size / 1024).toFixed(1)} KB
-                  </p>
-                )}
-              </>
-            )}
-          </div>
+              )}
+            </>
+          )}
+        </div>
 
-          {error && <div className='alert alert-error'>{error}</div>}
+        {error && <div className='alert alert-error'>{error}</div>}
 
-          <div className='form-group'>
-            <label htmlFor='title' className='form-label'>
-              Short Description
-            </label>
+        <div className='form-group'>
+          <label htmlFor='title' className='form-label'>
+            Short Description
+          </label>
+          <input
+            id='title'
+            name='title'
+            type='text'
+            value={formData.title}
+            onChange={handleInputChange}
+            className='form-input'
+            placeholder='Brief summary of the coaching point'
+            required
+            maxLength={200}
+          />
+        </div>
+
+        <div className='form-group'>
+          <label htmlFor='feedback' className='form-label'>
+            Detailed Feedback
+          </label>
+          <textarea
+            id='feedback'
+            name='feedback'
+            value={formData.feedback}
+            onChange={handleInputChange}
+            className='form-textarea'
+            placeholder='Optional detailed feedback and coaching notes...'
+            rows={4}
+          />
+        </div>
+
+        <div className='form-group'>
+          <label className='form-label'>Tagged Players</label>
+          <div className='autocomplete-container' ref={playerInputRef}>
             <input
-              id='title'
-              name='title'
               type='text'
-              value={formData.title}
-              onChange={handleInputChange}
+              value={playerInput}
+              onChange={handlePlayerInputChange}
+              onKeyDown={handlePlayerKeyDown}
+              onFocus={() => setShowPlayerSuggestions(playerInput.trim().length > 0)}
               className='form-input'
-              placeholder='Brief summary of the coaching point'
-              required
-              maxLength={200}
+              placeholder='Type to search players...'
             />
-          </div>
-
-          <div className='form-group'>
-            <label htmlFor='feedback' className='form-label'>
-              Detailed Feedback
-            </label>
-            <textarea
-              id='feedback'
-              name='feedback'
-              value={formData.feedback}
-              onChange={handleInputChange}
-              className='form-textarea'
-              placeholder='Optional detailed feedback and coaching notes...'
-              rows={4}
-            />
-          </div>
-
-          <div className='form-group'>
-            <label className='form-label'>Tagged Players</label>
-            <div className='autocomplete-container' ref={playerInputRef}>
-              <input
-                type='text'
-                value={playerInput}
-                onChange={handlePlayerInputChange}
-                onKeyDown={handlePlayerKeyDown}
-                onFocus={() => setShowPlayerSuggestions(playerInput.trim().length > 0)}
-                className='form-input'
-                placeholder='Type to search players...'
-              />
-              {showPlayerSuggestions && (
-                <div className='autocomplete-suggestions'>
-                  {getFilteredPlayers().map((player) => (
-                    <div
-                      key={player.id}
-                      className='autocomplete-suggestion'
-                      onClick={() => handlePlayerSelect(player)}
-                    >
-                      {player.name}
-                      {player.jersey_number && <span className='jersey-number'>#{player.jersey_number}</span>}
-                    </div>
-                  ))}
-                  {getFilteredPlayers().length === 0 && playerInput.trim() && (
-                    <div className='autocomplete-no-results'>
-                      No players found matching "{playerInput}"
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-            {selectedPlayers.length > 0 && (
-              <div className='selected-tags'>
-                {selectedPlayers.map((playerId) =>
-                {
-                  const player = players.find(p => p.id === playerId);
-                  return player ?
-                    (
-                      <span key={playerId} className='selected-tag'>
-                        {player.name.split(' ')[0]}
-                        <button
-                          type='button'
-                          onClick={() => setSelectedPlayers(prev => prev.filter(id => id !== playerId))}
-                          className='remove-tag'
-                          aria-label={`Remove ${player.name}`}
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ) :
-                    null;
-                })}
+            {showPlayerSuggestions && (
+              <div className='autocomplete-suggestions'>
+                {getFilteredPlayers().map((player) => (
+                  <div
+                    key={player.id}
+                    className='autocomplete-suggestion'
+                    onClick={() => handlePlayerSelect(player)}
+                  >
+                    {player.name}
+                    {player.jersey_number && <span className='jersey-number'>#{player.jersey_number}</span>}
+                  </div>
+                ))}
+                {getFilteredPlayers().length === 0 && playerInput.trim() && (
+                  <div className='autocomplete-no-results'>
+                    No players found matching "{playerInput}"
+                  </div>
+                )}
               </div>
             )}
           </div>
+          {selectedPlayers.length > 0 && (
+            <div className='selected-tags'>
+              {selectedPlayers.map((playerId) =>
+              {
+                const player = players.find(p => p.id === playerId);
+                return player ?
+                  (
+                    <span key={playerId} className='selected-tag'>
+                      {player.name.split(' ')[0]}
+                      <button
+                        type='button'
+                        onClick={() => setSelectedPlayers(prev => prev.filter(id => id !== playerId))}
+                        className='remove-tag'
+                        aria-label={`Remove ${player.name}`}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ) :
+                  null;
+              })}
+            </div>
+          )}
+        </div>
 
-          <div className='form-group'>
-            <label className='form-label'>Labels</label>
-            <div className='autocomplete-container' ref={labelInputRef}>
-              <input
-                type='text'
-                value={labelInput}
-                onChange={handleLabelInputChange}
-                onKeyDown={handleLabelKeyDown}
-                onFocus={() => setShowLabelSuggestions(labelInput.trim().length > 0)}
-                className='form-input'
-                placeholder='Type to search or create labels...'
-              />
-              {showLabelSuggestions && (
-                <div className='autocomplete-suggestions'>
-                  {getFilteredLabels().map((label) => (
-                    <div
-                      key={label.id}
-                      className='autocomplete-suggestion'
-                      onClick={() => handleLabelSelect(label)}
-                    >
+        <div className='form-group'>
+          <label className='form-label'>Labels</label>
+          <div className='autocomplete-container' ref={labelInputRef}>
+            <input
+              type='text'
+              value={labelInput}
+              onChange={handleLabelInputChange}
+              onKeyDown={handleLabelKeyDown}
+              onFocus={() => setShowLabelSuggestions(labelInput.trim().length > 0)}
+              className='form-input'
+              placeholder='Type to search or create labels...'
+            />
+            {showLabelSuggestions && (
+              <div className='autocomplete-suggestions'>
+                {getFilteredLabels().map((label) => (
+                  <div
+                    key={label.id}
+                    className='autocomplete-suggestion'
+                    onClick={() => handleLabelSelect(label)}
+                  >
+                    {label.name}
+                  </div>
+                ))}
+                {getFilteredLabels().length === 0 && labelInput.trim() && (
+                  <div
+                    className='autocomplete-suggestion create-new'
+                    onClick={() => handleLabelSelect(null, labelInput.trim())}
+                  >
+                    Create "{labelInput.trim()}"
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          {selectedLabels.length > 0 && (
+            <div className='selected-tags'>
+              {selectedLabels.map((labelId) =>
+              {
+                const label = labels.find(l => l.id === labelId);
+                return label ?
+                  (
+                    <span key={labelId} className='selected-tag'>
                       {label.name}
-                    </div>
-                  ))}
-                  {getFilteredLabels().length === 0 && labelInput.trim() && (
-                    <div
-                      className='autocomplete-suggestion create-new'
-                      onClick={() => handleLabelSelect(null, labelInput.trim())}
-                    >
-                      Create "{labelInput.trim()}"
-                    </div>
-                  )}
-                </div>
-              )}
+                      <button
+                        type='button'
+                        onClick={() => setSelectedLabels(prev => prev.filter(id => id !== labelId))}
+                        className='remove-tag'
+                        aria-label={`Remove ${label.name}`}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ) :
+                  null;
+              })}
             </div>
-            {selectedLabels.length > 0 && (
-              <div className='selected-tags'>
-                {selectedLabels.map((labelId) =>
-                {
-                  const label = labels.find(l => l.id === labelId);
-                  return label ?
-                    (
-                      <span key={labelId} className='selected-tag'>
-                        {label.name}
-                        <button
-                          type='button'
-                          onClick={() => setSelectedLabels(prev => prev.filter(id => id !== labelId))}
-                          className='remove-tag'
-                          aria-label={`Remove ${label.name}`}
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ) :
-                    null;
-                })}
-              </div>
-            )}
-          </div>
+          )}
+        </div>
 
-          <div className='form-actions'>
-            <button
-              type='button'
-              onClick={onClose}
-              className='btn btn-secondary'
-              disabled={isSubmitting}
-            >
-              Cancel
-            </button>
-            <button
-              type='submit'
-              className='btn btn-primary'
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Creating...' : 'Create Coaching Point'}
-            </button>
-          </div>
+        <div className='form-actions'>
+          <button
+            type='button'
+            onClick={onClose}
+            className='btn btn-secondary'
+            disabled={isSubmitting}
+          >
+            Cancel
+          </button>
+          <button
+            type='submit'
+            className='btn btn-primary'
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Creating...' : 'Create Coaching Point'}
+          </button>
+        </div>
       </form>
     </Modal>
   );
