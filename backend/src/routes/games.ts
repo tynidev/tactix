@@ -250,7 +250,25 @@ router.get('/team/:teamId', async (req: AuthenticatedRequest, res: Response): Pr
       return;
     }
 
-    res.json(games);
+    // Add user role and coaching points count for each game
+    const gamesWithRoleAndCounts = await Promise.all(
+      (games || []).map(async (game) =>
+      {
+        // Get coaching points count for this game
+        const { count: coachingPointsCount } = await supabase
+          .from('coaching_points')
+          .select('*', { count: 'exact', head: true })
+          .eq('game_id', game.id);
+
+        return {
+          ...game,
+          user_role: membership.role,
+          coaching_points_count: coachingPointsCount || 0,
+        };
+      }),
+    );
+
+    res.json(gamesWithRoleAndCounts);
   }
   catch (error)
   {
