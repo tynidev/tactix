@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TeamsGrid } from '../components/TeamsGrid';
+import { CreateTeamModal } from '../components/CreateTeamModal';
 import { useAuth } from '../contexts/AuthContext';
 import { getApiUrl } from '../utils/api';
 
@@ -21,8 +22,8 @@ export const DashboardPage: React.FC = () =>
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
-  const [editingTeamName, setEditingTeamName] = useState('');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [teamToEdit, setTeamToEdit] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() =>
   {
@@ -76,107 +77,27 @@ export const DashboardPage: React.FC = () =>
     }
   };
 
-  const handleCreateTeam = async () =>
+  const handleCreateTeam = () =>
   {
-    const teamName = prompt('Enter team name:');
-    if (!teamName) return;
+    setTeamToEdit(null);
+    setIsCreateModalOpen(true);
+  };
 
-    try
-    {
-      const token = (await import('../lib/supabase')).supabase.auth.getSession();
-      const session = await token;
+  const handleCreateModalClose = () =>
+  {
+    setIsCreateModalOpen(false);
+    setTeamToEdit(null);
+  };
 
-      if (!session.data.session?.access_token)
-      {
-        throw new Error('No access token');
-      }
-
-      const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/api/teams`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.data.session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name: teamName }),
-      });
-
-      if (!response.ok)
-      {
-        throw new Error('Failed to create team');
-      }
-
-      // Refresh teams list
-      fetchTeams();
-    }
-    catch (err)
-    {
-      alert('Failed to create team');
-      console.error('Error creating team:', err);
-    }
+  const handleCreateModalSuccess = () =>
+  {
+    fetchTeams();
   };
 
   const handleEditTeam = (teamId: string, currentName: string) =>
   {
-    setEditingTeamId(teamId);
-    setEditingTeamName(currentName);
-  };
-
-  const handleCancelEdit = () =>
-  {
-    setEditingTeamId(null);
-    setEditingTeamName('');
-  };
-
-  const handleSaveTeamName = async (teamId: string) =>
-  {
-    if (!editingTeamName.trim())
-    {
-      alert('Team name cannot be empty');
-      return;
-    }
-
-    try
-    {
-      const token = (await import('../lib/supabase')).supabase.auth.getSession();
-      const session = await token;
-
-      if (!session.data.session?.access_token)
-      {
-        throw new Error('No access token');
-      }
-
-      const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/api/teams/${teamId}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${session.data.session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name: editingTeamName.trim() }),
-      });
-
-      if (!response.ok)
-      {
-        throw new Error('Failed to update team name');
-      }
-
-      // Update the local state
-      setTeams(teams.map(team =>
-        team.teams.id === teamId ?
-          { ...team, teams: { ...team.teams, name: editingTeamName.trim() } } :
-          team
-      ));
-
-      // Reset editing state
-      setEditingTeamId(null);
-      setEditingTeamName('');
-    }
-    catch (err)
-    {
-      alert('Failed to update team name');
-      console.error('Error updating team name:', err);
-    }
+    setTeamToEdit({ id: teamId, name: currentName });
+    setIsCreateModalOpen(true);
   };
 
   // Show loading state
@@ -237,14 +158,16 @@ export const DashboardPage: React.FC = () =>
               variant='full'
               onTeamClick={(teamId) => navigate(`/team/${teamId}`)}
               onEditTeam={handleEditTeam}
-              onSaveTeamName={(teamId) => handleSaveTeamName(teamId)}
-              onCancelEdit={handleCancelEdit}
-              editingTeamId={editingTeamId}
-              editingTeamName={editingTeamName}
-              onEditingTeamNameChange={setEditingTeamName}
             />
           )}
       </div>
+
+      <CreateTeamModal
+        isOpen={isCreateModalOpen}
+        onClose={handleCreateModalClose}
+        onSuccess={handleCreateModalSuccess}
+        teamToEdit={teamToEdit}
+      />
     </main>
   );
 };

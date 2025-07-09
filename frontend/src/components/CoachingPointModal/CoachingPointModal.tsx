@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Modal } from '../Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import type { Drawing } from '../../types/drawing';
 import { createCoachingPointWithRecording, getApiUrl } from '../../utils/api';
@@ -490,23 +491,15 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
     }));
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className='modal-overlay'>
-      <div className='modal-content coaching-point-modal'>
-        <div className='modal-header'>
-          <h2>Add Coaching Point</h2>
-          <button
-            onClick={onClose}
-            className='btn btn-ghost btn-sm'
-            aria-label='Close'
-          >
-            ✕
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className='form'>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Add Coaching Point"
+      size="lg"
+      className="coaching-point-modal"
+    >
+      <form onSubmit={handleSubmit} className='form'>
           <div className='coaching-point-info'>
             <p>
               <strong>Timestamp:</strong> {formatTime(timestamp)}
@@ -696,8 +689,7 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
               {isSubmitting ? 'Creating...' : 'Create Coaching Point'}
             </button>
           </div>
-        </form>
-      </div>
-    </div>
+      </form>
+    </Modal>
   );
 };

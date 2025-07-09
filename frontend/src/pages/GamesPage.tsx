@@ -209,15 +209,14 @@ export const GamesPage: React.FC = () =>
   return (
     <main className='dashboard-main'>
       {/* Game Form Modal */}
-      {showGameForm && (selectedTeam || editingGame) && (
-        <GameForm
-          teamId={editingGame?.teams?.id || selectedTeam?.teams.id || ''}
-          onSubmit={handleGameFormSubmit}
-          onCancel={handleCancelGameForm}
-          initialData={editingGame || undefined}
-          isEditing={!!editingGame}
-        />
-      )}
+      <GameForm
+        isOpen={showGameForm && !!(selectedTeam || editingGame)}
+        teamId={editingGame?.teams?.id || selectedTeam?.teams.id || ''}
+        onSubmit={handleGameFormSubmit}
+        onCancel={handleCancelGameForm}
+        initialData={editingGame || undefined}
+        isEditing={!!editingGame}
+      />
 
       <div
         style={{

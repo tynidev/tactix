@@ -1,0 +1,54 @@
+/* Create Team Modal Styles */
+.create-team-modal {
+  /* Additional specific styles can be added here if needed */
+}
+
+.create-team-modal .form-help {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-top: var(--space-xs);
+  line-height: 1.4;
+}
+
+/* Override form input styles for team name */
+.create-team-modal .form-input {
+  font-size: 1rem;
+  padding: var(--space-md) var(--space-lg);
+}
+
+.create-team-modal .form-input:focus {
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+}
+
+/* Loading states */
+.create-team-modal .btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Success state styling */
+.create-team-modal .alert-success {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: var(--color-success);
+  border-color: var(--color-success);
+}
+
+/* Error state styling */
+.create-team-modal .alert-error {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .create-team-modal .form-input {
+    font-size: 0.9rem;
+    padding: var(--space-md);
+  }
+  
+  .create-team-modal .form-help {
+    font-size: 0.7rem;
+  }
+}

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Modal } from '../Modal';
 import { getApiUrl } from '../../utils/api';
 import './JoinTeamModal.css';
 
@@ -125,11 +126,7 @@ export const JoinTeamModal: React.FC<JoinTeamModalProps> = ({ isOpen, onClose, o
 
   const handleKeyDown = (e: React.KeyboardEvent) =>
   {
-    if (e.key === 'Escape')
-    {
-      handleClose();
-    }
-    else if (e.key === 'Enter')
+    if (e.key === 'Enter')
     {
       if (validatedTeam)
       {
@@ -142,23 +139,15 @@ export const JoinTeamModal: React.FC<JoinTeamModalProps> = ({ isOpen, onClose, o
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className='modal-overlay' onClick={handleClose}>
-      <div className='modal-content join-team-modal' onClick={(e) => e.stopPropagation()}>
-        <div className='modal-header'>
-          <h2>Join Team</h2>
-          <button
-            onClick={handleClose}
-            className='btn btn-secondary btn-sm'
-            style={{ padding: '4px 8px', fontSize: '12px' }}
-          >
-            ✕
-          </button>
-        </div>
-
-        <div className='form'>
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title="Join Team"
+      size="sm"
+      className="join-team-modal"
+    >
+      <div className='form'>
           {error && <div className='alert alert-error'>{error}</div>}
           {success && <div className='alert alert-success'>{success}</div>}
 
@@ -239,9 +228,8 @@ export const JoinTeamModal: React.FC<JoinTeamModalProps> = ({ isOpen, onClose, o
                 </div>
               </>
             )}
-        </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 

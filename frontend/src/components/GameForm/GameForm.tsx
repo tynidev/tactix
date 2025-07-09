@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Modal } from '../Modal';
 import './GameForm.css';
 
 interface GameFormData
@@ -16,6 +17,7 @@ interface GameFormData
 
 interface GameFormProps
 {
+  isOpen: boolean;
   teamId: string;
   onSubmit: (gameData: GameFormData) => Promise<void>;
   onCancel: () => void;
@@ -24,6 +26,7 @@ interface GameFormProps
 }
 
 export const GameForm: React.FC<GameFormProps> = ({
+  isOpen,
   teamId,
   onSubmit,
   onCancel,
@@ -140,20 +143,14 @@ export const GameForm: React.FC<GameFormProps> = ({
   };
 
   return (
-    <div className='modal-overlay'>
-      <div className='modal-content'>
-        <div className='modal-header'>
-          <h2>{isEditing ? 'Edit Game' : 'Add New Game'}</h2>
-          <button
-            onClick={onCancel}
-            className='btn btn-ghost btn-sm'
-            aria-label='Close'
-          >
-            ✕
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className='form'>
+    <Modal
+      isOpen={isOpen}
+      onClose={onCancel}
+      title={isEditing ? 'Edit Game' : 'Add New Game'}
+      size="lg"
+      className="game-form-modal"
+    >
+      <form onSubmit={handleSubmit} className='form'>
           <div className='form-row'>
             <div className='form-group'>
               <label htmlFor='opponent' className='form-label'>
@@ -322,8 +319,7 @@ export const GameForm: React.FC<GameFormProps> = ({
               {isSubmitting ? 'Saving...' : isEditing ? 'Update Game' : 'Create Game'}
             </button>
           </div>
-        </form>
-      </div>
-    </div>
+      </form>
+    </Modal>
   );
 };

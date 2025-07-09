@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Modal } from '../Modal';
 import { getApiUrl } from '../../utils/api';
 import './PlayerProfileModal.css';
 
@@ -270,11 +271,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
 
   const handleKeyDown = (e: React.KeyboardEvent) =>
   {
-    if (e.key === 'Escape')
-    {
-      handleClose();
-    }
-    else if (e.key === 'Enter' && canProceed())
+    if (e.key === 'Enter' && canProceed())
     {
       if (currentStep === 'confirmation')
       {
@@ -287,23 +284,15 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className='modal-overlay' onClick={handleClose}>
-      <div className='modal-content player-profile-modal' onClick={(e) => e.stopPropagation()}>
-        <div className='modal-header'>
-          <h2>Add Player Profile</h2>
-          <button
-            onClick={handleClose}
-            className='btn btn-secondary btn-sm'
-            style={{ padding: '4px 8px', fontSize: '12px' }}
-          >
-            ✕
-          </button>
-        </div>
-
-        <div className='form'>
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title="Add Player Profile"
+      size="lg"
+      className="player-profile-modal"
+    >
+      <div className='form'>
           {error && <div className='alert alert-error'>{error}</div>}
           {success && <div className='alert alert-success'>{success}</div>}
 
@@ -503,9 +492,8 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                 </button>
               )}
           </div>
-        </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 

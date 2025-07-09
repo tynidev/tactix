@@ -23,11 +23,6 @@ interface TeamsGridProps
   onTeamClick?: (teamId: string) => void;
   onEditTeam?: (teamId: string, currentName: string) => void;
   onDeleteTeam?: (teamId: string) => void;
-  onSaveTeamName?: (teamId: string, newName: string) => void;
-  onCancelEdit?: () => void;
-  editingTeamId?: string | null;
-  editingTeamName?: string;
-  onEditingTeamNameChange?: (value: string) => void;
   showMetadata?: boolean;
   showFloatingActions?: boolean;
   customActions?: (team: Team) => React.ReactNode;
@@ -39,11 +34,6 @@ export const TeamsGrid: React.FC<TeamsGridProps> = ({
   onTeamClick,
   onEditTeam,
   onDeleteTeam,
-  onSaveTeamName,
-  onCancelEdit,
-  editingTeamId,
-  editingTeamName = '',
-  onEditingTeamNameChange,
   showMetadata = variant === 'full',
   showFloatingActions = variant === 'full',
   customActions,
@@ -57,17 +47,6 @@ export const TeamsGrid: React.FC<TeamsGridProps> = ({
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent, teamId: string) =>
-  {
-    if (e.key === 'Enter' && onSaveTeamName)
-    {
-      onSaveTeamName(teamId, editingTeamName);
-    }
-    else if (e.key === 'Escape' && onCancelEdit)
-    {
-      onCancelEdit();
-    }
-  };
 
   const renderTeamActions = (teamMembership: Team) =>
   {
@@ -139,35 +118,7 @@ export const TeamsGrid: React.FC<TeamsGridProps> = ({
           )}
 
           <div className='team-header'>
-            {editingTeamId === teamMembership.teams.id ?
-              (
-                <div style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'center' }}>
-                  <input
-                    type='text'
-                    value={editingTeamName}
-                    onChange={(e) => onEditingTeamNameChange && onEditingTeamNameChange(e.target.value)}
-                    className='form-input'
-                    onKeyDown={(e) => handleKeyDown(e, teamMembership.teams.id)}
-                    autoFocus
-                    style={{ flex: 1 }}
-                  />
-                  <button
-                    onClick={() => onSaveTeamName && onSaveTeamName(teamMembership.teams.id, editingTeamName)}
-                    className='btn btn-success btn-sm'
-                    title='Save'
-                  >
-                    ✓
-                  </button>
-                  <button
-                    onClick={onCancelEdit}
-                    className='btn btn-error btn-sm'
-                    title='Cancel'
-                  >
-                    ✕
-                  </button>
-                </div>
-              ) :
-              variant === 'compact' ?
+            {variant === 'compact' ?
               (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <h3 className='team-name'>{teamMembership.teams.name}</h3>
