@@ -6,11 +6,10 @@
 * [X] Labels and player tags should be larger in the coaching point sidebar
 * [X] Redesign game analysis header to match the footer styling
 * [X] Remove play, pause, and stop icons from coaching point sidebar
-* [ ] Pull and display YouTube video description somewhere in the interface
 * [X] Drawing toolbar should be collapsed when you are not hovering over it
 
 # Team Detail Page
-* [ ] Player numbers need to be displayed larger
+* [X] Player numbers need to be displayed larger
 * [ ] Need to add a player modal
     * [ ] Guardian/Coach/Admin role selection
         * [ ] If Guardian is selected, also add relationship field

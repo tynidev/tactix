@@ -428,11 +428,8 @@ export const TeamDetailPage: React.FC = () =>
                           <span
                             style={{
                               marginLeft: 'var(--space-sm)',
-                              padding: '2px 6px',
-                              backgroundColor: 'var(--color-accent-primary)',
-                              color: 'white',
-                              borderRadius: 'var(--radius-sm)',
-                              fontSize: '12px',
+                              color: 'var(--color-accent-primary)',
+                              fontSize: '15px',
                               fontWeight: 'bold',
                             }}
                           >
