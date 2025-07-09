@@ -62,7 +62,8 @@ export const GameForm: React.FC<GameFormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Update form data when initialData changes (for editing existing games)
-  useEffect(() => {
+  useEffect(() =>
+  {
     setFormData({
       opponent: initialData.opponent || '',
       date: initialData.date || '',
