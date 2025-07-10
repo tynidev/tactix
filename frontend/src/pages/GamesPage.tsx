@@ -191,7 +191,8 @@ export const GamesPage: React.FC = () =>
   };
 
   // Create stable reference for initialData to prevent unnecessary re-renders
-  const gameFormInitialData = useMemo(() => {
+  const gameFormInitialData = useMemo(() =>
+  {
     return editingGame || undefined;
   }, [editingGame]);
 

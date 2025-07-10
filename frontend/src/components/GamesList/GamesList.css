@@ -223,8 +223,8 @@
 }
 
 .result-win {
-  background: var(--success-100);
-  color: var(--success-700);
+  background: var(--color-success);
+  color: white;
 }
 
 .result-loss {

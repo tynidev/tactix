@@ -48,7 +48,8 @@ export const GameForm: React.FC<GameFormProps> = ({
 }) =>
 {
   // Create stable initial form data using useMemo
-  const initialFormData = useMemo(() => {
+  const initialFormData = useMemo(() =>
+  {
     const data = initialData || {};
     return {
       opponent: data.opponent || '',
@@ -67,7 +68,8 @@ export const GameForm: React.FC<GameFormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Update form data when initialData changes (for editing existing games)
-  useEffect(() => {
+  useEffect(() =>
+  {
     setFormData(initialFormData);
   }, [initialFormData]);
 
