@@ -228,13 +228,13 @@
 }
 
 .result-loss {
-  background: var(--error-100);
-  color: var(--error-700);
+  background: var(--color-error);
+  color: white;
 }
 
 .result-tie {
-  background: var(--warning-100);
-  color: var(--warning-700);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
 }
 
 .game-location-detail {
@@ -318,24 +318,6 @@
   text-align: center;
   padding: var(--space-2xl);
   color: var(--color-text-primary);
-}
-
-/* Dark mode adjustments */
-@media (prefers-color-scheme: dark) {
-  .result-win {
-    background: var(--success-900);
-    color: var(--success-300);
-  }
-
-  .result-loss {
-    background: var(--error-900);
-    color: var(--error-300);
-  }
-
-  .result-tie {
-    background: var(--warning-900);
-    color: var(--warning-300);
-  }
 }
 
 /* Responsive design */
