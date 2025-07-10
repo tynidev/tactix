@@ -1,8 +1,13 @@
-/* Games List Styles */
+/* ========================================
+   1. BASE LAYOUT
+   ======================================== */
+
+/* Container styles */
 .games-list {
   padding: var(--space-lg);
 }
 
+/* Header styles */
 .games-header {
   display: flex;
   align-items: center;
@@ -19,12 +24,18 @@
   font-weight: var(--font-semibold);
 }
 
+/* Grid layout */
 .games-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
   gap: var(--space-lg);
 }
 
+/* ========================================
+   2. GAME CARD COMPONENT
+   ======================================== */
+
+/* Card container */
 .game-card {
   background: var(--color-bg-secondary);
   border: 1px solid var(--border-color);
@@ -38,6 +49,7 @@
   position: relative;
 }
 
+/* Card states */
 .game-card:hover {
   box-shadow: var(--shadow-md);
   border-color: var(--color-text-secondary);
@@ -62,114 +74,7 @@
   box-shadow: var(--shadow-md);
 }
 
-.game-card .floating-actions{
-  top: var(--space-sm);
-  right: var(--space-sm);
-}
-
-.team-card .floating-actions{
-  top: var(--space-lg);
-  right: var(--space-lg);
-}
-
-/* Floating Action Buttons */
-.floating-actions {
-  position: absolute;
-  display: flex;
-  gap: var(--space-xs);
-  z-index: 10;
-}
-
-.team .floating-action-btn{
-  background: var(--color-bg-secondary);
-  color: var(--color-accent-primary);
-}
-
-.floating-action-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: none;
-  background: #00000044;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  backdrop-filter: blur(4px);
-  font-size: var(--text-sm);
-}
-
-.team .floating-action-btn:hover{
-  color: white;
-}
-
-.floating-action-btn:hover {
-  background: var(--black-overlay);
-  transform: scale(1.1);
-}
-
-.floating-action-btn:focus {
-  outline: 2px solid var(--color-accent-primary);
-  outline-offset: 2px;
-}
-
-.edit-btn:hover {
-  background: var(--color-info);
-  opacity: 0.8;
-}
-
-.delete-btn:hover {
-  background: var(--color-error);
-  opacity: 0.8;
-}
-
-/* YouTube Thumbnail Styles */
-.game-thumbnail {
-  position: relative;
-  width: 100%;
-  height: 120px;
-  overflow: hidden;
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  background: var(--color-bg-input);
-}
-
-.thumbnail-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform var(--transition-fast);
-}
-
-.game-card:hover .thumbnail-image {
-  transform: scale(1.05);
-}
-
-.video-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: var(--white-semi);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity var(--transition-fast);
-}
-
-.game-card:hover .video-overlay {
-  opacity: 1;
-}
-
-.play-icon {
-  color: white;
-  font-size: 2rem;
-  text-shadow: 0 2px 4px var(--white-glow);
-}
-
+/* Card header */
 .game-header {
   display: flex;
   align-items: flex-start;
@@ -183,6 +88,7 @@
   min-width: 0;
 }
 
+/* Team/opponent display */
 .game-team,
 .game-opponent {
   text-align: left;
@@ -199,6 +105,7 @@
   max-width: 200px; /* Adjust based on card layout */
 }
 
+/* Game metadata */
 .game-meta {
   display: flex;
   gap: var(--space-sm);
@@ -239,12 +146,11 @@
   color: var(--color-text-primary);
 }
 
-.game-location-detail {
-  margin: 0 0 var(--space-sm) 0;
-  font-size: var(--text-sm);
-  color: var(--color-text-primary);
-}
+/* ========================================
+   3. GAME CONTENT
+   ======================================== */
 
+/* Content container */
 .game-content {
   flex: 1;
   display: flex;
@@ -252,6 +158,14 @@
   padding: 0 var(--space-lg);
 }
 
+/* Location details */
+.game-location-detail {
+  margin: 0 0 var(--space-sm) 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+}
+
+/* Notes section */
 .game-notes {
   margin: var(--space-md) 0 var(--space-lg) 0;
   padding: 0;
@@ -269,6 +183,7 @@
   opacity: 0;
 }
 
+/* Statistics display */
 .game-stats {
   display: flex;
   gap: var(--space-md);
@@ -284,6 +199,7 @@
   gap: var(--space-xs);
 }
 
+/* Action buttons */
 .game-actions {
   display: flex;
   gap: var(--space-sm);
@@ -297,67 +213,133 @@
   min-width: 60px;
 }
 
-/* Responsive design */
-@media (max-width: 768px) {
-  .games-list {
-    padding: var(--space-md);
-  }
+/* ========================================
+   4. MEDIA/THUMBNAIL
+   ======================================== */
 
-  .games-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: var(--space-md);
-  }
-
-  .games-header h2 {
-    text-align: center;
-  }
-
-  .games-grid {
-    grid-template-columns: 1fr;
-    gap: var(--space-md);
-  }
-
-  .game-card {
-    height: auto; /* Allow height to adjust on mobile */
-    min-height: 320px;
-  }
-
-  .game-thumbnail {
-    height: 100px; /* Smaller thumbnail on mobile */
-  }
-
-  .game-header {
-    flex-direction: column;
-    gap: var(--space-sm);
-    padding: var(--space-md) var(--space-md) 0 var(--space-md);
-  }
-
-  .game-result {
-    align-self: flex-start;
-  }
-
-  .game-content {
-    padding: 0 var(--space-md);
-  }
-
-  .game-actions {
-    justify-content: center;
-    padding: 0 var(--space-md) var(--space-md) var(--space-md);
-  }
-
-  .game-actions .btn {
-    flex: 0 1 auto;
-    min-width: 70px;
-  }
-
-  .game-opponent {
-    max-width: 250px; /* Larger max-width on mobile */
-  }
+/* Thumbnail container */
+.game-thumbnail {
+  position: relative;
+  width: 100%;
+  height: 120px;
+  overflow: hidden;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--color-bg-input);
 }
 
+/* Image styles */
+.thumbnail-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--transition-fast);
+}
 
-/* Filter Section */
+.game-card:hover .thumbnail-image {
+  transform: scale(1.05);
+}
+
+/* Video overlay */
+.video-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--white-semi);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.game-card:hover .video-overlay {
+  opacity: 1;
+}
+
+/* Play icon */
+.play-icon {
+  color: white;
+  font-size: 2rem;
+  text-shadow: 0 2px 4px var(--white-glow);
+}
+
+/* ========================================
+   5. FLOATING ACTIONS
+   ======================================== */
+
+/* Action container */
+.floating-actions {
+  position: absolute;
+  display: flex;
+  gap: var(--space-xs);
+  z-index: 10;
+}
+
+.game-card .floating-actions{
+  top: var(--space-sm);
+  right: var(--space-sm);
+}
+
+.team-card .floating-actions{
+  top: var(--space-lg);
+  right: var(--space-lg);
+}
+
+/* Button styles */
+.floating-action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: #00000044;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  backdrop-filter: blur(4px);
+  font-size: var(--text-sm);
+}
+
+.floating-action-btn:hover {
+  background: var(--black-overlay);
+  transform: scale(1.1);
+}
+
+.floating-action-btn:focus {
+  outline: 2px solid var(--color-accent-primary);
+  outline-offset: 2px;
+}
+
+/* Button variants */
+.edit-btn:hover {
+  background: var(--color-info);
+  opacity: 0.8;
+}
+
+.delete-btn:hover {
+  background: var(--color-error);
+  opacity: 0.8;
+}
+
+/* Team-specific overrides */
+.team .floating-action-btn{
+  background: var(--color-bg-secondary);
+  color: var(--color-accent-primary);
+}
+
+.team .floating-action-btn:hover{
+  color: white;
+}
+
+/* ========================================
+   6. FILTER SECTION
+   ======================================== */
+
+/* Filter container */
 .filter-section {
   background: var(--color-bg-card);
   border-radius: var(--radius-lg);
@@ -367,7 +349,7 @@
   position: relative; /* Add this for date picker positioning */
 }
 
-/* Filter Toggle Header */
+/* Toggle header */
 .filter-toggle-header {
   display: flex;
   align-items: center;
@@ -409,7 +391,7 @@
   flex-shrink: 0;
 }
 
-/* Filter Content */
+/* Filter content wrapper */
 .filter-content {
   padding-top: var(--space-md);
   transition: all var(--transition-normal);
@@ -434,6 +416,7 @@
   padding-top: 0;
 }
 
+/* Filter groups and inputs */
 .filter-container {
   display: flex;
   gap: var(--space-md);
@@ -483,6 +466,7 @@
   padding-right: var(--space-2xl);
 }
 
+/* Date picker specific styles */
 .filter-date-range {
   position: relative;
 }
@@ -516,7 +500,33 @@
   white-space: nowrap; /* Prevent text wrapping */
 }
 
-/* Date Range Picker - Floating */
+/* Filter actions */
+.filter-actions {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+  flex-shrink: 0; /* Prevent shrinking */
+}
+
+/* Overlay for closing date picker when clicking outside */
+.date-picker-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 999;
+  display: none;
+}
+
+.date-picker-overlay.active {
+  display: block;
+}
+/* ========================================
+   7. DATE PICKER COMPONENT
+   ======================================== */
+
+/* Custom date picker styles */
 .date-range-picker {
   position: absolute;
   top: calc(100% + var(--space-xs));
@@ -596,30 +606,130 @@
   border-top: 1px solid var(--border-color);
 }
 
-/* Move Add Game button outside of filter groups */
-.filter-actions {
-  display: flex;
-  gap: var(--space-sm);
-  align-items: center;
-  flex-shrink: 0; /* Prevent shrinking */
+/* React DatePicker library overrides */
+.react-datepicker-wrapper {
+  width: 100%;
 }
 
-/* Overlay for closing date picker when clicking outside */
-.date-picker-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 999;
-  display: none;
+.react-datepicker__input-container {
+  width: 100%;
 }
 
-.date-picker-overlay.active {
-  display: block;
+.react-datepicker {
+  font-family: var(--font-family);
+  background: var(--color-bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  z-index: 99999 !important;
 }
 
-/* Mobile responsive filters */
+.react-datepicker__tab-loop {
+  z-index: 99999 !important;
+}
+
+.react-datepicker-popper {
+  z-index: 99999 !important;
+}
+
+.react-datepicker-popper[data-placement^="bottom"] {
+  z-index: 99999 !important;
+}
+
+.react-datepicker-popper[data-placement^="top"] {
+  z-index: 99999 !important;
+}
+
+.react-datepicker__header {
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.react-datepicker__day--selected,
+.react-datepicker__day--in-selecting-range,
+.react-datepicker__day--in-range {
+  background: var(--color-accent-primary);
+  color: white;
+}
+
+.react-datepicker__day--selected:hover,
+.react-datepicker__day--in-selecting-range:hover,
+.react-datepicker__day--in-range:hover {
+  background: var(--color-accent-secondary);
+}
+
+.react-datepicker__day:hover {
+  background: var(--color-bg-input);
+}
+
+.react-datepicker__close-icon::after {
+  background-color: var(--color-text-secondary);
+}
+
+/* ========================================
+   8. RESPONSIVE DESIGN
+   ======================================== */
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .games-list {
+    padding: var(--space-md);
+  }
+
+  .games-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-md);
+  }
+
+  .games-header h2 {
+    text-align: center;
+  }
+
+  .games-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
+  }
+
+  .game-card {
+    height: auto; /* Allow height to adjust on mobile */
+    min-height: 320px;
+  }
+
+  .game-thumbnail {
+    height: 100px; /* Smaller thumbnail on mobile */
+  }
+
+  .game-header {
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-md) 0 var(--space-md);
+  }
+
+  .game-result {
+    align-self: flex-start;
+  }
+
+  .game-content {
+    padding: 0 var(--space-md);
+  }
+
+  .game-actions {
+    justify-content: center;
+    padding: 0 var(--space-md) var(--space-md) var(--space-md);
+  }
+
+  .game-actions .btn {
+    flex: 0 1 auto;
+    min-width: 70px;
+  }
+
+  .game-opponent {
+    max-width: 250px; /* Larger max-width on mobile */
+  }
+}
+
+/* Filter responsive overrides */
 @media (max-width: 768px) {
   .filter-toggle-header {
     padding: var(--space-md);
@@ -683,7 +793,11 @@
   }
 }
 
-/* Dark mode filter adjustments */
+/* ========================================
+   9. THEME VARIATIONS
+   ======================================== */
+
+/* Dark mode overrides */
 @media (prefers-color-scheme: dark) {
   .filter-input,
   .filter-select {
@@ -698,67 +812,7 @@
   }
 }
 
-/* React DatePicker Overrides */
-.react-datepicker-wrapper {
-  width: 100%;
-}
-
-.react-datepicker__input-container {
-  width: 100%;
-}
-
-.react-datepicker {
-  font-family: var(--font-family);
-  background: var(--color-bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  z-index: 99999 !important;
-}
-
-.react-datepicker__tab-loop {
-  z-index: 99999 !important;
-}
-
-.react-datepicker-popper {
-  z-index: 99999 !important;
-}
-
-.react-datepicker-popper[data-placement^="bottom"] {
-  z-index: 99999 !important;
-}
-
-.react-datepicker-popper[data-placement^="top"] {
-  z-index: 99999 !important;
-}
-
-.react-datepicker__header {
-  background: var(--color-bg-secondary);
-  border-bottom: 1px solid var(--border-color);
-}
-
-.react-datepicker__day--selected,
-.react-datepicker__day--in-selecting-range,
-.react-datepicker__day--in-range {
-  background: var(--color-accent-primary);
-  color: white;
-}
-
-.react-datepicker__day--selected:hover,
-.react-datepicker__day--in-selecting-range:hover,
-.react-datepicker__day--in-range:hover {
-  background: var(--color-accent-secondary);
-}
-
-.react-datepicker__day:hover {
-  background: var(--color-bg-input);
-}
-
-.react-datepicker__close-icon::after {
-  background-color: var(--color-text-secondary);
-}
-
-/* Dark mode adjustments for datepicker */
+/* Theme-specific adjustments */
 @media (prefers-color-scheme: dark) {
   .react-datepicker {
     background: var(--color-bg-secondary);
