@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Modal } from '../Modal';
 import './GameForm.css';
 
@@ -25,57 +25,51 @@ interface GameFormProps
   isEditing?: boolean;
 }
 
+// Helper function to convert YouTube ID back to full URL for editing
+const getVideoUrlForEditing = (videoId: string | null | undefined): string | null =>
+{
+  if (!videoId) return null;
+  // If it's already a full URL, return as is
+  if (videoId.includes('youtube.com') || videoId.includes('youtu.be'))
+  {
+    return videoId;
+  }
+  // If it's just an ID, convert to full URL
+  return `https://www.youtube.com/watch?v=${videoId}`;
+};
+
 export const GameForm: React.FC<GameFormProps> = ({
   isOpen,
   teamId,
   onSubmit,
   onCancel,
-  initialData = {},
+  initialData,
   isEditing = false,
 }) =>
 {
-  // Helper function to convert YouTube ID back to full URL for editing
-  const getVideoUrlForEditing = (videoId: string | null | undefined): string | null =>
-  {
-    if (!videoId) return null;
-    // If it's already a full URL, return as is
-    if (videoId.includes('youtube.com') || videoId.includes('youtu.be'))
-    {
-      return videoId;
-    }
-    // If it's just an ID, convert to full URL
-    return `https://www.youtube.com/watch?v=${videoId}`;
-  };
+  // Create stable initial form data using useMemo
+  const initialFormData = useMemo(() => {
+    const data = initialData || {};
+    return {
+      opponent: data.opponent || '',
+      date: data.date || '',
+      location: data.location || null,
+      video_id: isEditing ? getVideoUrlForEditing(data.video_id) : (data.video_id || null),
+      team_score: data.team_score !== undefined ? data.team_score : null,
+      opp_score: data.opp_score !== undefined ? data.opp_score : null,
+      game_type: data.game_type || 'regular',
+      home_away: data.home_away || 'home',
+      notes: data.notes || null,
+    };
+  }, [initialData, isEditing]);
 
-  const [formData, setFormData] = useState<GameFormData>({
-    opponent: initialData.opponent || '',
-    date: initialData.date || '',
-    location: initialData.location || null,
-    video_id: isEditing ? getVideoUrlForEditing(initialData.video_id) : (initialData.video_id || null),
-    team_score: initialData.team_score !== undefined ? initialData.team_score : null,
-    opp_score: initialData.opp_score !== undefined ? initialData.opp_score : null,
-    game_type: initialData.game_type || 'regular',
-    home_away: initialData.home_away || 'home',
-    notes: initialData.notes || null,
-  });
-
+  const [formData, setFormData] = useState<GameFormData>(initialFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Update form data when initialData changes (for editing existing games)
-  useEffect(() =>
-  {
-    setFormData({
-      opponent: initialData.opponent || '',
-      date: initialData.date || '',
-      location: initialData.location || null,
-      video_id: isEditing ? getVideoUrlForEditing(initialData.video_id) : (initialData.video_id || null),
-      team_score: initialData.team_score !== undefined ? initialData.team_score : null,
-      opp_score: initialData.opp_score !== undefined ? initialData.opp_score : null,
-      game_type: initialData.game_type || 'regular',
-      home_away: initialData.home_away || 'home',
-      notes: initialData.notes || null,
-    });
-  }, [initialData, isEditing]);
+  useEffect(() => {
+    setFormData(initialFormData);
+  }, [initialFormData]);
 
   // Helper function to extract YouTube video ID from URL
   const extractYouTubeId = (url: string): string =>

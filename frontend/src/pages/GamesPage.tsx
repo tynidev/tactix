@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { GameForm } from '../components/GameForm/GameForm';
 import { GamesList, GamesListRef } from '../components/GamesList/GamesList';
@@ -190,6 +190,11 @@ export const GamesPage: React.FC = () =>
     }
   };
 
+  // Create stable reference for initialData to prevent unnecessary re-renders
+  const gameFormInitialData = useMemo(() => {
+    return editingGame || undefined;
+  }, [editingGame]);
+
   // Show loading state
   if (loading)
   {
@@ -214,7 +219,7 @@ export const GamesPage: React.FC = () =>
         teamId={editingGame?.teams?.id || selectedTeam?.teams.id || ''}
         onSubmit={handleGameFormSubmit}
         onCancel={handleCancelGameForm}
-        initialData={editingGame || undefined}
+        initialData={gameFormInitialData}
         isEditing={!!editingGame}
       />
 
