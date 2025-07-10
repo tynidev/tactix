@@ -14,7 +14,7 @@
 
 .games-header h2 {
   margin: 0;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   font-size: 1.5rem;
   font-weight: 600;
 }
@@ -26,7 +26,7 @@
 }
 
 .game-card {
-  background: var(--bg-secondary);
+  background: var(--color-bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: 0;
@@ -40,7 +40,7 @@
 
 .game-card:hover {
   box-shadow: var(--shadow-md);
-  border-color: var(--primary-300);
+  border-color: var(--color-text-secondary);
 }
 
 .game-card.clickable {
@@ -130,7 +130,7 @@
   height: 120px;
   overflow: hidden;
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  background: var(--bg-tertiary);
+  background: var(--color-bg-tertiary);
 }
 
 .thumbnail-image {
@@ -187,7 +187,7 @@
   margin: 0 0 var(--space-xs) 0;
   font-size: 1.125rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
 }
 
 .game-opponent {
@@ -206,7 +206,7 @@
 
 .game-meta span {
   padding: 2px 6px;
-  background: var(--bg-tertiary);
+  background: var(--color-bg-tertiary);
   border-radius: var(--radius-sm);
   text-transform: capitalize;
 }
@@ -215,8 +215,8 @@
   font-weight: 600;
   font-size: 0.875rem;
   padding: var(--space-xs) var(--space-sm);
-  border-radius: var(--radius-md);
-  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-tertiary);
   color: var(--color-text-primary);
   white-space: nowrap;
   flex-shrink: 0;
@@ -251,18 +251,15 @@
 }
 
 .game-notes {
-  margin: 0 0 var(--space-md) 0;
-  font-size: 0.875rem;
-  color: var(--text-primary);
-  line-height: 1.4;
-  background: var(--bg-primary);
+  margin: var(--space-md) 0 var(--space-lg) 0;
   padding: 0;
-  border-radius: var(--radius-md);
-  border-left: 3px solid var(--primary-300);
-  /* Clamp to exactly 2 lines */
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+  line-height: 1.4;
+  /* Clamp to exactly 3 lines */
   overflow: hidden;
-  height: calc(1.4em * 2); /* 2 lines at 1.4 line-height */
-  min-height: calc(1.4em * 2); /* Ensure consistent height even with no notes */
+  height: calc(1.4em * 3); /* 3 lines at 1.4 line-height */
+  min-height: calc(1.4em * 3); /* Ensure consistent height even with no notes */
 }
 
 .game-notes:empty::before {
@@ -306,7 +303,7 @@
 
 .empty-state h3 {
   margin: 0 0 var(--space-sm) 0;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
 }
 
 .empty-state p {
@@ -637,7 +634,7 @@
 @media (prefers-color-scheme: dark) {
   .filter-input,
   .filter-select {
-    background: var(--bg-tertiary);
+    background: var(--color-bg-tertiary);
     border-color: var(--border-color);
   }
 
@@ -694,11 +691,11 @@
 /* Dark mode adjustments for datepicker */
 @media (prefers-color-scheme: dark) {
   .react-datepicker {
-    background: var(--bg-secondary);
+    background: var(--color-bg-secondary);
   }
   
   .react-datepicker__header {
-    background: var(--bg-tertiary);
+    background: var(--color-bg-tertiary);
   }
   
   .react-datepicker__day {

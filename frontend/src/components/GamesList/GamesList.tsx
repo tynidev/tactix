@@ -520,15 +520,7 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
 
                 <div className='game-header'>
                   <div className='game-info'>
-                    {game.teams && (
-                      <h3
-                        className='game-team'
-                        style={{ fontWeight: 'bold', color: 'var(--primary-500)', marginBottom: 'var(--space-xs)' }}
-                      >
-                        {game.teams.name}
-                      </h3>
-                    )}
-                    <h3 className='game-opponent' title={game.opponent}>vs {game.opponent}</h3>
+                    <h3 className='game-opponent' title={game.opponent}>{game.opponent}</h3>
                     <div className='game-meta'>
                       <span className='game-date'>
                         {new Date(game.date).toLocaleDateString()}
