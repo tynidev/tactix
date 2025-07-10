@@ -15,8 +15,8 @@
 .games-header h2 {
   margin: 0;
   color: var(--color-text-primary);
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
 }
 
 .games-grid {
@@ -30,7 +30,7 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: 0;
-  transition: all 0.2s ease;
+  transition: all var(--transition-fast);
   display: flex;
   flex-direction: column;
   height: 380px; /* Increased height to accommodate thumbnail */
@@ -90,15 +90,15 @@
   height: 32px;
   border-radius: 50%;
   border: none;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--white-glow);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition-fast);
   backdrop-filter: blur(4px);
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
 }
 
 .team .floating-action-btn:hover{
@@ -106,21 +106,23 @@
 }
 
 .floating-action-btn:hover {
-  background: rgba(0, 0, 0, 0.8);
+  background: var(--black-overlay);
   transform: scale(1.1);
 }
 
 .floating-action-btn:focus {
-  outline: 2px solid var(--primary-300);
+  outline: 2px solid var(--color-accent-primary);
   outline-offset: 2px;
 }
 
 .edit-btn:hover {
-  background: rgba(59, 130, 246, 0.8);
+  background: var(--color-info);
+  opacity: 0.8;
 }
 
 .delete-btn:hover {
-  background: rgba(239, 68, 68, 0.8);
+  background: var(--color-error);
+  opacity: 0.8;
 }
 
 /* YouTube Thumbnail Styles */
@@ -130,14 +132,14 @@
   height: 120px;
   overflow: hidden;
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  background: var(--color-bg-tertiary);
+  background: var(--color-bg-input);
 }
 
 .thumbnail-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.2s ease;
+  transition: transform var(--transition-fast);
 }
 
 .game-card:hover .thumbnail-image {
@@ -150,12 +152,12 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--white-semi);
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity var(--transition-fast);
 }
 
 .game-card:hover .video-overlay {
@@ -165,7 +167,7 @@
 .play-icon {
   color: white;
   font-size: 2rem;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 2px 4px var(--white-glow);
 }
 
 .game-header {
@@ -185,8 +187,8 @@
 .game-opponent {
   text-align: left;
   margin: 0 0 var(--space-xs) 0;
-  font-size: 1.125rem;
-  font-weight: 600;
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
   color: var(--color-text-primary);
 }
 
@@ -200,23 +202,23 @@
 .game-meta {
   display: flex;
   gap: var(--space-sm);
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   color: var(--color-text-primary);
 }
 
 .game-meta span {
-  padding: 2px 6px;
-  background: var(--color-bg-tertiary);
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-bg-input);
   border-radius: var(--radius-sm);
   text-transform: capitalize;
 }
 
 .game-result {
-  font-weight: 600;
-  font-size: 0.875rem;
+  font-weight: var(--font-semibold);
+  font-size: var(--text-sm);
   padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius-sm);
-  background: var(--color-bg-tertiary);
+  background: var(--color-bg-input);
   color: var(--color-text-primary);
   white-space: nowrap;
   flex-shrink: 0;
@@ -239,7 +241,7 @@
 
 .game-location-detail {
   margin: 0 0 var(--space-sm) 0;
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   color: var(--color-text-primary);
 }
 
@@ -253,7 +255,7 @@
 .game-notes {
   margin: var(--space-md) 0 var(--space-lg) 0;
   padding: 0;
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   color: var(--color-text-primary);
   line-height: 1.4;
   /* Clamp to exactly 3 lines */
@@ -272,7 +274,7 @@
   gap: var(--space-md);
   margin-bottom: auto; /* Push to fill available space */
   padding-bottom: var(--space-lg);
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   color: var(--color-text-primary);
 }
 
@@ -293,28 +295,6 @@
 .game-actions .btn {
   flex: 1;
   min-width: 60px;
-}
-
-.empty-state {
-  text-align: center;
-  padding: var(--space-2xl);
-  color: var(--color-text-primary);
-}
-
-.empty-state h3 {
-  margin: 0 0 var(--space-sm) 0;
-  color: var(--color-text-primary);
-}
-
-.empty-state p {
-  margin: 0;
-  font-size: 0.875rem;
-}
-
-.loading {
-  text-align: center;
-  padding: var(--space-2xl);
-  color: var(--color-text-primary);
 }
 
 /* Responsive design */
@@ -380,12 +360,78 @@
 /* Filter Section */
 .filter-section {
   background: var(--color-bg-card);
-  padding: var(--space-lg);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-color);
-  margin-bottom: var(--space-2xl);
+  margin-bottom: var(--space-lg);
   position: relative; /* Add this for date picker positioning */
+}
+
+/* Filter Toggle Header */
+.filter-toggle-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md) var(--space-lg);
+}
+
+.filter-toggle-text {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.filter-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 var(--space-xs);
+  background: var(--color-accent-primary);
+  color: white;
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  border-radius: var(--radius-full);
+}
+
+.filter-toggle-icon {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  transition: transform var(--transition-normal);
+}
+
+.filter-toggle-icon.expanded {
+  transform: rotate(180deg);
+}
+
+.clear-all-btn-header {
+  flex-shrink: 0;
+}
+
+/* Filter Content */
+.filter-content {
+  padding-top: var(--space-md);
+  transition: all var(--transition-normal);
+  overflow: hidden;
+}
+
+.filter-content.collapsed {
+  padding: 0;
+  max-height: 0;
+  opacity: 0;
+  visibility: hidden;
+}
+
+.filter-content.expanded {
+  max-height: 500px; /* Adjust based on content */
+  opacity: 1;
+  visibility: visible;
+}
+
+.filter-content .filter-container {
+  padding: var(--space-lg);
+  padding-top: 0;
 }
 
 .filter-container {
@@ -520,29 +566,6 @@
   margin-bottom: var(--space-lg);
 }
 
-.date-quick-option {
-  padding: var(--space-sm) var(--space-md);
-  background: transparent;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  text-align: left;
-  transition: all var(--transition-fast);
-  color: var(--color-text-primary);
-  font-family: var(--font-family);
-}
-
-.date-quick-option:hover {
-  background: var(--color-bg-input);
-  border-color: var(--color-accent-primary);
-}
-
-.date-quick-option.selected {
-  background: var(--color-accent-primary);
-  color: white;
-  border-color: var(--color-accent-primary);
-}
-
 /* Date range inputs */
 .date-range-inputs {
   display: flex;
@@ -598,12 +621,38 @@
 
 /* Mobile responsive filters */
 @media (max-width: 768px) {
+  .filter-toggle-header {
+    padding: var(--space-md);
+  }
+  
+  .filter-content .filter-container {
+    padding: var(--space-md);
+    padding-top: 0;
+  }
+  
   .filter-container {
     flex-direction: column;
   }
   
   .filter-group {
     width: 100%;
+    min-width: auto;
+  }
+  
+  .date-range-container {
+    flex-direction: column;
+    min-width: auto;
+    gap: var(--space-sm);
+  }
+  
+  .date-picker-wrapper {
+    min-width: auto;
+  }
+  
+  .clear-all-btn,
+  .clear-all-btn-header {
+    align-self: stretch;
+    margin-bottom: 0;
   }
   
   .filter-actions {
@@ -628,20 +677,24 @@
   .date-range-picker.active {
     transform: translate(-50%, -50%);
   }
+  
+  .filter-content.expanded {
+    max-height: 600px; /* Increase for mobile to accommodate vertical layout */
+  }
 }
 
 /* Dark mode filter adjustments */
 @media (prefers-color-scheme: dark) {
   .filter-input,
   .filter-select {
-    background: var(--color-bg-tertiary);
+    background: var(--color-bg-input);
     border-color: var(--border-color);
   }
 
   .filter-input:focus,
   .filter-select:focus {
-    border-color: var(--primary-400);
-    box-shadow: 0 0 0 2px var(--primary-900);
+    border-color: var(--color-accent-primary);
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
   }
 }
 
@@ -660,6 +713,23 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
+  z-index: 99999 !important;
+}
+
+.react-datepicker__tab-loop {
+  z-index: 99999 !important;
+}
+
+.react-datepicker-popper {
+  z-index: 99999 !important;
+}
+
+.react-datepicker-popper[data-placement^="bottom"] {
+  z-index: 99999 !important;
+}
+
+.react-datepicker-popper[data-placement^="top"] {
+  z-index: 99999 !important;
 }
 
 .react-datepicker__header {
@@ -695,7 +765,7 @@
   }
   
   .react-datepicker__header {
-    background: var(--color-bg-tertiary);
+    background: var(--color-bg-input);
   }
   
   .react-datepicker__day {

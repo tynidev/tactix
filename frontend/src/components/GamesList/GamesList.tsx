@@ -68,6 +68,7 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
   const [error, setError] = useState('');
 
   // Filter states
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [homeAwayFilter, setHomeAwayFilter] = useState('');
   const [gameTypeFilter, setGameTypeFilter] = useState('');
@@ -340,6 +341,15 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
   // Check if any filters are active
   const hasActiveFilters = searchText || homeAwayFilter || gameTypeFilter || startDate || endDate;
 
+  // Auto-expand filters when there are active filters
+  useEffect(() =>
+  {
+    if (hasActiveFilters && !filtersExpanded)
+    {
+      setFiltersExpanded(true);
+    }
+  }, [hasActiveFilters, filtersExpanded]);
+
   if (loading)
   {
     return (
@@ -355,85 +365,118 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
 
       {/* Filter Section */}
       <div className='filter-section'>
-        <div className='filter-container'>
-          <div className='filter-group'>
-            <label htmlFor='search'>Search</label>
-            <input
-              type='text'
-              id='search'
-              className='filter-input'
-              placeholder='Search teams, opponents, notes...'
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-            />
-          </div>
+        {/* Filter Toggle Header */}
+        <div className='filter-toggle-header'>
+          <button
+            className='btn btn-secondary'
+            onClick={() => setFiltersExpanded(!filtersExpanded)}
+            aria-expanded={filtersExpanded}
+            aria-controls='filter-content'
+          >
+            <span className='filter-toggle-text'>
+              Filters
+              {hasActiveFilters && (
+                <span className='filter-count-badge'>{
+                  [searchText, homeAwayFilter, gameTypeFilter, startDate, endDate].filter(Boolean).length
+                }</span>
+              )}
+            </span>
+            <span className={`filter-toggle-icon ${filtersExpanded ? 'expanded' : ''}`}>
+              ▲
+            </span>
+          </button>
+          {hasActiveFilters && !filtersExpanded && (
+            <button onClick={clearFilters} className='btn btn-secondary btn-sm clear-all-btn-header'>
+              Clear All
+            </button>
+          )}
+        </div>
 
-          <div className='filter-group'>
-            <label htmlFor='team'>Team</label>
-            <select
-              id='team'
-              className='filter-input filter-select'
-              value={selectedTeam?.teams.id || ''}
-              onChange={onTeamChange}
-            >
-              <option value=''>All Teams</option>
-              {teams.map((team) => (
-                <option key={team.teams.id} value={team.teams.id}>
-                  {team.teams.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className='filter-group'>
-            <label htmlFor='location'>Location</label>
-            <select
-              id='location'
-              className='filter-input filter-select'
-              value={homeAwayFilter}
-              onChange={(e) => setHomeAwayFilter(e.target.value)}
-            >
-              <option value=''>Home/Away</option>
-              <option value='home'>Home</option>
-              <option value='away'>Away</option>
-              <option value='neutral'>Neutral</option>
-            </select>
-          </div>
-
-          <div className='filter-group'>
-            <label htmlFor='game-type'>Game Type</label>
-            <select
-              id='game-type'
-              className='filter-input filter-select'
-              value={gameTypeFilter}
-              onChange={(e) => setGameTypeFilter(e.target.value)}
-            >
-              <option value=''>All Game Types</option>
-              <option value='regular'>Regular</option>
-              <option value='tournament'>Tournament</option>
-              <option value='scrimmage'>Scrimmage</option>
-            </select>
-          </div>
-
-          <div className='date-range-container'>
-            <div className='date-picker-wrapper'>
-              <label>Date Range</label>
-              <DatePicker
-                selectsRange
-                startDate={startDate}
-                endDate={endDate}
-                onChange={handleDateChange}
-                placeholderText='Select date range'
+        {/* Filter Content */}
+        <div 
+          id='filter-content'
+          className={`filter-content ${filtersExpanded ? 'expanded' : 'collapsed'}`}
+        >
+          <div className='filter-container'>
+            <div className='filter-group'>
+              <label htmlFor='search'>Search</label>
+              <input
+                type='text'
+                id='search'
                 className='filter-input'
-                isClearable
-                dateFormat='MM/dd/yyyy'
+                placeholder='Search teams, opponents, notes...'
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
               />
             </div>
-            {hasActiveFilters && (
-              <button onClick={clearFilters} className='btn btn-secondary clear-all-btn'>
-                Clear All
-              </button>
-            )}
+
+            <div className='filter-group'>
+              <label htmlFor='team'>Team</label>
+              <select
+                id='team'
+                className='filter-input filter-select'
+                value={selectedTeam?.teams.id || ''}
+                onChange={onTeamChange}
+              >
+                <option value=''>All Teams</option>
+                {teams.map((team) => (
+                  <option key={team.teams.id} value={team.teams.id}>
+                    {team.teams.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className='filter-group'>
+              <label htmlFor='location'>Location</label>
+              <select
+                id='location'
+                className='filter-input filter-select'
+                value={homeAwayFilter}
+                onChange={(e) => setHomeAwayFilter(e.target.value)}
+              >
+                <option value=''>Home/Away</option>
+                <option value='home'>Home</option>
+                <option value='away'>Away</option>
+                <option value='neutral'>Neutral</option>
+              </select>
+            </div>
+
+            <div className='filter-group'>
+              <label htmlFor='game-type'>Game Type</label>
+              <select
+                id='game-type'
+                className='filter-input filter-select'
+                value={gameTypeFilter}
+                onChange={(e) => setGameTypeFilter(e.target.value)}
+              >
+                <option value=''>All Game Types</option>
+                <option value='regular'>Regular</option>
+                <option value='tournament'>Tournament</option>
+                <option value='scrimmage'>Scrimmage</option>
+              </select>
+            </div>
+
+            <div className='date-range-container'>
+              <div className='date-picker-wrapper'>
+                <label>Date Range</label>
+                <DatePicker
+                  selectsRange
+                  startDate={startDate}
+                  endDate={endDate}
+                  onChange={handleDateChange}
+                  placeholderText='Select date range'
+                  className='filter-input'
+                  isClearable
+                  dateFormat='MM/dd/yyyy'
+                />
+              </div>
+              {hasActiveFilters && (
+                <button onClick={clearFilters} className='btn btn-secondary clear-all-btn'>
+                  Clear All
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
