@@ -90,7 +90,7 @@
   height: 32px;
   border-radius: 50%;
   border: none;
-  background: var(--white-glow);
+  background: #00000044;
   color: white;
   display: flex;
   align-items: center;

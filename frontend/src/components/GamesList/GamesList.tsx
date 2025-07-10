@@ -376,9 +376,9 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
             <span className='filter-toggle-text'>
               Filters
               {hasActiveFilters && (
-                <span className='filter-count-badge'>{
-                  [searchText, homeAwayFilter, gameTypeFilter, startDate, endDate].filter(Boolean).length
-                }</span>
+                <span className='filter-count-badge'>
+                  {[searchText, homeAwayFilter, gameTypeFilter, startDate, endDate].filter(Boolean).length}
+                </span>
               )}
             </span>
             <span className={`filter-toggle-icon ${filtersExpanded ? 'expanded' : ''}`}>
@@ -393,7 +393,7 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
         </div>
 
         {/* Filter Content */}
-        <div 
+        <div
           id='filter-content'
           className={`filter-content ${filtersExpanded ? 'expanded' : 'collapsed'}`}
         >
