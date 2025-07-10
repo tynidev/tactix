@@ -205,6 +205,15 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
     }
   };
 
+  // Helper function to format date without timezone conversion
+  const formatGameDate = (dateString: string) =>
+  {
+    // Parse date as local date to avoid timezone issues
+    const [year, month, day] = dateString.split('-').map(Number);
+    const localDate = new Date(year, month - 1, day); // month is 0-indexed
+    return localDate.toLocaleDateString();
+  };
+
   const formatGameResult = (teamScore: number | null, oppScore: number | null) =>
   {
     if (teamScore === null || oppScore === null)
@@ -307,8 +316,9 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
       // Date range filter
       if (startDate || endDate)
       {
-        const gameDate = new Date(game.date);
-        gameDate.setHours(0, 0, 0, 0); // Reset time for date comparison
+        // Parse game date as local date to avoid timezone issues
+        const [year, month, day] = game.date.split('-').map(Number);
+        const gameDate = new Date(year, month - 1, day); // month is 0-indexed
 
         if (startDate)
         {
@@ -566,7 +576,7 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
                     <h3 className='game-opponent' title={game.opponent}>{game.opponent}</h3>
                     <div className='game-meta'>
                       <span className='game-date'>
-                        {new Date(game.date).toLocaleDateString()}
+                        {formatGameDate(game.date)}
                       </span>
                       <span className='game-type'>{game.game_type}</span>
                       <span className='game-location'>{game.home_away}</span>
