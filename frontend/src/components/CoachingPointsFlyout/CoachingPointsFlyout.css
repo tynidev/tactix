@@ -79,7 +79,12 @@
   background: rgba(220, 38, 38, 0.2);
   border-color: rgb(220, 38, 38);
   color: rgb(220, 38, 38);
-  animation: pulse 2s infinite;
+  transform: scale(1.35);
+}
+
+.analysis-btn.recording:hover:not(:disabled) {
+  color: white;
+  transform: scale(1.4);
 }
 
 .analysis-btn.recording:hover:not(:disabled) {
@@ -88,26 +93,17 @@
 
 .recording-time {
   position: absolute;
-  top: -8px;
-  right: -8px;
+  top: -2px;
+  right: -42px;
   background: rgb(220, 38, 38);
   color: white;
-  font-size: 8px;
-  padding: 1px 3px;
+  font-size: 14px;
+  padding: 2px 4px;
   border-radius: 2px;
   font-weight: 600;
   min-width: 20px;
   text-align: center;
   white-space: nowrap;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
 }
 
 .header-right {
