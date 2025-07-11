@@ -27,6 +27,7 @@ interface Game
   home_away: 'home' | 'away' | 'neutral';
   notes: string | null;
   created_at: string;
+  user_role?: 'coach' | 'player' | 'admin' | 'guardian';
   teams?: {
     id: string;
     name: string;
@@ -807,6 +808,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
       {/* Coaching Points Flyout */}
       <CoachingPointsFlyout
         gameId={game.id}
+        userRole={game.user_role}
         onSeekToPoint={handleSeekToPoint}
         onShowDrawings={handleShowDrawings}
         onPauseVideo={handlePauseVideo}

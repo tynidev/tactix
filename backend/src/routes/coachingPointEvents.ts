@@ -57,15 +57,15 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res: Respon
       return;
     }
 
-    // Check if user has permission (author, coach, or admin)
+    // Check if user has permission (author, coach)
     const userRole = coachingPoint.games.teams.team_memberships[0]?.role;
     const isAuthor = coachingPoint.author_id === userId;
-    const hasPermission = isAuthor || ['coach', 'admin'].includes(userRole);
+    const hasPermission = isAuthor || ['coach'].includes(userRole);
 
     if (!hasPermission)
     {
       res.status(403).json({
-        message: 'Only the author, coaches, or admins can add events to coaching points',
+        message: 'Only the author or coaches can add events to coaching points',
       });
       return;
     }
@@ -159,15 +159,15 @@ router.post('/batch', authenticateUser, async (req: AuthenticatedRequest, res: R
       return;
     }
 
-    // Check if user has permission (author, coach, or admin)
+    // Check if user has permission (author, coach)
     const userRole = coachingPoint.games.teams.team_memberships[0]?.role;
     const isAuthor = coachingPoint.author_id === userId;
-    const hasPermission = isAuthor || ['coach', 'admin'].includes(userRole);
+    const hasPermission = isAuthor || ['coach'].includes(userRole);
 
     if (!hasPermission)
     {
       res.status(403).json({
-        message: 'Only the author, coaches, or admins can add events to coaching points',
+        message: 'Only the author or coaches can add events to coaching points',
       });
       return;
     }
@@ -296,15 +296,15 @@ router.delete('/:id', authenticateUser, async (req: AuthenticatedRequest, res: R
       return;
     }
 
-    // Check if user has permission (author, coach, or admin)
+    // Check if user has permission (author, coach)
     const userRole = event.coaching_points.games.teams.team_memberships[0]?.role;
     const isAuthor = event.coaching_points.author_id === userId;
-    const hasPermission = isAuthor || ['coach', 'admin'].includes(userRole);
+    const hasPermission = isAuthor || ['coach'].includes(userRole);
 
     if (!hasPermission)
     {
       res.status(403).json({
-        message: 'Only the author, coaches, or admins can delete coaching point events',
+        message: 'Only the author or coaches can delete coaching point events',
       });
       return;
     }

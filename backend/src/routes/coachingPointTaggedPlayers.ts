@@ -51,12 +51,12 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res: Respon
       return;
     }
 
-    // Check if user is a coach or admin
+    // Check if user is a coach
     const userRole = pointData.games.teams.team_memberships[0]?.role;
-    if (!userRole || !['coach', 'admin'].includes(userRole))
+    if (!userRole || !['coach'].includes(userRole))
     {
       res.status(403).json({
-        message: 'Only coaches and admins can tag players to coaching points',
+        message: 'Only coaches can tag players to coaching points',
       });
       return;
     }
@@ -147,12 +147,12 @@ router.delete('/:id', authenticateUser, async (req: AuthenticatedRequest, res: R
       return;
     }
 
-    // Check if user is a coach or admin
+    // Check if user is a coach
     const userRole = tag.coaching_points.games.teams.team_memberships[0]?.role;
-    if (!userRole || !['coach', 'admin'].includes(userRole))
+    if (!userRole || !['coach'].includes(userRole))
     {
       res.status(403).json({
-        message: 'Only coaches and admins can remove player tags',
+        message: 'Only coaches can remove player tags',
       });
       return;
     }

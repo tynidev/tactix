@@ -60,6 +60,7 @@ interface CoachingPointEvent
 interface CoachingPointsFlyoutProps
 {
   gameId: string;
+  userRole?: 'coach' | 'player' | 'admin' | 'guardian';
   onSeekToPoint: (timestamp: string) => void;
   onShowDrawings: (drawings: Drawing[]) => void;
   onPauseVideo: () => void;
@@ -90,6 +91,7 @@ interface CoachingPointsFlyoutProps
 export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
   ({
     gameId,
+    userRole,
     onSeekToPoint,
     onShowDrawings,
     onPauseVideo,
@@ -350,18 +352,22 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
       {
         if (!user) return false;
 
-        // User can delete if they are the author
+        // User can delete if they are the author (regardless of role)
         if (point.author_id === user.id)
         {
           return true;
         }
 
-        // For coaches and admins, we'll show the button and let the backend handle the permission check
-        // This is a reasonable approach since the delete operation will fail gracefully if unauthorized
-        // We could make an additional API call to check roles, but that would be overkill for this feature
-        return true; // Show delete button for all users, backend will enforce proper permissions
+        // Only coaches can delete any coaching point
+        if (userRole === 'coach')
+        {
+          return true;
+        }
+
+        // Players, admins, and guardians cannot delete points they didn't create
+        return false;
       },
-      [user],
+      [user, userRole],
     );
 
     const formatTimestamp = (timestamp: string): string =>
@@ -486,6 +492,11 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
     // Check if any filters are active
     const hasActiveFilters = titleFilter || selectedPlayerFilter || selectedLabelFilter;
 
+    // Check if user can create coaching points (coaches only)
+    const canCreateCoachingPoints = useCallback(() => {
+      return userRole === 'coach';
+    }, [userRole]);
+
     useEffect(() =>
     {
       if (isExpanded && coachingPoints.length === 0)
@@ -528,39 +539,41 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
               disabled={isCoachingPointPlaybackActive}
             />
 
-            {/* Analysis Controls */}
-            <div className='analysis-controls'>
-              <button
-                className='analysis-btn'
-                onClick={(e) =>
-                {
-                  e.stopPropagation();
-                  onCreateCoachingPoint();
-                }}
-                disabled={!isReady || isPlaying}
-                title={isPlaying ? 'Pause video to add coaching point' : 'Add coaching point'}
-              >
-                <FaPlus />
-              </button>
-              <button
-                className={`analysis-btn ${isRecording ? 'recording' : ''}`}
-                onClick={(e) =>
-                {
-                  e.stopPropagation();
-                  onToggleRecording();
-                }}
-                disabled={!isReady || isPlaying}
-                title={isPlaying ? 'Pause video to record' : (isRecording ? 'Stop recording' : 'Start recording')}
-              >
-                <FaCircle />
-                {isRecording && audioRecording.recordingTime > 0 && (
-                  <span className='recording-time'>
-                    {Math.floor(audioRecording.recordingTime / 1000 / 60)}:
-                    {Math.floor((audioRecording.recordingTime / 1000) % 60).toString().padStart(2, '0')}
-                  </span>
-                )}
-              </button>
-            </div>
+            {/* Analysis Controls - Only show for coaches and admins */}
+            {canCreateCoachingPoints() && (
+              <div className='analysis-controls'>
+                <button
+                  className='analysis-btn'
+                  onClick={(e) =>
+                  {
+                    e.stopPropagation();
+                    onCreateCoachingPoint();
+                  }}
+                  disabled={!isReady || isPlaying}
+                  title={isPlaying ? 'Pause video to add coaching point' : 'Add coaching point'}
+                >
+                  <FaPlus />
+                </button>
+                <button
+                  className={`analysis-btn ${isRecording ? 'recording' : ''}`}
+                  onClick={(e) =>
+                  {
+                    e.stopPropagation();
+                    onToggleRecording();
+                  }}
+                  disabled={!isReady || isPlaying}
+                  title={isPlaying ? 'Pause video to record' : (isRecording ? 'Stop recording' : 'Start recording')}
+                >
+                  <FaCircle />
+                  {isRecording && audioRecording.recordingTime > 0 && (
+                    <span className='recording-time'>
+                      {Math.floor(audioRecording.recordingTime / 1000 / 60)}:
+                      {Math.floor((audioRecording.recordingTime / 1000) % 60).toString().padStart(2, '0')}
+                    </span>
+                  )}
+                </button>
+              </div>
+            )}
 
             <div className='header-right' onClick={() => setIsExpanded(!isExpanded)}>
               <h3>Coaching Points</h3>
@@ -660,7 +673,11 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
             {!loading && !error && coachingPoints.length === 0 && (
               <div className='empty-state'>
                 <p>No coaching points have been created for this game yet.</p>
-                <p>Pause the video and click "Add Coaching Point" to create one.</p>
+                {canCreateCoachingPoints() ? (
+                  <p>Pause the video and click "Add Coaching Point" to create one.</p>
+                ) : (
+                  <p>Coaching points can be created by coaches and team administrators.</p>
+                )}
               </div>
             )}
 

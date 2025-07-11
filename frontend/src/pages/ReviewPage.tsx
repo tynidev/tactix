@@ -16,6 +16,7 @@ interface Game
   home_away: 'home' | 'away' | 'neutral';
   notes: string | null;
   created_at: string;
+  user_role?: 'coach' | 'player' | 'admin' | 'guardian';
   teams?: {
     id: string;
     name: string;

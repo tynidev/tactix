@@ -58,12 +58,12 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res: Respon
       return;
     }
 
-    // Check if user is a coach or admin
+    // Check if user is a coach
     const userRole = gameData.teams.team_memberships[0]?.role;
-    if (!userRole || !['coach', 'admin'].includes(userRole))
+    if (!userRole || !['coach'].includes(userRole))
     {
       res.status(403).json({
-        message: 'Only coaches and admins can create coaching points',
+        message: 'Only coaches can create coaching points',
       });
       return;
     }
@@ -229,12 +229,12 @@ router.delete('/:id', authenticateUser, async (req: AuthenticatedRequest, res: R
     // Check if user is the author or has admin/coach privileges
     const userRole = coachingPoint.games.teams.team_memberships[0]?.role;
     const isAuthor = coachingPoint.author_id === userId;
-    const hasPermission = isAuthor || ['coach', 'admin'].includes(userRole);
+    const hasPermission = isAuthor || ['coach'].includes(userRole);
 
     if (!hasPermission)
     {
       res.status(403).json({
-        message: 'Only the author, coaches, or admins can delete coaching points',
+        message: 'Only the author or coaches can delete coaching points',
       });
       return;
     }
