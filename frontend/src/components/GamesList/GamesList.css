@@ -309,11 +309,6 @@
   transform: scale(1.1);
 }
 
-.floating-action-btn:focus {
-  outline: 2px solid var(--color-accent-primary);
-  outline-offset: 2px;
-}
-
 /* Button variants */
 .edit-btn:hover {
   background: var(--color-info);
@@ -323,16 +318,6 @@
 .delete-btn:hover {
   background: var(--color-error);
   opacity: 0.8;
-}
-
-/* Team-specific overrides */
-.team .floating-action-btn{
-  background: var(--color-bg-secondary);
-  color: var(--color-accent-primary);
-}
-
-.team .floating-action-btn:hover{
-  color: white;
 }
 
 /* ========================================
