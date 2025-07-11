@@ -623,10 +623,9 @@ export const TeamDetailPage: React.FC = () =>
                       <div style={{ marginLeft: 'var(--space-md)' }}>
                         <button
                           onClick={() =>
-                            isPlayersSection ? 
+                            isPlayersSection ?
                               handleRemovePlayer(member as Player) :
-                              handleRemoveMember(member as Member)
-                          }
+                              handleRemoveMember(member as Member)}
                           className='btn btn-secondary btn-sm'
                           title='Leave team'
                           style={{
