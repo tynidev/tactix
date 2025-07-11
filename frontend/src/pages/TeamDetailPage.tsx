@@ -70,6 +70,7 @@ interface Member
   role: string;
   joined_at: string;
   user_created_at: string;
+  can_remove?: boolean;
 }
 
 type SortOption = 'name-asc' | 'name-desc' | 'date-newest' | 'date-oldest';
@@ -100,6 +101,10 @@ export const TeamDetailPage: React.FC = () =>
     isOpen: boolean;
     player: Player | null;
   }>({ isOpen: false, player: null });
+  const [removeMemberDialog, setRemoveMemberDialog] = useState<{
+    isOpen: boolean;
+    member: Member | null;
+  }>({ isOpen: false, member: null });
   const [removeLoading, setRemoveLoading] = useState(false);
 
   useEffect(() =>
@@ -433,6 +438,66 @@ export const TeamDetailPage: React.FC = () =>
     setRemovePlayerDialog({ isOpen: false, player: null });
   };
 
+  const handleRemoveMember = (member: Member) =>
+  {
+    setRemoveMemberDialog({ isOpen: true, member });
+  };
+
+  const confirmRemoveMember = async () =>
+  {
+    if (!removeMemberDialog.member || !teamId) return;
+
+    setRemoveLoading(true);
+    try
+    {
+      const token = (await import('../lib/supabase')).supabase.auth.getSession();
+      const session = await token;
+
+      if (!session.data.session?.access_token)
+      {
+        throw new Error('No access token');
+      }
+
+      const apiUrl = getApiUrl();
+      const response = await fetch(`${apiUrl}/api/teams/${teamId}/members/${removeMemberDialog.member.id}/remove`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${session.data.session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok)
+      {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to remove member from team');
+      }
+
+      const data = await response.json();
+      alert(data.message || 'Member removed from team successfully');
+
+      // Refresh team members data
+      await fetchTeamMembers();
+
+      // Close dialog
+      setRemoveMemberDialog({ isOpen: false, member: null });
+    }
+    catch (err)
+    {
+      console.error('Error removing member:', err);
+      alert(err instanceof Error ? err.message : 'Failed to remove member from team');
+    }
+    finally
+    {
+      setRemoveLoading(false);
+    }
+  };
+
+  const cancelRemoveMember = () =>
+  {
+    setRemoveMemberDialog({ isOpen: false, member: null });
+  };
+
   const renderMemberSection = (
     title: string,
     members: (Player | Member)[],
@@ -554,11 +619,14 @@ export const TeamDetailPage: React.FC = () =>
                         Joined: {new Date(member.joined_at).toLocaleDateString()}
                       </div>
                     </div>
-                    {isPlayersSection && 'can_remove' in member && member.can_remove && (
+                    {('can_remove' in member && member.can_remove) && (
                       <div style={{ marginLeft: 'var(--space-md)' }}>
                         <button
                           onClick={() =>
-                            handleRemovePlayer(member as Player)}
+                            isPlayersSection ? 
+                              handleRemovePlayer(member as Player) :
+                              handleRemoveMember(member as Member)
+                          }
                           className='btn btn-secondary btn-sm'
                           title='Leave team'
                           style={{
@@ -771,6 +839,21 @@ export const TeamDetailPage: React.FC = () =>
           } from this team? They can be re-added later if needed.` :
           ''}
         confirmButtonText='Leave Team'
+        cancelButtonText='Cancel'
+        variant='warning'
+        loading={removeLoading}
+      />
+
+      {/* Remove Member Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={removeMemberDialog.isOpen}
+        onClose={cancelRemoveMember}
+        onConfirm={confirmRemoveMember}
+        title='Remove Team Member'
+        message={removeMemberDialog.member ?
+          `Are you sure you want to remove ${removeMemberDialog.member.name} from this team? They can be re-added later if needed.` :
+          ''}
+        confirmButtonText='Remove Member'
         cancelButtonText='Cancel'
         variant='warning'
         loading={removeLoading}

@@ -1016,6 +1016,31 @@ router.get(
       // Process regular memberships (coaches, admins, guardians, players with user accounts)
       memberships?.forEach(membership =>
       {
+        const memberRole = membership.role as TeamRole;
+        const memberUserId = membership.user_profiles?.id;
+        const isSelf = memberUserId === userId;
+
+        // Determine if current user can remove this member
+        let canRemove = false;
+        if (isSelf)
+        {
+          // Anyone can remove themselves
+          canRemove = true;
+        }
+        else if (currentUserMembership?.role === TeamRole.Coach || currentUserMembership?.role === TeamRole.Admin)
+        {
+          // Coaches and admins can remove guardians
+          if (memberRole === TeamRole.Guardian)
+          {
+            canRemove = true;
+          }
+          // Coaches can remove admins
+          if (currentUserMembership.role === TeamRole.Coach && memberRole === TeamRole.Admin)
+          {
+            canRemove = true;
+          }
+        }
+
         const member = {
           id: membership.id,
           user_id: membership.user_profiles?.id,
@@ -1024,6 +1049,7 @@ router.get(
           role: membership.role,
           joined_at: membership.created_at,
           user_created_at: membership.user_profiles?.created_at,
+          can_remove: canRemove,
         };
 
         switch (membership.role)
@@ -1316,6 +1342,131 @@ router.post(
     catch (error)
     {
       console.error('Create player profile error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+);
+
+// Remove member from team - require appropriate permissions
+router.put(
+  '/:teamId/members/:membershipId/remove',
+  authenticateUser,
+  async (req: AuthenticatedRequest, res: Response): Promise<void> =>
+  {
+    try
+    {
+      const { teamId, membershipId } = req.params;
+      const userId = req.user?.id;
+
+      if (!userId)
+      {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
+      }
+
+      // Get the current user's role on this team
+      const { data: userMembership, error: userMembershipError } = await supabase
+        .from('team_memberships')
+        .select('role')
+        .eq('team_id', teamId)
+        .eq('user_id', userId)
+        .single();
+
+      if (userMembershipError || !userMembership)
+      {
+        res.status(403).json({ error: 'User is not a member of this team' });
+        return;
+      }
+
+      const userRole = userMembership.role as TeamRole;
+
+      // Get the member to be removed
+      const { data: targetMembership, error: targetMembershipError } = await supabase
+        .from('team_memberships')
+        .select(`
+          id,
+          role,
+          user_id,
+          user_profiles (
+            name,
+            email
+          )
+        `)
+        .eq('id', membershipId)
+        .eq('team_id', teamId)
+        .single();
+
+      if (targetMembershipError || !targetMembership)
+      {
+        res.status(404).json({ error: 'Member not found in this team' });
+        return;
+      }
+
+      const targetRole = targetMembership.role as TeamRole;
+      const targetUserId = targetMembership.user_id;
+      const isSelfRemoval = targetUserId === userId;
+
+      // Check permissions
+      let hasPermission = false;
+
+      if (isSelfRemoval)
+      {
+        // Anyone can remove themselves
+        hasPermission = true;
+      }
+      else if (userRole === TeamRole.Coach || userRole === TeamRole.Admin)
+      {
+        // Coaches and admins can remove guardians
+        if (targetRole === TeamRole.Guardian)
+        {
+          hasPermission = true;
+        }
+        // Coaches can remove admins
+        if (userRole === TeamRole.Coach && targetRole === TeamRole.Admin)
+        {
+          hasPermission = true;
+        }
+      }
+
+      if (!hasPermission)
+      {
+        res.status(403).json({ error: 'Insufficient permissions to remove this member from team' });
+        return;
+      }
+
+      // Perform removal
+      try
+      {
+        // Remove team membership
+        const { error: removeMemberError } = await supabase
+          .from('team_memberships')
+          .delete()
+          .eq('id', membershipId)
+          .eq('team_id', teamId);
+
+        if (removeMemberError)
+        {
+          res.status(400).json({ error: 'Failed to remove member from team' });
+          return;
+        }
+
+        const memberName = targetMembership.user_profiles?.name || 'Unknown';
+
+        res.json({
+          message: isSelfRemoval ?
+            'You have left the team successfully' :
+            `${memberName} has been removed from the team`,
+        });
+      }
+      catch (removeError)
+      {
+        console.error('Remove member error:', removeError);
+        res.status(500).json({ error: 'Failed to remove member from team' });
+      }
+    }
+    catch (error)
+    {
+      console.error('Remove member error:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
   },
