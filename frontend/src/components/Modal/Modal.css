@@ -121,67 +121,23 @@
   flex: 1;
 }
 
-/* Form Elements in Modal */
+/* Form Elements in Modal - use global styles with minor overrides */
 .modal-body .form {
   margin: 0;
 }
 
-.modal-body .form-group {
-  margin-bottom: var(--space-lg);
-}
-
 .modal-body .form-label {
-  display: block;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  margin-bottom: var(--space-sm);
   font-size: 0.9rem;
 }
 
-.modal-body .form-input {
-  width: 100%;
-  padding: var(--space-md);
-  background: var(--color-bg-input);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  color: var(--color-text-primary);
+.modal-body .form-input,
+.modal-body .form-textarea {
   font-size: 0.9rem;
-  transition: all 0.2s ease;
-  font-family: var(--font-family);
-}
-
-.modal-body .form-input:focus {
-  outline: none;
-  border-color: var(--color-accent-primary);
-  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
-}
-
-.modal-body .form-input::placeholder {
-  color: var(--color-text-muted);
 }
 
 .modal-body .form-textarea {
-  width: 100%;
-  padding: var(--space-md);
-  background: var(--color-bg-input);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  color: var(--color-text-primary);
-  font-size: 0.9rem;
-  transition: all 0.2s ease;
-  font-family: var(--font-family);
   resize: vertical;
   min-height: 100px;
-}
-
-.modal-body .form-textarea:focus {
-  outline: none;
-  border-color: var(--color-accent-primary);
-  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
-}
-
-.modal-body .form-textarea::placeholder {
-  color: var(--color-text-muted);
 }
 
 /* Form Actions */

@@ -1,8 +1,8 @@
 /* Drawing Toolbar Layout */
 .drawing-toolbar {
   position: absolute;
-  top: var(--space-5);
-  right: var(--space-5);
+  top: 68px;
+  right: 24px;
   display: flex;
   flex-direction: column;
   background: rgba(0, 0, 0, 0.3);
@@ -23,14 +23,14 @@
   width: 30px;
   height: 1px;
   background: var(--white-more);
-  margin: var(--space-1) 0;
+  margin: var(--space-xs) 0;
   align-self: center;
 }
 
 .drawing-group {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-sm);
   align-items: center;
 }
 
@@ -131,32 +131,32 @@
 /* Mobile responsive adjustments */
 @media (max-width: 768px) {
   .drawing-toolbar {
-    top: var(--space-3);
-    right: var(--space-3);
+    top: var(--space-md);
+    right: var(--space-md);
     flex-direction: row;
-    padding: var(--space-2) var(--space-3);
+    padding: var(--space-sm) var(--space-md);
   }
   
   .drawing-toolbar.collapsed {
-    padding: var(--space-2);
+    padding: var(--space-sm);
     flex-direction: column;
   }
   
   .drawing-separator {
     width: 1px;
     height: 24px;
-    margin: 0 var(--space-1);
+    margin: 0 var(--space-xs);
   }
   
   .drawing-toolbar.collapsed .drawing-separator {
     width: 24px;
     height: 1px;
-    margin: var(--space-1) 0;
+    margin: var(--space-xs) 0;
   }
   
   .drawing-group {
     flex-direction: row;
-    gap: var(--space-1);
+    gap: var(--space-xs);
   }
   
   .drawing-toolbar.collapsed .drawing-group {
@@ -171,15 +171,15 @@
 
 @media (max-width: 480px) {
   .drawing-toolbar {
-    top: var(--space-2);
-    right: var(--space-2);
-    left: var(--space-2);
+    top: var(--space-sm);
+    right: var(--space-sm);
+    left: var(--space-sm);
     justify-content: center;
   }
   
   .drawing-toolbar.collapsed {
     left: auto;
-    right: var(--space-2);
+    right: var(--space-sm);
     justify-content: flex-start;
   }
   
@@ -189,6 +189,6 @@
   }
   
   .drawing-group {
-    gap: var(--space-1);
+    gap: var(--space-xs);
   }
 }

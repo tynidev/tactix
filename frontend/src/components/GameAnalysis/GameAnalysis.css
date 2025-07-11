@@ -10,16 +10,16 @@
 /* Circular Back Button */
 .circular-back-button {
   position: absolute;
-  top: 20px;
-  left: 20px;
-  width: 40px;
-  height: 40px;
+  top: 68px;
+  left: 12px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(20px);
   border: none;
   color: white;
-  font-size: 16px;
+  font-size: 24px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -33,17 +33,9 @@
   background: rgba(0, 0, 0, 0.5);
   transform: scale(1.1);
   box-shadow: var(--shadow-lg);
-}
-
-.circular-back-button:active {
-  transform: scale(0.95);
-}
-
-.circular-back-button:focus {
   outline: 2px solid var(--color-accent-primary);
   outline-offset: 2px;
 }
-
 .analysis-header {
   height: 50px;
   background: rgba(0, 0, 0, 0.3);

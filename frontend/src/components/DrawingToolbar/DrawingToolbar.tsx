@@ -20,7 +20,7 @@ const DrawingToolbar: React.FC<DrawingToolbarProps> = ({
   onClearCanvas,
 }) =>
 {
-  const [isCollapsed, setIsCollapsed] = useState(true);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const toggleCollapse = useCallback(() =>
   {
