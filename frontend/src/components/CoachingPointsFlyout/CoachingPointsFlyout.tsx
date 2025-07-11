@@ -493,7 +493,8 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
     const hasActiveFilters = titleFilter || selectedPlayerFilter || selectedLabelFilter;
 
     // Check if user can create coaching points (coaches only)
-    const canCreateCoachingPoints = useCallback(() => {
+    const canCreateCoachingPoints = useCallback(() =>
+    {
       return userRole === 'coach';
     }, [userRole]);
 
@@ -673,11 +674,9 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
             {!loading && !error && coachingPoints.length === 0 && (
               <div className='empty-state'>
                 <p>No coaching points have been created for this game yet.</p>
-                {canCreateCoachingPoints() ? (
-                  <p>Pause the video and click "Add Coaching Point" to create one.</p>
-                ) : (
-                  <p>Coaching points can be created by coaches and team administrators.</p>
-                )}
+                {canCreateCoachingPoints() ?
+                  <p>Pause the video and click "Add Coaching Point" to create one.</p> :
+                  <p>Coaching points can be created by coaches and team administrators.</p>}
               </div>
             )}
 
