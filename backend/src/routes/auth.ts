@@ -352,38 +352,6 @@ router.put('/profile', authenticateUser, async (req: AuthenticatedRequest, res: 
   }
 });
 
-// Test Supabase connection
-router.get('/test-connection', async (req: Request, res: Response): Promise<void> =>
-{
-  try
-  {
-    // Test if we can reach Supabase
-    const { data, error } = await supabase.from('user_profiles').select('count').limit(1);
-
-    if (error)
-    {
-      res.status(500).json({
-        error: 'Supabase connection failed',
-        details: error.message,
-        supabaseUrl: process.env.SUPABASE_URL,
-      });
-      return;
-    }
-
-    res.json({
-      message: 'Supabase connection successful',
-      supabaseUrl: process.env.SUPABASE_URL,
-    });
-  }
-  catch (error)
-  {
-    res.status(500).json({
-      error: 'Connection test failed',
-      details: error instanceof Error ? error.message : String(error),
-    });
-  }
-});
-
 // Get guardian players - players the user has relationships with or owns
 router.get('/guardian-players', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> =>
 {
@@ -583,40 +551,6 @@ router.delete('/players/:playerId', authenticateUser, async (req: AuthenticatedR
   {
     console.error('Delete player error:', error);
     res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Test Supabase Auth connection
-router.get('/test-auth', async (req: Request, res: Response): Promise<void> =>
-{
-  try
-  {
-    // Try to get the current session (should be null if not logged in)
-    const { data: { session }, error } = await supabase.auth.getSession();
-
-    if (error)
-    {
-      res.status(500).json({
-        error: 'Supabase Auth test failed',
-        details: error.message,
-        errorObject: error,
-      });
-      return;
-    }
-
-    res.json({
-      message: 'Supabase Auth connection successful',
-      hasSession: !!session,
-      supabaseUrl: process.env.SUPABASE_URL,
-    });
-  }
-  catch (error)
-  {
-    res.status(500).json({
-      error: 'Auth test failed',
-      details: error instanceof Error ? error.message : String(error),
-      errorType: error?.constructor?.name,
-    });
   }
 });
 

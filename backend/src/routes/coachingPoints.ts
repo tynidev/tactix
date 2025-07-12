@@ -18,7 +18,6 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res: Respon
 
     const {
       game_id,
-      author_id,
       title,
       feedback,
       timestamp,
