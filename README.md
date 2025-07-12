@@ -117,17 +117,14 @@ VITE_API_URL=http://localhost:3001
 
 ## API Documentation
 
-### Authentication Endpoints
+The backend API provides comprehensive endpoints for managing teams, games, and coaching analysis features with role-based access control.
 
-- `POST /api/auth/signup` - Create new user account
-- `POST /api/auth/signup/:teamJoinCode` - Create account and join team
-- `GET /api/auth/me` - Get current user profile
+For complete API documentation including all endpoints, authentication details, request/response formats, and examples, see: **[API Documentation](./docs/api-readme.md)**
 
-### Team Endpoints
-
-- `POST /api/teams` - Create new team
-- `GET /api/teams` - Get user's teams
-- `PUT /api/teams/:teamId` - Update team (coaches/admins only)
+### Quick Reference
+- **Base URL**: `https://your-api-domain.com/api`
+- **Authentication**: Bearer token (Supabase JWT) required for all endpoints
+- **Modules**: Authentication, Teams, Games, Coaching Points, Events, Labels, and Player Tagging
 
 ## Database Schema
 
@@ -160,7 +157,7 @@ See [docs/schema.md](./docs/schema.md) for detailed schema documentation.
 
 1. **Supabase:**
    - Create production project
-   - Run migrations: `supabase db push --linked`
+   - Run migrations: `npx supabase db push --linked`
    - Configure auth settings and storage buckets
 
 2. **Backend (Render):**
@@ -178,15 +175,6 @@ See [docs/schema.md](./docs/schema.md) for detailed schema documentation.
    npm run deploy
    ```
 
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature-name`
-3. Make your changes and add tests
-4. Commit: `git commit -am 'Add feature'`
-5. Push: `git push origin feature-name`
-6. Create a Pull Request
-
 ## License
 
 MIT License - see [LICENSE](./LICENSE) file for details.
@@ -197,7 +185,3 @@ For questions or issues:
 1. Check the [documentation](./docs/)
 2. Search existing [issues](../../issues)
 3. Create a new issue with detailed information
-
----
-
-Built with ❤️ for youth sports coaching
