@@ -326,6 +326,42 @@ p {
   padding: var(--space-md);
 }
 
+.floating-action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: #00000044;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  backdrop-filter: blur(4px);
+  font-size: var(--text-sm);
+}
+
+.floating-action-btn:hover {
+  background: var(--black-overlay);
+  transform: scale(1.1);
+}
+
+.floating-action-btn:focus {
+  outline: 2px solid var(--color-accent-primary);
+  outline-offset: 2px;
+}
+
+.edit-btn:hover {
+  background: var(--color-info);
+  opacity: 1;
+}
+
+.delete-btn:hover {
+  background: var(--color-error);
+  opacity: 1;
+}
+
 /* Cards */
 .card {
   background: var(--color-bg-card);

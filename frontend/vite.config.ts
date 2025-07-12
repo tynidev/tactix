@@ -57,7 +57,7 @@ export default defineConfig({
   ],
   server: {
     port: 3000,
-    host: '0.0.0.0', // Allow access from any IP address
+    host: 'localhost', // Use localhost for secure context with getUserMedia
     open: true,
   },
   build: {

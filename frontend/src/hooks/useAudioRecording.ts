@@ -94,6 +94,12 @@ export const useAudioRecording = (): UseAudioRecordingReturn =>
     {
       setError(null);
 
+      // Check if MediaDevices API is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia)
+      {
+        throw new Error('MediaDevices API not available. Please ensure you are using HTTPS or localhost.');
+      }
+
       // Request microphone permission
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {

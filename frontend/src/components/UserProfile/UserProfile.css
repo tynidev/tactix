@@ -204,37 +204,6 @@
   z-index: 10;
 }
 
-.floating-action-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: none;
-  background: #00000044;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  backdrop-filter: blur(4px);
-  font-size: var(--text-sm);
-}
-
-.floating-action-btn:hover {
-  background: var(--black-overlay);
-  transform: scale(1.1);
-}
-
-.floating-action-btn:focus {
-  outline: 2px solid var(--color-accent-primary);
-  outline-offset: 2px;
-}
-
-.edit-btn:hover {
-  background: var(--color-info);
-  opacity: 0.8;
-}
-
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .user-profile-layout {
