@@ -28,30 +28,15 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
 
-    // In development, allow any local network origin
-    if (process.env.NODE_ENV !== 'production')
-    {
-      // Allow localhost and local network IPs
-      if (
-        origin.includes('localhost') ||
-        origin.match(/^https?:\/\/192\.168\.\d+\.\d+/) ||
-        origin.match(/^https?:\/\/10\.\d+\.\d+\.\d+/) ||
-        origin.match(/^https?:\/\/172\.(1[6-9]|2\d|3[01])\.\d+\.\d+/) ||
-        origin === process.env.FRONTEND_URL
-      )
-      {
-        callback(null, true);
-        return;
-      }
-    }
-    else if (process.env.FRONTEND_URL === origin)
+    if (process.env.FRONTEND_URL === origin)
     {
       callback(null, true);
-      return;
     }
-
-    console.warn(`CORS blocked origin: ${origin}`);
-    callback(new Error('Not allowed by CORS'));
+    else
+    {
+      console.warn(`CORS blocked origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
   },
   credentials: true,
 }));
@@ -86,9 +71,6 @@ app.listen(PORT, '0.0.0.0', () =>
 {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📱 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
-  console.log(`🌐 Local network backend: http://192.168.0.30:${PORT}`);
-  console.log(`🌐 Local network frontend: http://192.168.0.30:3000`);
-  console.log(`💡 Access from other devices using the local network URLs above`);
 });
 
 export default app;
