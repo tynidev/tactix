@@ -41,16 +41,3 @@ body.dashboard-mode {
 .video-foreground {
   pointer-events: none;
 }
-
-/* Mobile responsive adjustments */
-@media (max-width: 768px) {
-  :root {
-    font-size: 14px;
-  }
-}
-
-@media (max-width: 480px) {
-  :root {
-    font-size: 12px;
-  }
-}

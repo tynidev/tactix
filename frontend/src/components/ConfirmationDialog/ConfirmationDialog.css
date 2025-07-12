@@ -88,23 +88,3 @@
   outline: 2px solid var(--color-accent-primary);
   outline-offset: 2px;
 }
-
-/* Mobile responsive */
-@media (max-width: 480px) {
-  .confirmation-actions {
-    flex-direction: column;
-  }
-  
-  .confirmation-actions .btn {
-    width: 100%;
-    min-width: auto;
-  }
-  
-  .confirmation-icon {
-    font-size: 2.5rem;
-  }
-  
-  .confirmation-message {
-    font-size: 0.9rem;
-  }
-}

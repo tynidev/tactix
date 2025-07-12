@@ -40,15 +40,3 @@
   color: var(--color-error);
   border-color: var(--color-error);
 }
-
-/* Responsive design */
-@media (max-width: 768px) {
-  .create-team-modal .form-input {
-    font-size: 0.9rem;
-    padding: var(--space-md);
-  }
-  
-  .create-team-modal .form-help {
-    font-size: 0.7rem;
-  }
-}

@@ -1,0 +1,275 @@
+/* UserProfile Component Styles */
+@import '../../styles/ui-kit.css';
+
+/* Main profile card container */
+.user-profile-main-card {
+  margin-bottom: var(--space-xl);
+}
+
+/* Profile layout - main content area */
+.user-profile-layout {
+  display: flex;
+  gap: var(--space-xl);
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+/* Avatar and basic info section */
+.user-profile-avatar-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 200px;
+  position: relative;
+}
+
+.user-profile-avatar-container {
+  margin-bottom: var(--space-lg);
+}
+
+/* Stats section */
+.user-profile-stats-section {
+  flex: 1;
+  min-width: 300px;
+}
+
+.user-profile-stats-title {
+  margin-bottom: var(--space-lg);
+  color: var(--color-text-primary);
+}
+
+.user-profile-stats-container {
+  margin-bottom: var(--space-lg);
+}
+
+.user-profile-stats-loading {
+  text-align: left;
+  padding: var(--space-lg) 0;
+}
+
+.user-profile-join-team-container {
+  text-align: center;
+  margin-top: var(--space-lg);
+}
+
+/* Edit form styles */
+.user-profile-edit-form {
+  width: 100%;
+  text-align: center;
+}
+
+.user-profile-edit-input {
+  text-align: center;
+  margin-bottom: var(--space-sm);
+}
+
+.user-profile-edit-actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: center;
+}
+
+/* Profile display styles */
+.user-profile-display {
+  text-align: center;
+  width: 100%;
+}
+
+.user-profile-name-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xs);
+}
+
+.user-profile-name-title {
+  margin: 0;
+}
+
+.user-profile-edit-button {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.user-profile-email {
+  margin: 0;
+  margin-bottom: var(--space-sm);
+}
+
+.user-profile-member-since {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+/* Action buttons section */
+.user-profile-actions-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--space-lg);
+}
+
+.user-profile-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.user-profile-action-button {
+  min-width: 150px;
+}
+
+/* My Players section */
+.user-profile-players-card {
+  margin-bottom: var(--space-xl);
+}
+
+.user-profile-players-title {
+  margin-bottom: var(--space-lg);
+  color: var(--color-text-primary);
+}
+
+.user-profile-players-loading {
+  padding: var(--space-lg) 0;
+}
+
+.user-profile-players-empty {
+  text-align: center;
+  padding: var(--space-xl);
+  color: var(--color-text-secondary);
+}
+
+.user-profile-players-grid {
+  display: grid;
+  gap: var(--space-md);
+}
+
+/* Individual player item */
+.user-profile-player-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-md);
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.user-profile-player-info {
+  flex: 1;
+}
+
+.user-profile-player-name {
+  font-weight: 600;
+  margin-bottom: var(--space-xs);
+}
+
+.user-profile-player-jersey {
+  margin-left: var(--space-sm);
+  color: var(--color-accent-primary);
+  font-size: 15px;
+  font-weight: bold;
+}
+
+.user-profile-player-relationship {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-xs);
+}
+
+.user-profile-player-date {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.user-profile-player-actions {
+  margin-left: var(--space-md);
+}
+
+.user-profile-delete-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0;
+}
+
+/* Floating Actions for Profile Edit */
+.user-profile-avatar-section .floating-actions {
+  position: absolute;
+  top: var(--space-sm);
+  right: var(--space-sm);
+  display: flex;
+  gap: var(--space-xs);
+  z-index: 10;
+}
+
+.floating-action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: #00000044;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  backdrop-filter: blur(4px);
+  font-size: var(--text-sm);
+}
+
+.floating-action-btn:hover {
+  background: var(--black-overlay);
+  transform: scale(1.1);
+}
+
+.floating-action-btn:focus {
+  outline: 2px solid var(--color-accent-primary);
+  outline-offset: 2px;
+}
+
+.edit-btn:hover {
+  background: var(--color-info);
+  opacity: 0.8;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .user-profile-layout {
+    flex-direction: column;
+    gap: var(--space-lg);
+  }
+  
+  .user-profile-avatar-section,
+  .user-profile-stats-section {
+    min-width: auto;
+    width: 100%;
+  }
+  
+  .user-profile-actions-container {
+    justify-content: center;
+  }
+  
+  .user-profile-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .user-profile-action-button {
+    min-width: auto;
+    width: 100%;
+  }
+
+  .user-profile-stats-title{
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {  
+  .user-profile-player-actions svg{ 
+    width: 18px; 
+    height: 18px;
+  }
+}

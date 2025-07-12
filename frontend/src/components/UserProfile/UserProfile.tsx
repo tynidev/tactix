@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { FaTrash } from 'react-icons/fa';
+import { FaPencilAlt, FaTrash } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { getApiUrl } from '../../utils/api';
 import { ConfirmationDialog } from '../ConfirmationDialog';
 import { JoinTeamModal } from '../JoinTeamModal/JoinTeamModal';
 import { PlayerProfileModal } from '../PlayerProfileModal/PlayerProfileModal';
+import './UserProfile.css';
 
 interface UserProfile
 {
@@ -321,24 +322,36 @@ export const UserProfilePage: React.FC = () =>
         </div>
 
         {/* Main Profile Section */}
-        <div className='card' style={{ marginBottom: 'var(--space-xl)' }}>
-          {/* Header with Action Buttons */}
-
-          <div style={{ display: 'flex', gap: 'var(--space-xl)', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        <div className='card user-profile-main-card'>
+          <div className='user-profile-layout'>
             {/* Avatar and Basic Info */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '200px' }}>
-              <div className='profile-avatar' style={{ marginBottom: 'var(--space-lg)' }}>
+            <div className='user-profile-avatar-section'>
+              {/* Floating Edit Button - only show when not editing */}
+              {!editing && (
+                <div className='floating-actions'>
+                  <button
+                    className='floating-action-btn edit-btn'
+                    onClick={() => setEditing(true)}
+                    title='Edit profile'
+                    aria-label='Edit profile'
+                  >
+                    <FaPencilAlt />
+                  </button>
+                </div>
+              )}
+
+              <div className='profile-avatar user-profile-avatar-container'>
                 {getInitials()}
               </div>
 
               {editing ?
                 (
-                  <div className='form-group' style={{ width: '100%', textAlign: 'center' }}>
+                  <div className='form-group user-profile-edit-form'>
                     <input
                       type='text'
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
-                      className='form-input'
+                      className='form-input user-profile-edit-input'
                       placeholder='Enter your name'
                       onKeyDown={(e) =>
                       {
@@ -353,9 +366,8 @@ export const UserProfilePage: React.FC = () =>
                         }
                       }}
                       autoFocus
-                      style={{ textAlign: 'center', marginBottom: 'var(--space-sm)' }}
                     />
-                    <div style={{ display: 'flex', gap: 'var(--space-sm)', justifyContent: 'center' }}>
+                    <div className='user-profile-edit-actions'>
                       <button
                         onClick={handleUpdateProfile}
                         className='btn btn-success btn-sm'
@@ -376,29 +388,14 @@ export const UserProfilePage: React.FC = () =>
                   </div>
                 ) :
                 (
-                  <div style={{ textAlign: 'center', width: '100%' }}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 'var(--space-sm)',
-                        marginBottom: 'var(--space-xs)',
-                      }}
-                    >
-                      <h2 className='profile-name' style={{ margin: 0 }}>{profile?.name}</h2>
-                      <button
-                        onClick={() => setEditing(true)}
-                        className='btn btn-secondary btn-sm'
-                        style={{ padding: '4px 8px', fontSize: '12px' }}
-                      >
-                        ✏️
-                      </button>
+                  <div className='user-profile-display'>
+                    <div className='user-profile-name-container'>
+                      <h2 className='profile-name user-profile-name-title'>{profile?.name}</h2>
                     </div>
-                    <p className='profile-email' style={{ margin: 0, marginBottom: 'var(--space-sm)' }}>
+                    <p className='profile-email user-profile-email'>
                       {profile?.email}
                     </p>
-                    <div style={{ fontSize: '14px', color: 'var(--color-text-muted)' }}>
+                    <div className='user-profile-member-since'>
                       <strong>Member Since</strong>
                       <br />
                       {profile?.created_at ?
@@ -414,14 +411,14 @@ export const UserProfilePage: React.FC = () =>
             </div>
 
             {/* Activity Statistics */}
-            <div style={{ flex: 1, minWidth: '300px' }}>
-              <h3 style={{ marginBottom: 'var(--space-lg)', color: 'var(--color-text-primary)' }}>
+            <div className='user-profile-stats-section'>
+              <h3 className='user-profile-stats-title'>
                 Activity Statistics
               </h3>
 
               {stats ?
                 (
-                  <div className='profile-stats' style={{ marginBottom: 'var(--space-lg)' }}>
+                  <div className='profile-stats user-profile-stats-container'>
                     <div className='profile-stat'>
                       <div className='profile-stat-value'>{stats.teamsCount}</div>
                       <div className='profile-stat-label'>Teams</div>
@@ -439,30 +436,27 @@ export const UserProfilePage: React.FC = () =>
                   </div>
                 ) :
                 (
-                  <div className='loading' style={{ textAlign: 'left', padding: 'var(--space-lg) 0' }}>
+                  <div className='loading user-profile-stats-loading'>
                     Loading stats...
                   </div>
                 )}
 
-              {/* Join Team Button */}
-              <div style={{ textAlign: 'center', marginTop: 'var(--space-lg)' }}>
+              <div className='user-profile-join-team-container'>
               </div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 'var(--space-lg)' }}>
-            <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+          <div className='user-profile-actions-container'>
+            <div className='user-profile-actions'>
               <button
                 onClick={() => setShowPlayerProfileModal(true)}
-                className='btn btn-secondary btn-md'
-                style={{ minWidth: '150px' }}
+                className='btn btn-secondary btn-md user-profile-action-button'
               >
                 Add My Player
               </button>
               <button
                 onClick={() => setShowJoinTeamModal(true)}
-                className='btn btn-secondary btn-md'
-                style={{ minWidth: '150px' }}
+                className='btn btn-secondary btn-md user-profile-action-button'
               >
                 Join Team
               </button>
@@ -471,86 +465,51 @@ export const UserProfilePage: React.FC = () =>
         </div>
 
         {/* My Players Section */}
-        <div className='card' style={{ marginBottom: 'var(--space-xl)' }}>
-          <h3 style={{ marginBottom: 'var(--space-lg)', color: 'var(--color-text-primary)' }}>
+        <div className='card user-profile-players-card'>
+          <h3 className='user-profile-players-title'>
             My Players
           </h3>
 
           {playersLoading ?
             (
-              <div className='loading' style={{ padding: 'var(--space-lg) 0' }}>
+              <div className='loading user-profile-players-loading'>
                 Loading players...
               </div>
             ) :
             guardianPlayers.length === 0 ?
             (
-              <div
-                style={{
-                  textAlign: 'center',
-                  padding: 'var(--space-xl)',
-                  color: 'var(--color-text-secondary)',
-                }}
-              >
+              <div className='user-profile-players-empty'>
                 No players found. Use "Add My Player" to create player profiles you can manage.
               </div>
             ) :
             (
-              <div style={{ display: 'grid', gap: 'var(--space-md)' }}>
+              <div className='user-profile-players-grid'>
                 {guardianPlayers.map((player) => (
                   <div
                     key={player.id}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      padding: 'var(--space-md)',
-                      backgroundColor: 'var(--color-bg-secondary)',
-                      borderRadius: 'var(--radius-md)',
-                      border: '1px solid var(--border-color)',
-                    }}
+                    className='user-profile-player-item'
                   >
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: '600', marginBottom: 'var(--space-xs)' }}>
+                    <div className='user-profile-player-info'>
+                      <div className='user-profile-player-name'>
                         {player.name}
                         {player.jersey_number && (
-                          <span
-                            style={{
-                              marginLeft: 'var(--space-sm)',
-                              color: 'var(--color-accent-primary)',
-                              fontSize: '15px',
-                              fontWeight: 'bold',
-                            }}
-                          >
+                          <span className='user-profile-player-jersey'>
                             #{player.jersey_number}
                           </span>
                         )}
                       </div>
-                      <div
-                        style={{
-                          fontSize: '14px',
-                          color: 'var(--color-text-secondary)',
-                          marginBottom: 'var(--space-xs)',
-                        }}
-                      >
+                      <div className='user-profile-player-relationship'>
                         {player.relationship_type === 'owner' ? 'Your player profile' : 'Guardian of'}
                       </div>
-                      <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                      <div className='user-profile-player-date'>
                         Added: {new Date(player.relationship_created).toLocaleDateString()}
                       </div>
                     </div>
-                    <div style={{ marginLeft: 'var(--space-md)' }}>
+                    <div className='user-profile-player-actions'>
                       <button
                         onClick={() => handleDeletePlayer(player)}
-                        className='btn btn-danger btn-sm'
+                        className='btn btn-danger user-profile-delete-button'
                         title='Delete player permanently'
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          minWidth: '32px',
-                          height: '32px',
-                          padding: '0',
-                        }}
                       >
                         <FaTrash />
                       </button>

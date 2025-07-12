@@ -529,7 +529,7 @@ export const TeamDetailPage: React.FC = () =>
                 className='btn btn-primary btn-sm'
                 title='Add new player'
               >
-                <FaPlus /> Add Player
+                <FaPlus /> Player
               </button>
             )}
             {renderSortButton(sortOption, setSortOption)}
@@ -552,7 +552,6 @@ export const TeamDetailPage: React.FC = () =>
                 className='form-input'
                 style={{
                   paddingLeft: 'var(--space-xl)',
-                  width: '200px',
                   fontSize: '14px',
                 }}
               />
@@ -698,7 +697,7 @@ export const TeamDetailPage: React.FC = () =>
         </div>
         <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
           <Link to={`/games/${teamId}`} className='btn btn-primary'>
-            View Games
+            Games
           </Link>
         </div>
       </div>

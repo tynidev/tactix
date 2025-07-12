@@ -75,18 +75,3 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
-
-/* Responsive design */
-@media (max-width: 768px) {
-  .join-team-modal {
-    max-width: 95vw;
-  }
-  
-  .team-info {
-    padding: var(--space-md);
-  }
-  
-  .team-details {
-    gap: var(--space-xs);
-  }
-}

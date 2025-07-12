@@ -221,19 +221,3 @@
 .coaching-point-modal .alert {
   margin-bottom: var(--space-lg);
 }
-
-/* Responsive design */
-@media (max-width: 768px) {
-  .coaching-point-modal {
-    max-width: 95vw;
-  }
-  
-  .coaching-point-info {
-    padding: var(--space-sm);
-  }
-  
-  .tag {
-    font-size: 0.7rem;
-    padding: 6px var(--space-xs);
-  }
-}

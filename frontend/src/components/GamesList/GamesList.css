@@ -44,7 +44,8 @@
   transition: all var(--transition-fast);
   display: flex;
   flex-direction: column;
-  height: 380px; /* Increased height to accommodate thumbnail */
+  height: 380px;
+  /* Increased height to accommodate thumbnail */
   overflow: hidden;
   position: relative;
 }
@@ -102,7 +103,8 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 200px; /* Adjust based on card layout */
+  max-width: 200px;
+  /* Adjust based on card layout */
 }
 
 /* Game metadata */
@@ -174,12 +176,15 @@
   line-height: 1.4;
   /* Clamp to exactly 3 lines */
   overflow: hidden;
-  height: calc(1.4em * 3); /* 3 lines at 1.4 line-height */
-  min-height: calc(1.4em * 3); /* Ensure consistent height even with no notes */
+  height: calc(1.4em * 3);
+  /* 3 lines at 1.4 line-height */
+  min-height: calc(1.4em * 3);
+  /* Ensure consistent height even with no notes */
 }
 
 .game-notes:empty::before {
-  content: "\00A0"; /* Non-breaking space to maintain height when empty */
+  content: "\00A0";
+  /* Non-breaking space to maintain height when empty */
   opacity: 0;
 }
 
@@ -187,7 +192,8 @@
 .game-stats {
   display: flex;
   gap: var(--space-md);
-  margin-bottom: auto; /* Push to fill available space */
+  margin-bottom: auto;
+  /* Push to fill available space */
   padding-bottom: var(--space-lg);
   font-size: var(--text-xs);
   color: var(--color-text-primary);
@@ -204,7 +210,8 @@
   display: flex;
   gap: var(--space-sm);
   flex-wrap: wrap;
-  margin-top: auto; /* Push to bottom */
+  margin-top: auto;
+  /* Push to bottom */
   padding: 0 var(--space-lg) var(--space-lg) var(--space-lg);
 }
 
@@ -277,12 +284,12 @@
   z-index: 10;
 }
 
-.game-card .floating-actions{
+.game-card .floating-actions {
   top: var(--space-sm);
   right: var(--space-sm);
 }
 
-.team-card .floating-actions{
+.team-card .floating-actions {
   top: var(--space-lg);
   right: var(--space-lg);
 }
@@ -326,12 +333,12 @@
 }
 
 /* Team-specific overrides */
-.team .floating-action-btn{
+.team .floating-action-btn {
   background: var(--color-bg-secondary);
   color: var(--color-accent-primary);
 }
 
-.team .floating-action-btn:hover{
+.team .floating-action-btn:hover {
   color: white;
 }
 
@@ -346,7 +353,8 @@
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-color);
   margin-bottom: var(--space-lg);
-  position: relative; /* Add this for date picker positioning */
+  position: relative;
+  /* Add this for date picker positioning */
 }
 
 /* Toggle header */
@@ -406,7 +414,8 @@
 }
 
 .filter-content.expanded {
-  max-height: 500px; /* Adjust based on content */
+  max-height: 500px;
+  /* Adjust based on content */
   opacity: 1;
   visibility: visible;
 }
@@ -475,8 +484,10 @@
   display: flex;
   align-items: flex-end;
   gap: var(--space-md);
-  flex: 1; /* Same flex as other filter groups */
-  min-width: 300px; /* Ensure enough space for both elements */
+  flex: 1;
+  /* Same flex as other filter groups */
+  min-width: 300px;
+  /* Ensure enough space for both elements */
 }
 
 .date-picker-wrapper {
@@ -495,9 +506,12 @@
 }
 
 .clear-all-btn {
-  flex-shrink: 0; /* Prevent the button from shrinking */
-  margin-bottom: 0; /* Align with the date picker input */
-  white-space: nowrap; /* Prevent text wrapping */
+  flex-shrink: 0;
+  /* Prevent the button from shrinking */
+  margin-bottom: 0;
+  /* Align with the date picker input */
+  white-space: nowrap;
+  /* Prevent text wrapping */
 }
 
 /* Filter actions */
@@ -505,7 +519,8 @@
   display: flex;
   gap: var(--space-sm);
   align-items: center;
-  flex-shrink: 0; /* Prevent shrinking */
+  flex-shrink: 0;
+  /* Prevent shrinking */
 }
 
 /* Overlay for closing date picker when clicking outside */
@@ -522,6 +537,7 @@
 .date-picker-overlay.active {
   display: block;
 }
+
 /* ========================================
    7. DATE PICKER COMPONENT
    ======================================== */
@@ -670,163 +686,13 @@
    8. RESPONSIVE DESIGN
    ======================================== */
 
-/* Mobile adjustments */
 @media (max-width: 768px) {
-  .games-list {
-    padding: var(--space-md);
-  }
-
-  .games-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: var(--space-md);
-  }
-
-  .games-header h2 {
-    text-align: center;
-  }
-
-  .games-grid {
-    grid-template-columns: 1fr;
-    gap: var(--space-md);
-  }
-
   .game-card {
     height: auto; /* Allow height to adjust on mobile */
     min-height: 320px;
-  }
-
-  .game-thumbnail {
-    height: 100px; /* Smaller thumbnail on mobile */
-  }
-
-  .game-header {
-    flex-direction: column;
-    gap: var(--space-sm);
-    padding: var(--space-md) var(--space-md) 0 var(--space-md);
-  }
-
-  .game-result {
-    align-self: flex-start;
-  }
-
-  .game-content {
-    padding: 0 var(--space-md);
-  }
-
-  .game-actions {
-    justify-content: center;
-    padding: 0 var(--space-md) var(--space-md) var(--space-md);
-  }
-
-  .game-actions .btn {
-    flex: 0 1 auto;
-    min-width: 70px;
-  }
-
-  .game-opponent {
-    max-width: 250px; /* Larger max-width on mobile */
-  }
-}
-
-/* Filter responsive overrides */
-@media (max-width: 768px) {
-  .filter-toggle-header {
-    padding: var(--space-md);
-  }
-  
-  .filter-content .filter-container {
-    padding: var(--space-md);
-    padding-top: 0;
-  }
-  
-  .filter-container {
-    flex-direction: column;
-  }
-  
-  .filter-group {
-    width: 100%;
-    min-width: auto;
-  }
-  
-  .date-range-container {
-    flex-direction: column;
-    min-width: auto;
-    gap: var(--space-sm);
-  }
-  
-  .date-picker-wrapper {
-    min-width: auto;
-  }
-  
-  .clear-all-btn,
-  .clear-all-btn-header {
-    align-self: stretch;
-    margin-bottom: 0;
-  }
-  
-  .filter-actions {
-    width: 100%;
-    margin-top: var(--space-md);
-  }
-  
-  .filter-actions .btn {
-    flex: 1;
-  }
-  
-  .date-range-picker {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 90%;
-    max-height: 80vh;
-    overflow-y: auto;
-  }
-  
-  .date-range-picker.active {
-    transform: translate(-50%, -50%);
-  }
-  
-  .filter-content.expanded {
-    max-height: 600px; /* Increase for mobile to accommodate vertical layout */
   }
 }
 
 /* ========================================
    9. THEME VARIATIONS
    ======================================== */
-
-/* Dark mode overrides */
-@media (prefers-color-scheme: dark) {
-  .filter-input,
-  .filter-select {
-    background: var(--color-bg-input);
-    border-color: var(--border-color);
-  }
-
-  .filter-input:focus,
-  .filter-select:focus {
-    border-color: var(--color-accent-primary);
-    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
-  }
-}
-
-/* Theme-specific adjustments */
-@media (prefers-color-scheme: dark) {
-  .react-datepicker {
-    background: var(--color-bg-secondary);
-  }
-  
-  .react-datepicker__header {
-    background: var(--color-bg-input);
-  }
-  
-  .react-datepicker__day {
-    color: var(--color-text-primary);
-  }
-  
-  .react-datepicker__day--disabled {
-    color: var(--color-text-secondary);
-  }
-}

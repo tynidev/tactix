@@ -470,43 +470,6 @@
   }
 }
 
-/* Responsive adjustments for modern buttons */
-@media (max-width: 768px) {
-  .btn-modern {
-    min-width: 120px;
-    min-height: 48px;
-  }
-  
-  .btn-content {
-    padding: var(--space-sm) var(--space-md);
-    gap: var(--space-xs);
-  }
-  
-  .btn-text {
-    font-size: 0.8rem;
-  }
-  
-  .btn-icon {
-    width: 16px;
-    height: 16px;
-  }
-}
-
-@media (max-width: 480px) {
-  .btn-modern {
-    min-width: 100px;
-    min-height: 44px;
-  }
-  
-  .btn-text {
-    font-size: 0.75rem;
-  }
-  
-  .recording-time-modern {
-    font-size: 0.7rem;
-  }
-}
-
 /* Legacy Recording Button Styles (for backward compatibility) */
 .recording-button:not(.btn-modern) {
   position: relative;
@@ -578,110 +541,6 @@
   transform: translate(-50%, -50%);
   color: var(--color-text-secondary);
   font-size: 1.1rem;
-}
-
-/* Responsive design */
-@media (max-width: 768px) {
-  .circular-back-button {
-    top: 15px;
-    left: 15px;
-    width: 44px;
-    height: 44px;
-    font-size: 18px;
-  }
-
-  .analysis-header {
-    height: auto;
-    min-height: 50px;
-  }
-
-  .header-content {
-    flex-direction: column;
-    align-items: stretch;
-    gap: var(--space-sm);
-    padding: var(--space-sm);
-  }
-
-  .header-left {
-    flex: none;
-    justify-content: center;
-    order: 2;
-  }
-
-  .header-right-section {
-    min-width: auto;
-    height: auto;
-    padding: var(--space-sm);
-    order: 1;
-  }
-
-  .header-right-section .game-info {
-    text-align: center;
-  }
-
-  .header-right-section .game-info h1 {
-    font-size: 1.25rem;
-  }
-
-  .header-right-section .game-meta {
-    align-items: center;
-    flex-direction: row;
-    gap: var(--space-sm);
-    justify-content: center;
-  }
-
-  .analysis-controls {
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-
-  .recording-button:not(.btn-modern) {
-    min-width: 120px;
-  }
-
-  .recording-button-content {
-    font-size: 0.75rem;
-  }
-
-  .recording-button-content .recording-time {
-    font-size: 0.7rem;
-  }
-
-  /* Stack sidebar below video on mobile */
-  .analysis-workspace.with-sidebar {
-    flex-direction: column;
-  }
-
-  .coaching-point-sidebar {
-    flex: 0 0 40%;
-    border-left: none;
-    border-top: 1px solid var(--border-color);
-  }
-}
-
-@media (max-width: 480px) {
-  .header-content {
-    flex-direction: column;
-    align-items: stretch;
-    gap: var(--space-xs);
-  }
-  
-  .header-left {
-    order: 2;
-    justify-content: center;
-  }
-  
-  .header-right-section {
-    order: 1;
-    justify-content: center;
-    flex-direction: column;
-    gap: var(--space-sm);
-  }
-
-  .analysis-controls {
-    flex-direction: column;
-    gap: var(--space-xs);
-  }
 }
 
 /* Focus and accessibility */
@@ -893,24 +752,4 @@
 
 .coaching-point-sidebar.playback-active .sidebar-header h3 {
   color: white;
-}
-
-/* Mobile responsiveness for playback controls */
-@media (max-width: 768px) {
-  .playback-buttons {
-    flex-direction: column;
-  }
-  
-  .playback-buttons .btn {
-    flex: none;
-  }
-  
-  .time-display {
-    text-align: center;
-    justify-content: center;
-  }
-  
-  .event-info {
-    text-align: center;
-  }
 }

@@ -515,7 +515,7 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
           </div>
         ) :
         (
-          <div className='games-grid'>
+          <div className='grid grid-3'>
             {filteredGames.map((game) => (
               <div
                 key={game.id}
