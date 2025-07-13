@@ -913,6 +913,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
             onColorChange={changeColor}
             onModeChange={changeMode}
             onClearCanvas={clearCanvas}
+            onUndoLastDrawing={undoLastDrawing}
           />
         </div>
 

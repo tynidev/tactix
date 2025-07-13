@@ -307,7 +307,7 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
     );
 
     // Touch event handlers for mobile devices
-    const handleTouchStart = useCallback((point: CoachingPoint, event: React.TouchEvent) =>
+    const handleTouchStart = useCallback((event: React.TouchEvent) =>
     {
       const touch = event.touches[0];
       setTouchState({
@@ -797,7 +797,7 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
                     key={point.id}
                     className='coaching-point-item'
                     onClick={() => handlePointClick(point)}
-                    onTouchStart={(e) => handleTouchStart(point, e)}
+                    onTouchStart={(e) => handleTouchStart(e)}
                     onTouchMove={handleTouchMove}
                     onTouchEnd={(e) => handleTouchEnd(point, e)}
                   >
