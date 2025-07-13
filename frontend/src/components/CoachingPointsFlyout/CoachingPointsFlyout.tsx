@@ -150,6 +150,14 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
       loading: false,
     });
 
+    // Touch handling state
+    const [touchState, setTouchState] = useState<{
+      startX: number;
+      startY: number;
+      startTime: number;
+      hasMoved: boolean;
+    } | null>(null);
+
     const flyoutRef = useRef<HTMLDivElement>(null);
 
     const loadCoachingPoints = useCallback(async () =>
@@ -286,11 +294,56 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
       [onPauseVideo, onSeekToPoint, loadDrawingEvents, onSelectCoachingPoint],
     );
 
+    // Touch event handlers for mobile devices
+    const handleTouchStart = useCallback((point: CoachingPoint, event: React.TouchEvent) => {
+      const touch = event.touches[0];
+      setTouchState({
+        startX: touch.clientX,
+        startY: touch.clientY,
+        startTime: Date.now(),
+        hasMoved: false,
+      });
+    }, []);
+
+    const handleTouchMove = useCallback((event: React.TouchEvent) => {
+      if (!touchState) return;
+
+      const touch = event.touches[0];
+      const deltaX = Math.abs(touch.clientX - touchState.startX);
+      const deltaY = Math.abs(touch.clientY - touchState.startY);
+      
+      // Consider it a move if finger moved more than 10 pixels in any direction
+      if (deltaX > 10 || deltaY > 10) {
+        setTouchState(prev => prev ? { ...prev, hasMoved: true } : null);
+      }
+    }, [touchState]);
+
+    const handleTouchEnd = useCallback((point: CoachingPoint, event: React.TouchEvent) => {
+      if (!touchState) return;
+
+      const touchDuration = Date.now() - touchState.startTime;
+      
+      // Only treat as a tap if:
+      // 1. Touch duration is less than 500ms (not a long press)
+      // 2. Finger didn't move significantly (not a scroll)
+      if (touchDuration < 500 && !touchState.hasMoved) {
+        // Prevent the subsequent click event
+        event.preventDefault();
+        event.stopPropagation();
+        
+        // Handle the point click
+        handlePointClick(point);
+      }
+
+      setTouchState(null);
+    }, [touchState, handlePointClick]);
+
     const handleDeletePoint = useCallback(
-      (pointId: string, event: React.MouseEvent) =>
+      (pointId: string, event: React.MouseEvent | React.TouchEvent) =>
       {
         // Stop event propagation to prevent triggering the point click
         event.stopPropagation();
+        event.preventDefault();
 
         const point = coachingPoints.find(p => p.id === pointId);
         const pointTitle = point?.title || 'this coaching point';
@@ -727,11 +780,15 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
                     key={point.id}
                     className='coaching-point-item'
                     onClick={() => handlePointClick(point)}
+                    onTouchStart={(e) => handleTouchStart(point, e)}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={(e) => handleTouchEnd(point, e)}
                   >
                     {canDeletePoint(point) && (
                       <button
                         className='delete-point-btn'
                         onClick={(e) => handleDeletePoint(point.id, e)}
+                        onTouchEnd={(e) => handleDeletePoint(point.id, e)}
                         title='Delete coaching point'
                         aria-label='Delete coaching point'
                       >

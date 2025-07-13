@@ -276,12 +276,33 @@
   justify-content: space-between;
   min-height: 60px;
   position: relative;
+  /* Mobile touch optimizations */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 .coaching-point-item:hover {
   border-color: var(--color-accent-primary);
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
+}
+
+/* Touch feedback for mobile devices */
+.coaching-point-item:active {
+  background: var(--color-bg-secondary);
+  transform: scale(0.98);
+}
+
+/* Ensure minimum touch target size for accessibility */
+@media (hover: none) and (pointer: coarse) {
+  .coaching-point-item {
+    min-height: 44px;
+    padding: var(--space-md);
+  }
 }
 
 .point-header {
@@ -332,6 +353,9 @@
   transition: all var(--transition-fast);
   z-index: 10;
   box-shadow: var(--shadow-sm);
+  /* Mobile touch optimizations */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .delete-point-btn:hover {
@@ -340,9 +364,37 @@
   box-shadow: var(--shadow-md);
 }
 
+.delete-point-btn:active {
+  background: var(--color-error);
+  transform: scale(0.9);
+}
+
 .coaching-point-item:hover .delete-point-btn {
   opacity: 1;
   transform: scale(1);
+}
+
+/* Show delete button on mobile touch devices */
+@media (hover: none) and (pointer: coarse) {
+  .delete-point-btn {
+    width: 24px;
+    height: 24px;
+    top: 6px;
+    right: 6px;
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  
+  .coaching-point-item:hover .delete-point-btn,
+  .coaching-point-item .delete-point-btn {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  
+  .delete-point-btn:active {
+    opacity: 1;
+    transform: scale(0.95);
+  }
 }
 
 .point-date {
