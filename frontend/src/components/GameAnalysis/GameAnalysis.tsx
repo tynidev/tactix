@@ -531,6 +531,17 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
     },
   }), [player, setDrawingData, resetTransportControls]);
 
+  // Handle auto-starting coaching point playback when clicked in flyout
+  const handleStartCoachingPointPlayback = useCallback((point: CoachingPoint) =>
+  {
+    // Ensure the point is selected first (this should already be done by handleSelectCoachingPoint)
+    setSelectedCoachingPoint(point);
+
+    // Start playback using the existing handler
+    const handlers = playbackEventHandlers();
+    playback.startPlayback(point, handlers);
+  }, [playback, playbackEventHandlers]);
+
   // Handle starting playback of a coaching point
   const handleStartPlayback = useCallback(() =>
   {
@@ -1079,6 +1090,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
         onShowDrawings={handleShowDrawings}
         onPauseVideo={handlePauseVideo}
         onSelectCoachingPoint={handleSelectCoachingPoint}
+        onStartCoachingPointPlayback={handleStartCoachingPointPlayback}
         refreshTrigger={coachingPointsRefresh}
         onExpandedChange={setIsFlyoutExpanded}
         isVisible={areBothUIElementsVisible}

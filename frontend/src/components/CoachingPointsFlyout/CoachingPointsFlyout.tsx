@@ -65,6 +65,7 @@ interface CoachingPointsFlyoutProps
   onShowDrawings: (drawings: Drawing[]) => void;
   onPauseVideo: () => void;
   onSelectCoachingPoint: (point: CoachingPoint | null) => void;
+  onStartCoachingPointPlayback?: (point: CoachingPoint) => void; // New prop for auto-playing audio
   refreshTrigger?: number; // Optional prop to trigger refresh
   onExpandedChange?: (isExpanded: boolean) => void; // Callback to notify parent of expansion state
   // Unified auto-hide system
@@ -101,6 +102,7 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
     onShowDrawings,
     onPauseVideo,
     onSelectCoachingPoint,
+    onStartCoachingPointPlayback,
     refreshTrigger,
     onExpandedChange,
     // Unified auto-hide system
@@ -151,12 +153,14 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
     });
 
     // Touch handling state
-    const [touchState, setTouchState] = useState<{
-      startX: number;
-      startY: number;
-      startTime: number;
-      hasMoved: boolean;
-    } | null>(null);
+    const [touchState, setTouchState] = useState<
+      {
+        startX: number;
+        startY: number;
+        startTime: number;
+        hasMoved: boolean;
+      } | null
+    >(null);
 
     const flyoutRef = useRef<HTMLDivElement>(null);
 
@@ -288,14 +292,23 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
         // Load and show any drawings for this point
         await loadDrawingEvents(point.id);
 
+        // Auto-start playback if the coaching point has an audio URL
+        if (point.audio_url && onStartCoachingPointPlayback)
+        {
+          // Add a small delay to ensure the video seeking and drawing loading is complete
+          await new Promise((resolve) => setTimeout(resolve, 200));
+          onStartCoachingPointPlayback(point);
+        }
+
         // Hide the flyout
         setIsExpanded(false);
       },
-      [onPauseVideo, onSeekToPoint, loadDrawingEvents, onSelectCoachingPoint],
+      [onPauseVideo, onSeekToPoint, loadDrawingEvents, onSelectCoachingPoint, onStartCoachingPointPlayback],
     );
 
     // Touch event handlers for mobile devices
-    const handleTouchStart = useCallback((point: CoachingPoint, event: React.TouchEvent) => {
+    const handleTouchStart = useCallback((point: CoachingPoint, event: React.TouchEvent) =>
+    {
       const touch = event.touches[0];
       setTouchState({
         startX: touch.clientX,
@@ -305,32 +318,36 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
       });
     }, []);
 
-    const handleTouchMove = useCallback((event: React.TouchEvent) => {
+    const handleTouchMove = useCallback((event: React.TouchEvent) =>
+    {
       if (!touchState) return;
 
       const touch = event.touches[0];
       const deltaX = Math.abs(touch.clientX - touchState.startX);
       const deltaY = Math.abs(touch.clientY - touchState.startY);
-      
+
       // Consider it a move if finger moved more than 10 pixels in any direction
-      if (deltaX > 10 || deltaY > 10) {
+      if (deltaX > 10 || deltaY > 10)
+      {
         setTouchState(prev => prev ? { ...prev, hasMoved: true } : null);
       }
     }, [touchState]);
 
-    const handleTouchEnd = useCallback((point: CoachingPoint, event: React.TouchEvent) => {
+    const handleTouchEnd = useCallback((point: CoachingPoint, event: React.TouchEvent) =>
+    {
       if (!touchState) return;
 
       const touchDuration = Date.now() - touchState.startTime;
-      
+
       // Only treat as a tap if:
       // 1. Touch duration is less than 500ms (not a long press)
       // 2. Finger didn't move significantly (not a scroll)
-      if (touchDuration < 500 && !touchState.hasMoved) {
+      if (touchDuration < 500 && !touchState.hasMoved)
+      {
         // Prevent the subsequent click event
         event.preventDefault();
         event.stopPropagation();
-        
+
         // Handle the point click
         handlePointClick(point);
       }
