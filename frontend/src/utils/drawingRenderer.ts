@@ -36,6 +36,24 @@ const getScaledLineWidth = (canvas: HTMLCanvasElement): number =>
 };
 
 /**
+ * Calculates the total length of a line from an array of points.
+ *
+ * @param points - Array of points that make up the line
+ * @returns The total length of the line in pixels
+ */
+const calculateLineLength = (points: { x: number; y: number; }[]): number => {
+  if (points.length < 2) return 0;
+  
+  let totalLength = 0;
+  for (let i = 1; i < points.length; i++) {
+    const dx = points[i].x - points[i - 1].x;
+    const dy = points[i].y - points[i - 1].y;
+    totalLength += Math.sqrt(dx * dx + dy * dy);
+  }
+  return totalLength;
+};
+
+/**
  * Draws an arrow head at the end of a line.
  *
  * @param ctx - The canvas 2D rendering context
@@ -44,6 +62,7 @@ const getScaledLineWidth = (canvas: HTMLCanvasElement): number =>
  * @param color - The color of the arrow head
  * @param lineWidth - The width of the line (used to size the arrow head)
  * @param canvas - The canvas element to calculate scaled arrow length
+ * @param linePoints - Optional array of all points in the line for length calculation
  */
 export const drawArrowHead = (
   ctx: CanvasRenderingContext2D,
@@ -52,12 +71,39 @@ export const drawArrowHead = (
   color: string,
   lineWidth: number,
   canvas: HTMLCanvasElement,
+  linePoints?: { x: number; y: number; }[],
 ) =>
 {
-  // Scale arrow length based on canvas dimensions, similar to line width scaling
-  const minDimension = Math.min(canvas.width, canvas.height);
-  const scaledArrowLength = minDimension * CONFIG.drawing.lineWidth * 5; // 5x the line width percentage
-  const arrowLength = Math.max(scaledArrowLength, lineWidth * 3); // Fallback to lineWidth-based sizing
+  // Calculate line length for smart arrowhead sizing
+  let lineLength = 0;
+  if (linePoints && linePoints.length >= 2) {
+    lineLength = calculateLineLength(linePoints);
+  } else {
+    // Fallback: calculate distance between from and to points
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    lineLength = Math.sqrt(dx * dx + dy * dy);
+  }
+
+  // Check minimum line length threshold - don't draw arrowhead for very short lines
+  if (lineLength < CONFIG.drawing.arrowHead.minLineLength) {
+    return; // Don't draw arrowhead for lines shorter than minimum threshold
+  }
+
+  let arrowLength: number;
+
+  // Use new smart sizing for shorter lines, fallback to old method for longer lines
+  if (lineLength <= CONFIG.drawing.arrowHead.fallbackThreshold) {
+    // New smart sizing: percentage of line length with min/max bounds
+    arrowLength = lineLength * CONFIG.drawing.arrowHead.lengthRatio;
+    arrowLength = Math.max(arrowLength, CONFIG.drawing.arrowHead.minAbsoluteLength);
+    arrowLength = Math.min(arrowLength, CONFIG.drawing.arrowHead.maxAbsoluteLength);
+  } else {
+    // Old sizing method for longer lines to maintain consistency
+    const minDimension = Math.min(canvas.width, canvas.height);
+    const scaledArrowLength = minDimension * CONFIG.drawing.lineWidth * 5; // 5x the line width percentage
+    arrowLength = Math.max(scaledArrowLength, lineWidth * 3); // Fallback to lineWidth-based sizing
+  }
 
   // Calculate the angle of the line from start to end point for arrow orientation
   const dx = to.x - from.x;
@@ -298,9 +344,12 @@ const drawStrokeElement = (
     const startPoint = denormalizePoint(element.points[startIndex], canvas);
     const lastPoint = denormalizePoint(element.points[element.points.length - 1], canvas);
 
+    // Convert all points to pixel coordinates for line length calculation
+    const denormalizedPoints = element.points.map(point => denormalizePoint(point, canvas));
+
     // Reset alpha for arrow head
     ctx.globalAlpha = strokeOpacity;
-    drawArrowHead(ctx, startPoint, lastPoint, color, lineWidth, canvas);
+    drawArrowHead(ctx, startPoint, lastPoint, color, lineWidth, canvas, denormalizedPoints);
     ctx.globalAlpha = originalAlpha; // Reset alpha
   }
 };

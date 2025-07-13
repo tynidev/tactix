@@ -467,6 +467,7 @@ export const useDrawingCanvas = () =>
           currentColor,
           getScaledLineWidth(canvas),
           canvas,
+          pointsForStorage,
         );
       }
 
