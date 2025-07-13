@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FaCompress, FaExpand } from 'react-icons/fa';
 import { MdLock } from 'react-icons/md';
 import { CONFIG } from '../../types/config';
 import './TransportControl.css';
@@ -14,6 +15,8 @@ interface TransportControlProps
   onSeekTo: (time: number) => void;
   onPlaybackRateChange: (rate: number) => void;
   disabled?: boolean; // Disable all transport controls
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
 }
 
 const TransportControl: React.FC<TransportControlProps> = ({
@@ -26,6 +29,8 @@ const TransportControl: React.FC<TransportControlProps> = ({
   onSeekTo,
   onPlaybackRateChange,
   disabled = false,
+  isFullscreen = false,
+  onToggleFullscreen,
 }) =>
 {
   const [isDragging, setIsDragging] = useState(false);
@@ -343,6 +348,16 @@ const TransportControl: React.FC<TransportControlProps> = ({
           >
             2x
           </button>
+          {onToggleFullscreen && (
+            <button
+              className='fullscreen-btn'
+              onClick={onToggleFullscreen}
+              disabled={disabled}
+              title={disabled ? 'Transport controls disabled during coaching point playback' : (isFullscreen ? 'Exit Fullscreen (F/Esc)' : 'Enter Fullscreen (F)')}
+            >
+              {isFullscreen ? <FaCompress /> : <FaExpand />}
+            </button>
+          )}
         </div>
       </div>
     </div>

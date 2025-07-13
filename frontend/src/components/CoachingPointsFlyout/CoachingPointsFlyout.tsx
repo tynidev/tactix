@@ -77,6 +77,9 @@ interface CoachingPointsFlyoutProps
   onSeekTo: (time: number) => void;
   onPlaybackRateChange: (rate: number) => void;
   isCoachingPointPlaybackActive?: boolean; // Disable transport controls during coaching point playback
+  // Fullscreen props
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
   // Analysis control props
   onCreateCoachingPoint: () => void;
   onToggleRecording: () => void;
@@ -108,6 +111,9 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
     onSeekTo,
     onPlaybackRateChange,
     isCoachingPointPlaybackActive = false,
+    // Fullscreen props
+    isFullscreen = false,
+    onToggleFullscreen,
     // Analysis control props
     onCreateCoachingPoint,
     onToggleRecording,
@@ -538,6 +544,8 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
               onSeekTo={onSeekTo}
               onPlaybackRateChange={onPlaybackRateChange}
               disabled={isCoachingPointPlaybackActive}
+              isFullscreen={isFullscreen}
+              onToggleFullscreen={onToggleFullscreen}
             />
 
             {/* Analysis Controls - Only show for coaches and admins */}

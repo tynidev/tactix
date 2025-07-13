@@ -89,6 +89,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
   const [coachingPointsRefresh, setCoachingPointsRefresh] = useState(0);
   const [selectedCoachingPoint, setSelectedCoachingPoint] = useState<CoachingPoint | null>(null);
   const [isFlyoutExpanded, setIsFlyoutExpanded] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [recordingData, setRecordingData] = useState<
     {
       audioBlob: Blob | null;
@@ -532,6 +533,80 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
     resetTransportControls();
   }, [playback, resetTransportControls]);
 
+  // Handle fullscreen functionality
+  const handleToggleFullscreen = useCallback(async () =>
+  {
+    try
+    {
+      if (!isFullscreen)
+      {
+        // Enter fullscreen
+        if (document.documentElement.requestFullscreen)
+        {
+          await document.documentElement.requestFullscreen();
+        }
+        else if ((document.documentElement as any).webkitRequestFullscreen)
+        {
+          // Safari
+          await (document.documentElement as any).webkitRequestFullscreen();
+        }
+        else if ((document.documentElement as any).msRequestFullscreen)
+        {
+          // IE/Edge
+          await (document.documentElement as any).msRequestFullscreen();
+        }
+      }
+      else
+      {
+        // Exit fullscreen
+        if (document.exitFullscreen)
+        {
+          await document.exitFullscreen();
+        }
+        else if ((document as any).webkitExitFullscreen)
+        {
+          // Safari
+          await (document as any).webkitExitFullscreen();
+        }
+        else if ((document as any).msExitFullscreen)
+        {
+          // IE/Edge
+          await (document as any).msExitFullscreen();
+        }
+      }
+    }
+    catch (error)
+    {
+      console.warn('Fullscreen operation failed:', error);
+    }
+  }, [isFullscreen]);
+
+  // Listen for fullscreen changes
+  useEffect(() =>
+  {
+    const handleFullscreenChange = () =>
+    {
+      const isCurrentlyFullscreen = !!(
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement ||
+        (document as any).msFullscreenElement
+      );
+      setIsFullscreen(isCurrentlyFullscreen);
+    };
+
+    // Add event listeners for all browsers
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('msfullscreenchange', handleFullscreenChange);
+
+    return () =>
+    {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('msfullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
   // Update video dimensions when sidebar state changes
   useEffect(() =>
   {
@@ -836,6 +911,8 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
         onPlaybackRateChange={handlePlaybackRateChange}
         isCoachingPointPlaybackActive={playback.isPlaying ||
           (!!selectedCoachingPoint?.audio_url && playback.currentTime > 0)}
+        isFullscreen={isFullscreen}
+        onToggleFullscreen={handleToggleFullscreen}
         onCreateCoachingPoint={handleCreateCoachingPoint}
         onToggleRecording={handleToggleRecording}
         isRecording={isRecording}
