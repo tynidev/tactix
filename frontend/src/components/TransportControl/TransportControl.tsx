@@ -353,7 +353,7 @@ const TransportControl: React.FC<TransportControlProps> = ({
               className='fullscreen-btn'
               onClick={onToggleFullscreen}
               disabled={disabled}
-              title={disabled ? 'Transport controls disabled during coaching point playback' : (isFullscreen ? 'Exit Fullscreen (F/Esc)' : 'Enter Fullscreen (F)')}
+              title={disabled ? 'Transport controls disabled during coaching point playback' : (isFullscreen ? 'Exit Fullscreen (F/Esc)' : 'Enter Fullscreen (F) - Note: Limited support on iOS')}
             >
               {isFullscreen ? <FaCompress /> : <FaExpand />}
             </button>

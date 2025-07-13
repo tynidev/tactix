@@ -533,27 +533,58 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
     resetTransportControls();
   }, [playback, resetTransportControls]);
 
+  // Check if fullscreen API is supported
+  const isFullscreenSupported = useCallback(() =>
+  {
+    return !!(
+      document.documentElement.requestFullscreen ||
+      (document.documentElement as any).webkitRequestFullscreen ||
+      (document.documentElement as any).webkitRequestFullScreen ||
+      (document.documentElement as any).msRequestFullscreen ||
+      (document.documentElement as any).mozRequestFullScreen
+    );
+  }, []);
+
   // Handle fullscreen functionality
   const handleToggleFullscreen = useCallback(async () =>
   {
+    // Check if fullscreen is supported
+    if (!isFullscreenSupported())
+    {
+      console.warn('Fullscreen API is not supported on this device/browser');
+      alert('Fullscreen is not supported on this device. Try rotating your device to landscape mode for a better viewing experience.');
+      return;
+    }
+
     try
     {
       if (!isFullscreen)
       {
         // Enter fullscreen
-        if (document.documentElement.requestFullscreen)
+        const docEl = document.documentElement;
+        if (docEl.requestFullscreen)
         {
-          await document.documentElement.requestFullscreen();
+          await docEl.requestFullscreen();
         }
-        else if ((document.documentElement as any).webkitRequestFullscreen)
+        else if ((docEl as any).webkitRequestFullscreen)
         {
-          // Safari
-          await (document.documentElement as any).webkitRequestFullscreen();
+          // Safari desktop
+          await (docEl as any).webkitRequestFullscreen();
         }
-        else if ((document.documentElement as any).msRequestFullscreen)
+        else if ((docEl as any).webkitRequestFullScreen)
+        {
+          // Safari iOS (older versions)
+          await (docEl as any).webkitRequestFullScreen();
+        }
+        else if ((docEl as any).msRequestFullscreen)
         {
           // IE/Edge
-          await (document.documentElement as any).msRequestFullscreen();
+          await (docEl as any).msRequestFullscreen();
+        }
+        else if ((docEl as any).mozRequestFullScreen)
+        {
+          // Firefox
+          await (docEl as any).mozRequestFullScreen();
         }
       }
       else
@@ -565,21 +596,36 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
         }
         else if ((document as any).webkitExitFullscreen)
         {
-          // Safari
+          // Safari desktop
           await (document as any).webkitExitFullscreen();
+        }
+        else if ((document as any).webkitCancelFullScreen)
+        {
+          // Safari iOS (older versions)
+          await (document as any).webkitCancelFullScreen();
         }
         else if ((document as any).msExitFullscreen)
         {
           // IE/Edge
           await (document as any).msExitFullscreen();
         }
+        else if ((document as any).mozCancelFullScreen)
+        {
+          // Firefox
+          await (document as any).mozCancelFullScreen();
+        }
       }
     }
     catch (error)
     {
       console.warn('Fullscreen operation failed:', error);
+      // On iOS Safari, fullscreen API often fails, provide helpful message
+      if (/iPad|iPhone|iPod/.test(navigator.userAgent))
+      {
+        alert('For the best viewing experience on iOS, please rotate your device to landscape mode and use Safari\'s built-in fullscreen by tapping the fullscreen icon in the video controls.');
+      }
     }
-  }, [isFullscreen]);
+  }, [isFullscreen, isFullscreenSupported]);
 
   // Listen for fullscreen changes
   useEffect(() =>
@@ -589,7 +635,9 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
       const isCurrentlyFullscreen = !!(
         document.fullscreenElement ||
         (document as any).webkitFullscreenElement ||
-        (document as any).msFullscreenElement
+        (document as any).webkitCurrentFullScreenElement ||
+        (document as any).msFullscreenElement ||
+        (document as any).mozFullScreenElement
       );
       setIsFullscreen(isCurrentlyFullscreen);
     };
@@ -598,12 +646,14 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
     document.addEventListener('msfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
 
     return () =>
     {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
       document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
       document.removeEventListener('msfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
     };
   }, []);
 
