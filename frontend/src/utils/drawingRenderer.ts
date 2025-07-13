@@ -41,11 +41,13 @@ const getScaledLineWidth = (canvas: HTMLCanvasElement): number =>
  * @param points - Array of points that make up the line
  * @returns The total length of the line in pixels
  */
-const calculateLineLength = (points: { x: number; y: number; }[]): number => {
+const calculateLineLength = (points: { x: number; y: number; }[]): number =>
+{
   if (points.length < 2) return 0;
-  
+
   let totalLength = 0;
-  for (let i = 1; i < points.length; i++) {
+  for (let i = 1; i < points.length; i++)
+  {
     const dx = points[i].x - points[i - 1].x;
     const dy = points[i].y - points[i - 1].y;
     totalLength += Math.sqrt(dx * dx + dy * dy);
@@ -76,9 +78,12 @@ export const drawArrowHead = (
 {
   // Calculate line length for smart arrowhead sizing
   let lineLength = 0;
-  if (linePoints && linePoints.length >= 2) {
+  if (linePoints && linePoints.length >= 2)
+  {
     lineLength = calculateLineLength(linePoints);
-  } else {
+  }
+  else
+  {
     // Fallback: calculate distance between from and to points
     const dx = to.x - from.x;
     const dy = to.y - from.y;
@@ -86,19 +91,23 @@ export const drawArrowHead = (
   }
 
   // Check minimum line length threshold - don't draw arrowhead for very short lines
-  if (lineLength < CONFIG.drawing.arrowHead.minLineLength) {
+  if (lineLength < CONFIG.drawing.arrowHead.minLineLength)
+  {
     return; // Don't draw arrowhead for lines shorter than minimum threshold
   }
 
   let arrowLength: number;
 
   // Use new smart sizing for shorter lines, fallback to old method for longer lines
-  if (lineLength <= CONFIG.drawing.arrowHead.fallbackThreshold) {
+  if (lineLength <= CONFIG.drawing.arrowHead.fallbackThreshold)
+  {
     // New smart sizing: percentage of line length with min/max bounds
     arrowLength = lineLength * CONFIG.drawing.arrowHead.lengthRatio;
     arrowLength = Math.max(arrowLength, CONFIG.drawing.arrowHead.minAbsoluteLength);
     arrowLength = Math.min(arrowLength, CONFIG.drawing.arrowHead.maxAbsoluteLength);
-  } else {
+  }
+  else
+  {
     // Old sizing method for longer lines to maintain consistency
     const minDimension = Math.min(canvas.width, canvas.height);
     const scaledArrowLength = minDimension * CONFIG.drawing.lineWidth * 5; // 5x the line width percentage
