@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FaCompress, FaExpand } from 'react-icons/fa';
+import { FaBackward, FaCompress, FaExpand, FaForward, FaPause, FaPlay } from 'react-icons/fa';
 import { MdLock } from 'react-icons/md';
 import { CONFIG } from '../../types/config';
 import './TransportControl.css';
@@ -253,7 +253,7 @@ const TransportControl: React.FC<TransportControlProps> = ({
             disabled={disabled}
             title={disabled ? 'Transport controls disabled during coaching point playback' : 'Rewind (A/←)'}
           >
-            ⏮
+            <FaBackward size={15} />
           </button>
           <button
             className='transport-btn play-pause'
@@ -261,7 +261,7 @@ const TransportControl: React.FC<TransportControlProps> = ({
             disabled={disabled}
             title={disabled ? 'Transport controls disabled during coaching point playback' : 'Play/Pause (S/Space)'}
           >
-            {isPlaying ? '⏸' : '▶'}
+            {isPlaying ? <FaPause size={15} /> : <FaPlay size={15} />}
           </button>
           <button
             className='transport-btn'
@@ -269,7 +269,7 @@ const TransportControl: React.FC<TransportControlProps> = ({
             disabled={disabled}
             title={disabled ? 'Transport controls disabled during coaching point playback' : 'Forward (D/→)'}
           >
-            ⏭
+            <FaForward size={15} />
           </button>
         </div>
 
