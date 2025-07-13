@@ -7,6 +7,12 @@
   position: relative;
 }
 
+/* Cursor hiding for auto-hide system */
+.game-analysis.hide-cursor,
+.game-analysis.hide-cursor * {
+  cursor: none !important;
+}
+
 /* Circular Back Button */
 .circular-back-button {
   position: absolute;

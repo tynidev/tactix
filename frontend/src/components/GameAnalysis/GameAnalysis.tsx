@@ -101,6 +101,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
 
   // Unified auto-hide system state
   const [areBothUIElementsVisible, setAreBothUIElementsVisible] = useState(true);
+  const [isCursorVisible, setIsCursorVisible] = useState(true);
 
   // Add this ref to track previous drawings
   const lastDrawingsRef = useRef<Drawing[]>([]);
@@ -111,6 +112,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
   // Unified auto-hide timer refs
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
   const gracePeriodTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const cursorTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Audio recording functionality
   const audioRecording = useAudioRecording();
@@ -121,27 +123,39 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
   // Coaching point playback functionality
   const playback = useCoachingPointPlayback();
 
-  // Unified auto-hide functionality
+  // Unified auto-hide functionality with cursor hiding
   const startInactivityTimer = useCallback(() =>
   {
-    // Clear existing timer
+    // Clear existing timers
     if (inactivityTimerRef.current)
     {
       clearTimeout(inactivityTimerRef.current);
       inactivityTimerRef.current = null;
     }
+    if (cursorTimerRef.current)
+    {
+      clearTimeout(cursorTimerRef.current);
+      cursorTimerRef.current = null;
+    }
 
-    // Always set timer (not dependent on video playing state)
+    // Start cursor timer (3 seconds - faster than UI elements)
+    cursorTimerRef.current = setTimeout(() =>
+    {
+      setIsCursorVisible(false);
+    }, 3000);
+
+    // Start UI elements timer (5 seconds)
     inactivityTimerRef.current = setTimeout(() =>
     {
       setAreBothUIElementsVisible(false);
-    }, 5000); // 5 seconds
+    }, 5000);
   }, []);
 
   const handleUserActivity = useCallback(() =>
   {
-    // Make both UI elements visible again when there's activity
+    // Make both UI elements and cursor visible again when there's activity
     setAreBothUIElementsVisible(true);
+    setIsCursorVisible(true);
 
     // Clear grace period timer if active
     if (gracePeriodTimerRef.current)
@@ -150,7 +164,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
       gracePeriodTimerRef.current = null;
     }
 
-    // Restart the inactivity timer
+    // Restart the inactivity timers
     startInactivityTimer();
   }, [startInactivityTimer]);
 
@@ -748,14 +762,20 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
   {
     if (playback.isPlaying)
     {
-      // Immediately hide both UI elements when audio starts
+      // Immediately hide both UI elements and cursor when audio starts
       setAreBothUIElementsVisible(false);
+      setIsCursorVisible(false);
 
       // Clear any existing timers
       if (inactivityTimerRef.current)
       {
         clearTimeout(inactivityTimerRef.current);
         inactivityTimerRef.current = null;
+      }
+      if (cursorTimerRef.current)
+      {
+        clearTimeout(cursorTimerRef.current);
+        cursorTimerRef.current = null;
       }
       if (gracePeriodTimerRef.current)
       {
@@ -805,6 +825,11 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
         clearTimeout(inactivityTimerRef.current);
         inactivityTimerRef.current = null;
       }
+      if (cursorTimerRef.current)
+      {
+        clearTimeout(cursorTimerRef.current);
+        cursorTimerRef.current = null;
+      }
       if (gracePeriodTimerRef.current)
       {
         clearTimeout(gracePeriodTimerRef.current);
@@ -850,7 +875,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
   }
 
   return (
-    <div className='game-analysis'>
+    <div className={`game-analysis ${!isCursorVisible ? 'hide-cursor' : ''}`}>
       {/* Circular Back Button */}
       <button onClick={() => window.history.back()} className='circular-back-button' title='Back'>
         <FaArrowLeft />
