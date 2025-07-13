@@ -99,11 +99,18 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
   >(null);
   const [recordingStartTimestamp, setRecordingStartTimestamp] = useState<number | null>(null);
 
+  // Unified auto-hide system state
+  const [areBothUIElementsVisible, setAreBothUIElementsVisible] = useState(true);
+
   // Add this ref to track previous drawings
   const lastDrawingsRef = useRef<Drawing[]>([]);
 
   // Track if video was playing when we paused coaching point playback
   const wasVideoPlayingBeforePauseRef = useRef<boolean>(false);
+
+  // Unified auto-hide timer refs
+  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const gracePeriodTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Audio recording functionality
   const audioRecording = useAudioRecording();
@@ -113,6 +120,39 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
 
   // Coaching point playback functionality
   const playback = useCoachingPointPlayback();
+
+  // Unified auto-hide functionality
+  const startInactivityTimer = useCallback(() =>
+  {
+    // Clear existing timer
+    if (inactivityTimerRef.current)
+    {
+      clearTimeout(inactivityTimerRef.current);
+      inactivityTimerRef.current = null;
+    }
+
+    // Always set timer (not dependent on video playing state)
+    inactivityTimerRef.current = setTimeout(() =>
+    {
+      setAreBothUIElementsVisible(false);
+    }, 5000); // 5 seconds
+  }, []);
+
+  const handleUserActivity = useCallback(() =>
+  {
+    // Make both UI elements visible again when there's activity
+    setAreBothUIElementsVisible(true);
+
+    // Clear grace period timer if active
+    if (gracePeriodTimerRef.current)
+    {
+      clearTimeout(gracePeriodTimerRef.current);
+      gracePeriodTimerRef.current = null;
+    }
+
+    // Restart the inactivity timer
+    startInactivityTimer();
+  }, [startInactivityTimer]);
 
   // Set body class for fullscreen and force dark theme
   useEffect(() =>
@@ -701,6 +741,78 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
     return () => clearInterval(interval);
   }, [isRecording, getDrawingData, videoDimensions, recordingSession]);
 
+  // Unified auto-hide system effects
+
+  // Monitor coaching point playback for immediate hide + grace period
+  useEffect(() =>
+  {
+    if (playback.isPlaying)
+    {
+      // Immediately hide both UI elements when audio starts
+      setAreBothUIElementsVisible(false);
+
+      // Clear any existing timers
+      if (inactivityTimerRef.current)
+      {
+        clearTimeout(inactivityTimerRef.current);
+        inactivityTimerRef.current = null;
+      }
+      if (gracePeriodTimerRef.current)
+      {
+        clearTimeout(gracePeriodTimerRef.current);
+        gracePeriodTimerRef.current = null;
+      }
+
+      // Start grace period (1.5 seconds)
+      gracePeriodTimerRef.current = setTimeout(() =>
+      {
+        // Grace period ended, activity detection will resume with next user activity
+        gracePeriodTimerRef.current = null;
+      }, 1500);
+    }
+  }, [playback.isPlaying]);
+
+  // Document-level activity detection
+  useEffect(() =>
+  {
+    const events = [
+      'mousedown',
+      'mousemove',
+      'keydown',
+      'scroll',
+      'touchstart',
+      'click',
+    ];
+
+    events.forEach((event) =>
+    {
+      document.addEventListener(event, handleUserActivity, { passive: true });
+    });
+
+    // Start initial timer
+    startInactivityTimer();
+
+    return () =>
+    {
+      events.forEach((event) =>
+      {
+        document.removeEventListener(event, handleUserActivity);
+      });
+
+      // Cleanup timers
+      if (inactivityTimerRef.current)
+      {
+        clearTimeout(inactivityTimerRef.current);
+        inactivityTimerRef.current = null;
+      }
+      if (gracePeriodTimerRef.current)
+      {
+        clearTimeout(gracePeriodTimerRef.current);
+        gracePeriodTimerRef.current = null;
+      }
+    };
+  }, [handleUserActivity, startInactivityTimer]);
+
   // Keyboard shortcuts
   useKeyboardShortcuts({
     player,
@@ -768,7 +880,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
           />
         </div>
 
-        {selectedCoachingPoint && (
+        {areBothUIElementsVisible && selectedCoachingPoint && (
           <div className={`coaching-point-sidebar ${playback.isPlaying ? 'playback-active' : ''}`}>
             <div className='sidebar-header'>
               <h3>Coaching Point Details</h3>
@@ -944,6 +1056,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
         onSelectCoachingPoint={handleSelectCoachingPoint}
         refreshTrigger={coachingPointsRefresh}
         onExpandedChange={setIsFlyoutExpanded}
+        isVisible={areBothUIElementsVisible}
         isPlaying={isPlaying}
         currentTime={playerCurrentTime}
         duration={duration}

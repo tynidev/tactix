@@ -67,6 +67,8 @@ interface CoachingPointsFlyoutProps
   onSelectCoachingPoint: (point: CoachingPoint | null) => void;
   refreshTrigger?: number; // Optional prop to trigger refresh
   onExpandedChange?: (isExpanded: boolean) => void; // Callback to notify parent of expansion state
+  // Unified auto-hide system
+  isVisible: boolean; // Controlled by parent GameAnalysis component
   // Transport control props
   isPlaying: boolean;
   currentTime: number;
@@ -89,8 +91,6 @@ interface CoachingPointsFlyoutProps
     recordingTime: number;
     error: string | null;
   };
-  // Auto-hide configuration
-  autoHideTimeout?: number; // Time in milliseconds before auto-hiding (default: 5000ms = 5s)
 }
 
 export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
@@ -103,6 +103,8 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
     onSelectCoachingPoint,
     refreshTrigger,
     onExpandedChange,
+    // Unified auto-hide system
+    isVisible,
     // Transport control props
     isPlaying,
     currentTime,
@@ -122,8 +124,6 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
     isRecording,
     isReady,
     audioRecording,
-    // Auto-hide configuration
-    autoHideTimeout = 5000, // Default 5 seconds
   }) =>
   {
     const { user } = useAuth();
@@ -150,10 +150,7 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
       loading: false,
     });
 
-    // Auto-hide timer state
-    const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
     const flyoutRef = useRef<HTMLDivElement>(null);
-    const [isVisible, setIsVisible] = useState(true);
 
     const loadCoachingPoints = useCallback(async () =>
     {
@@ -513,36 +510,7 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
       return userRole === 'coach';
     }, [userRole]);
 
-    // Auto-hide functionality
-    const startInactivityTimer = useCallback(() =>
-    {
-      // Clear existing timer
-      if (inactivityTimerRef.current)
-      {
-        clearTimeout(inactivityTimerRef.current);
-        inactivityTimerRef.current = null;
-      }
-
-      // Only set timer if video is playing
-      if (isPlaying)
-      {
-        inactivityTimerRef.current = setTimeout(() =>
-        {
-          setIsVisible(false);
-        }, autoHideTimeout);
-      }
-    }, [isPlaying, autoHideTimeout]);
-
-    const handleUserActivity = useCallback(() =>
-    {
-      // Make flyout visible again when there's activity
-      setIsVisible(true);
-
-      // Restart the timer
-      startInactivityTimer();
-    }, [startInactivityTimer]);
-
-    // Simple setIsExpanded without timer management (since we're hiding entire flyout now)
+    // Simple toggle for expansion
     const toggleExpanded = useCallback(() =>
     {
       setIsExpanded(!isExpanded);
@@ -573,62 +541,6 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
         onExpandedChange(isExpanded);
       }
     }, [isExpanded, onExpandedChange]);
-
-    // Auto-hide timer management - start/stop when playing state changes
-    useEffect(() =>
-    {
-      if (isPlaying)
-      {
-        startInactivityTimer();
-      }
-      else
-      {
-        // Clear timer when video is paused
-        if (inactivityTimerRef.current)
-        {
-          clearTimeout(inactivityTimerRef.current);
-          inactivityTimerRef.current = null;
-        }
-        // Make sure flyout is visible when paused
-        setIsVisible(true);
-      }
-
-      return () =>
-      {
-        if (inactivityTimerRef.current)
-        {
-          clearTimeout(inactivityTimerRef.current);
-          inactivityTimerRef.current = null;
-        }
-      };
-    }, [isPlaying, startInactivityTimer]);
-
-    // Add event listeners for user activity on the document (always active)
-    useEffect(() =>
-    {
-      // Event listeners for user interactions
-      const events = [
-        'mousedown',
-        'mousemove',
-        'keydown',
-        'scroll',
-        'touchstart',
-        'click',
-      ];
-
-      events.forEach((event) =>
-      {
-        document.addEventListener(event, handleUserActivity, { passive: true });
-      });
-
-      return () =>
-      {
-        events.forEach((event) =>
-        {
-          document.removeEventListener(event, handleUserActivity);
-        });
-      };
-    }, [handleUserActivity]);
 
     // Don't render the flyout at all when it's hidden
     if (!isVisible)
