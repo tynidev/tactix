@@ -552,7 +552,9 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
     if (!isFullscreenSupported())
     {
       console.warn('Fullscreen API is not supported on this device/browser');
-      alert('Fullscreen is not supported on this device. Try rotating your device to landscape mode for a better viewing experience.');
+      alert(
+        'Fullscreen is not supported on this device. Try rotating your device to landscape mode for a better viewing experience.',
+      );
       return;
     }
 
@@ -622,7 +624,9 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
       // On iOS Safari, fullscreen API often fails, provide helpful message
       if (/iPad|iPhone|iPod/.test(navigator.userAgent))
       {
-        alert('For the best viewing experience on iOS, please rotate your device to landscape mode and use Safari\'s built-in fullscreen by tapping the fullscreen icon in the video controls.');
+        alert(
+          "For the best viewing experience on iOS, please rotate your device to landscape mode and use Safari's built-in fullscreen by tapping the fullscreen icon in the video controls.",
+        );
       }
     }
   }, [isFullscreen, isFullscreenSupported]);

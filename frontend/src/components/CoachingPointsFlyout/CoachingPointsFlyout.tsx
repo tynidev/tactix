@@ -537,7 +537,7 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
     {
       // Make flyout visible again when there's activity
       setIsVisible(true);
-      
+
       // Restart the timer
       startInactivityTimer();
     }, [startInactivityTimer]);
@@ -631,12 +631,13 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
     }, [handleUserActivity]);
 
     // Don't render the flyout at all when it's hidden
-    if (!isVisible) {
+    if (!isVisible)
+    {
       return null;
     }
 
     return (
-      <div 
+      <div
         ref={flyoutRef}
         className={`coaching-points-flyout ${isExpanded ? 'expanded' : 'collapsed'}`}
       >
