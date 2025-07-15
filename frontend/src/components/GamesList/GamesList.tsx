@@ -565,6 +565,11 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
                         target.src = getYouTubeThumbnailFallback(game.video_id!);
                       }}
                     />
+                    {game.teams?.name && (
+                      <div className='team-name-overlay'>
+                        {game.teams.name}
+                      </div>
+                    )}
                     <div className='video-overlay'>
                       <div className='play-icon'>▶</div>
                     </div>
