@@ -388,7 +388,7 @@ export const GamesList = memo(forwardRef<GamesListRef, GamesListProps>(({
           <button
             className='btn btn-secondary'
             onClick={() => setFiltersExpanded(!filtersExpanded)}
-            aria-expanded={filtersExpanded}
+            aria-expanded={filtersExpanded ? 'true' : 'false'}
             aria-controls='filter-content'
           >
             <span className='filter-toggle-text'>
@@ -562,13 +562,26 @@ export const GamesList = memo(forwardRef<GamesListRef, GamesListProps>(({
 
                 {game.video_id && (
                   <div className='game-thumbnail'>
+                    <div className='thumbnail-loading-placeholder'></div>
                     <img
                       src={getYouTubeThumbnailUrl(game.video_id)}
                       alt={`Thumbnail for ${game.opponent} game`}
                       className='thumbnail-image'
+                      loading='lazy'
+                      onLoad={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        const placeholder = target.previousElementSibling as HTMLElement;
+                        if (placeholder) {
+                          placeholder.style.display = 'none';
+                        }
+                      }}
                       onError={(e) =>
                       {
                         const target = e.target as HTMLImageElement;
+                        const placeholder = target.previousElementSibling as HTMLElement;
+                        if (placeholder) {
+                          placeholder.style.display = 'none';
+                        }
                         target.src = getYouTubeThumbnailFallback(game.video_id!);
                       }}
                     />
