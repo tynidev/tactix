@@ -1,10 +1,81 @@
-import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react';
+import React, { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import DatePicker from 'react-datepicker';
 import { FaPencilAlt, FaTrash } from 'react-icons/fa';
 import { getApiUrl, getValidAccessToken } from '../../utils/api';
 import { ConfirmationDialog } from '../ConfirmationDialog';
 import './GamesList.css';
 import 'react-datepicker/dist/react-datepicker.css';
+
+// Date utility functions moved outside component to avoid recreation
+const formatGameDate = (dateString: string): string =>
+{
+  // Parse date as local date to avoid timezone issues
+  const [year, month, day] = dateString.split('-').map(Number);
+  const localDate = new Date(year, month - 1, day); // month is 0-indexed
+  return localDate.toLocaleDateString();
+};
+
+const parseGameDate = (dateString: string): Date =>
+{
+  // Centralized date parsing logic
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(year, month - 1, day); // month is 0-indexed
+};
+
+// Game result utility functions moved outside component
+const formatGameResult = (teamScore: number | null, oppScore: number | null): string =>
+{
+  if (teamScore === null || oppScore === null)
+  {
+    return 'No score';
+  }
+
+  if (teamScore > oppScore)
+  {
+    return `W ${teamScore}-${oppScore}`;
+  }
+  else if (teamScore < oppScore)
+  {
+    return `L ${teamScore}-${oppScore}`;
+  }
+  else
+  {
+    return `T ${teamScore}-${oppScore}`;
+  }
+};
+
+const getResultClass = (teamScore: number | null, oppScore: number | null): string =>
+{
+  if (teamScore === null || oppScore === null)
+  {
+    return '';
+  }
+
+  if (teamScore > oppScore)
+  {
+    return 'result-win';
+  }
+  else if (teamScore < oppScore)
+  {
+    return 'result-loss';
+  }
+  else
+  {
+    return 'result-tie';
+  }
+};
+
+// YouTube utility functions moved outside component
+const getYouTubeThumbnailUrl = (videoId: string): string =>
+{
+  // Try maxresdefault first (highest quality), fallback to hqdefault if needed
+  return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+};
+
+const getYouTubeThumbnailFallback = (videoId: string): string =>
+{
+  return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+};
 
 interface Game
 {
@@ -53,7 +124,7 @@ export interface GamesListRef
   refresh: () => void;
 }
 
-export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
+export const GamesList = memo(forwardRef<GamesListRef, GamesListProps>(({
   teamId,
   userRole,
   teams,
@@ -98,7 +169,7 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
     refresh: fetchGames,
   }));
 
-  const fetchGames = async () =>
+  const fetchGames = useCallback(async () =>
   {
     try
     {
@@ -137,9 +208,9 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
     {
       setLoading(false);
     }
-  };
+  }, [teamId]);
 
-  const handleDeleteGame = (gameId: string) =>
+  const handleDeleteGame = useCallback((gameId: string) =>
   {
     const game = games.find(g => g.id === gameId);
     const gameOpponent = game?.opponent || 'this game';
@@ -150,9 +221,9 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
       gameOpponent,
       loading: false,
     });
-  };
+  }, [games]);
 
-  const handleDeleteConfirmationClose = () =>
+  const handleDeleteConfirmationClose = useCallback(() =>
   {
     setDeleteConfirmation({
       isOpen: false,
@@ -160,9 +231,9 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
       gameOpponent: '',
       loading: false,
     });
-  };
+  }, []);
 
-  const handleDeleteConfirmationConfirm = async () =>
+  const handleDeleteConfirmationConfirm = useCallback(async () =>
   {
     if (!deleteConfirmation.gameId) return;
 
@@ -203,69 +274,7 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
       alert('Failed to delete game');
       console.error('Error deleting game:', err);
     }
-  };
-
-  // Helper function to format date without timezone conversion
-  const formatGameDate = (dateString: string) =>
-  {
-    // Parse date as local date to avoid timezone issues
-    const [year, month, day] = dateString.split('-').map(Number);
-    const localDate = new Date(year, month - 1, day); // month is 0-indexed
-    return localDate.toLocaleDateString();
-  };
-
-  const formatGameResult = (teamScore: number | null, oppScore: number | null) =>
-  {
-    if (teamScore === null || oppScore === null)
-    {
-      return 'No score';
-    }
-
-    if (teamScore > oppScore)
-    {
-      return `W ${teamScore}-${oppScore}`;
-    }
-    else if (teamScore < oppScore)
-    {
-      return `L ${teamScore}-${oppScore}`;
-    }
-    else
-    {
-      return `T ${teamScore}-${oppScore}`;
-    }
-  };
-
-  const getResultClass = (teamScore: number | null, oppScore: number | null) =>
-  {
-    if (teamScore === null || oppScore === null)
-    {
-      return '';
-    }
-
-    if (teamScore > oppScore)
-    {
-      return 'result-win';
-    }
-    else if (teamScore < oppScore)
-    {
-      return 'result-loss';
-    }
-    else
-    {
-      return 'result-tie';
-    }
-  };
-
-  const getYouTubeThumbnailUrl = (videoId: string) =>
-  {
-    // Try maxresdefault first (highest quality), fallback to hqdefault if needed
-    return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
-  };
-
-  const getYouTubeThumbnailFallback = (videoId: string) =>
-  {
-    return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-  };
+  }, [deleteConfirmation.gameId, handleDeleteConfirmationClose, fetchGames]);
 
   // Date range handlers
   const handleDateChange = useCallback((dates: [Date | null, Date | null]) =>
@@ -316,9 +325,8 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
       // Date range filter
       if (startDate || endDate)
       {
-        // Parse game date as local date to avoid timezone issues
-        const [year, month, day] = game.date.split('-').map(Number);
-        const gameDate = new Date(year, month - 1, day); // month is 0-indexed
+        // Use centralized date parsing logic
+        const gameDate = parseGameDate(game.date);
 
         if (startDate)
         {
@@ -506,8 +514,7 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
             {hasActiveFilters && (
               <button
                 onClick={clearFilters}
-                className='btn btn-secondary btn-sm'
-                style={{ marginTop: 'var(--space-md)' }}
+                className='btn btn-secondary btn-sm clear-filters-btn'
               >
                 Clear All Filters
               </button>
@@ -627,4 +634,4 @@ export const GamesList = forwardRef<GamesListRef, GamesListProps>(({
       />
     </div>
   );
-});
+}));
