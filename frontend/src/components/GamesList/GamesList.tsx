@@ -568,10 +568,12 @@ export const GamesList = memo(forwardRef<GamesListRef, GamesListProps>(({
                       alt={`Thumbnail for ${game.opponent} game`}
                       className='thumbnail-image'
                       loading='lazy'
-                      onLoad={(e) => {
+                      onLoad={(e) =>
+                      {
                         const target = e.target as HTMLImageElement;
                         const placeholder = target.previousElementSibling as HTMLElement;
-                        if (placeholder) {
+                        if (placeholder)
+                        {
                           placeholder.style.display = 'none';
                         }
                       }}
@@ -579,7 +581,8 @@ export const GamesList = memo(forwardRef<GamesListRef, GamesListProps>(({
                       {
                         const target = e.target as HTMLImageElement;
                         const placeholder = target.previousElementSibling as HTMLElement;
-                        if (placeholder) {
+                        if (placeholder)
+                        {
                           placeholder.style.display = 'none';
                         }
                         target.src = getYouTubeThumbnailFallback(game.video_id!);

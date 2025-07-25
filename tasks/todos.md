@@ -1,43 +1,20 @@
-# Game Analysis Page
-* [X] Recording indicator overlays the stop recording button
-* [X] Coaching point doesn't automatically stop when it reaches the end - it just pauses instead of stopping
-* [X] Feedback should be optional for coaching points
-* [X] Video should not have any parts cut off or overlaid by UI elements
-* [X] Labels and player tags should be larger in the coaching point sidebar
-* [X] Redesign game analysis header to match the footer styling
-* [X] Remove play, pause, and stop icons from coaching point sidebar
-* [X] Drawing toolbar should be collapsed when you are not hovering over it
-
-# Team Detail Page
-* [X] Player numbers need to be displayed larger
-* [X] Need to add a player modal
-    * [X] Guardian/Coach/Admin role selection
-        * [X] If Guardian is selected, also add relationship field
-
-# Add Game Modal
-
-# Team List
-* [X] "Add Team" should open a modal dialog
-* [X] Team edit button should open the same team modal
-* [X] "Select All Teams" functionality is not working
-* [X] Delete action should open a confirmation modal - need a generic dialog component
 
 # Dashboard
 * [ ] Games analyzed and sessions statistics are incorrect - need to fix or replace with other meaningful stats
 
 # Auth
 * [ ] Sign out doesn't properly invalidate the session - users can navigate back to protected pages
-
-# Signup
-* [X] Email verification redirects to localhost for some reason
-    - [X] Need to test change
-* [X] The initial join to a team didn't work when signing up
-    - [X] Need to test change
 * [ ] Need to test joining a team when signing in
+* [ ] Forgot my password
 
-# delete player
-* [X] Guardians/Coaches/Admins need to be able to delete a player. Coaches/Admins can delete any player. Guardians can delete a player that they have a guardian_player_relationship with.
-* [X] A guardians player's should be listed on thier profile page.
+# Coaching Points
+* [ ] Keyboard shortcuts for adding coaching point
+* [ ] Make coaching points editable after creation
 
-# team card
-- the number of coaching points isn't showing correctly
+# Change Tech Stack
+* [ ] Change to local tech stack
+- Keycloak: user auth + OAuth, JWT access
+- PostgreSQL: user/account data + TACTIX App data
+- Mailcow: Email SMTP server
+- NGINX + HTTPS for reverse proxy and TLS
+- Your app (React/Node) using OpenID Connect to talk to Keycloak
