@@ -102,6 +102,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
   // Unified auto-hide system state
   const [areBothUIElementsVisible, setAreBothUIElementsVisible] = useState(true);
   const [isCursorVisible, setIsCursorVisible] = useState(true);
+  const [playbackStartedFromFlyout, setPlaybackStartedFromFlyout] = useState(false);
 
   // Add this ref to track previous drawings
   const lastDrawingsRef = useRef<Drawing[]>([]);
@@ -526,6 +527,8 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
     },
     onPlaybackComplete: () =>
     {
+      // Reset the flyout flag when playback completes
+      setPlaybackStartedFromFlyout(false);
       // Reset transport controls when playback finishes naturally
       resetTransportControls();
     },
@@ -536,6 +539,9 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
   {
     // Ensure the point is selected first (this should already be done by handleSelectCoachingPoint)
     setSelectedCoachingPoint(point);
+
+    // Mark this as flyout-initiated playback
+    setPlaybackStartedFromFlyout(true);
 
     // Start playback using the existing handler
     const handlers = playbackEventHandlers();
@@ -554,6 +560,9 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
   // Handle play/resume playback
   const handlePlayPlayback = useCallback(() =>
   {
+    // Mark this as sidebar-initiated playback
+    setPlaybackStartedFromFlyout(false);
+
     if (playback.currentTime > 0 && playback.currentTime < playback.duration && !playback.isPlaying)
     {
       // Resume if paused (but not if at the end)
@@ -594,6 +603,8 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
   const handleStopPlayback = useCallback(() =>
   {
     playback.stopPlayback();
+    // Reset the flyout flag when stopping playback
+    setPlaybackStartedFromFlyout(false);
     // Reset transport controls when manually stopping playback
     resetTransportControls();
   }, [playback, resetTransportControls]);
@@ -771,9 +782,9 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
   // Monitor coaching point playback for immediate hide + grace period
   useEffect(() =>
   {
-    if (playback.isPlaying)
+    if (playback.isPlaying && playbackStartedFromFlyout)
     {
-      // Immediately hide both UI elements and cursor when audio starts
+      // Only immediately hide UI elements and cursor when playback started from flyout
       setAreBothUIElementsVisible(false);
       setIsCursorVisible(false);
 
@@ -801,7 +812,13 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
         gracePeriodTimerRef.current = null;
       }, 1500);
     }
-  }, [playback.isPlaying]);
+    else if (playback.isPlaying && !playbackStartedFromFlyout)
+    {
+      // For sidebar-initiated playback, just restart the normal inactivity timer
+      // This allows the UI to remain visible and follow normal auto-hide behavior
+      startInactivityTimer();
+    }
+  }, [playback.isPlaying, playbackStartedFromFlyout, startInactivityTimer]);
 
   // Document-level activity detection
   useEffect(() =>
