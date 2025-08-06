@@ -255,7 +255,8 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
             <div className='checkbox-content'>
               <span>I am this player's guardian</span>
               <div className='form-help'>
-                Select this if you are the parent or legal guardian. This will link your account to the player's profile.
+                Select this if you are the parent or legal guardian. This will link your account to the player's
+                profile.
               </div>
             </div>
           </label>
