@@ -529,7 +529,6 @@ export const UserProfilePage: React.FC = () =>
         isOpen={showPlayerProfileModal}
         onClose={() => setShowPlayerProfileModal(false)}
         onSuccess={handlePlayerProfileSuccess}
-        forceGuardianRole={true}
       />
 
       {/* Delete Player Confirmation Dialog */}
