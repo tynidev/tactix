@@ -149,8 +149,7 @@ router.get('/game/:gameId', authenticateUser, async (req: AuthenticatedRequest, 
           id,
           player_profiles(
             id,
-            name,
-            jersey_number
+            name
           )
         ),
         coaching_point_labels(

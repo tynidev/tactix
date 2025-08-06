@@ -27,7 +27,6 @@ interface GuardianPlayer
 {
   id: string;
   name: string;
-  jersey_number: string | null;
   user_id: string | null;
   created_at: string;
   relationship_type: 'guardian' | 'owner';
@@ -492,11 +491,6 @@ export const UserProfilePage: React.FC = () =>
                     <div className='user-profile-player-info'>
                       <div className='user-profile-player-name'>
                         {player.name}
-                        {player.jersey_number && (
-                          <span className='user-profile-player-jersey'>
-                            #{player.jersey_number}
-                          </span>
-                        )}
                       </div>
                       <div className='user-profile-player-relationship'>
                         {player.relationship_type === 'owner' ? 'Your player profile' : 'Guardian of'}
@@ -543,11 +537,7 @@ export const UserProfilePage: React.FC = () =>
         onConfirm={confirmDeletePlayer}
         title='Delete Player'
         message={deletePlayerDialog.player ?
-          `Are you sure you want to permanently delete ${deletePlayerDialog.player.name}${
-            deletePlayerDialog.player.jersey_number ?
-              ` (#${deletePlayerDialog.player.jersey_number})` :
-              ''
-          }? This action cannot be undone and will remove all associated data including team memberships, coaching points, and views.` :
+          `Are you sure you want to permanently delete ${deletePlayerDialog.player.name}? This action cannot be undone and will remove all associated data including team memberships, coaching points, and views.` :
           ''}
         confirmButtonText='Delete Player'
         cancelButtonText='Cancel'

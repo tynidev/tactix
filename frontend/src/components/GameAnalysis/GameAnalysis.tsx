@@ -64,7 +64,6 @@ interface CoachingPoint
     player_profiles: {
       id: string;
       name: string;
-      jersey_number: string;
     };
   }[];
   coaching_point_labels?: {

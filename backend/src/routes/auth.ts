@@ -103,7 +103,6 @@ async function joinTeamWithServiceRole(
         .from('player_profiles')
         .insert({
           name: userProfile?.name || 'Player',
-          jersey_number: null,
           user_id: userId,
         })
         .select()
@@ -127,6 +126,7 @@ async function joinTeamWithServiceRole(
         .insert({
           team_id: joinCodeData.team_id,
           player_id: playerProfile.id,
+          jersey_number: null,
         });
 
       if (linkError)
@@ -374,7 +374,6 @@ router.get('/guardian-players', authenticateUser, async (req: AuthenticatedReque
         player_profiles (
           id,
           name,
-          jersey_number,
           user_id,
           created_at
         )
@@ -455,7 +454,7 @@ router.delete('/players/:playerId', authenticateUser, async (req: AuthenticatedR
     // Check if player exists
     const { data: playerProfile, error: playerError } = await supabase
       .from('player_profiles')
-      .select('id, name, jersey_number, user_id')
+      .select('id, name, user_id')
       .eq('id', playerId)
       .single();
 
@@ -535,10 +534,9 @@ router.delete('/players/:playerId', authenticateUser, async (req: AuthenticatedR
       }
 
       const playerName = playerProfile.name || 'Unknown';
-      const jerseyNumber = playerProfile.jersey_number;
 
       res.json({
-        message: `Player ${playerName}${jerseyNumber ? ` (#${jerseyNumber})` : ''} deleted successfully`,
+        message: `Player ${playerName} deleted successfully`,
       });
     }
     catch (deleteError)

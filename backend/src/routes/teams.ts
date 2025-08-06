@@ -470,7 +470,6 @@ router.post('/join', async (req: AuthenticatedRequest, res: Response): Promise<v
           .from('player_profiles')
           .insert({
             name: finalPlayerName,
-            jersey_number: jerseyNumber || null,
             user_id: userId,
           })
           .select()
@@ -497,6 +496,7 @@ router.post('/join', async (req: AuthenticatedRequest, res: Response): Promise<v
           .insert({
             team_id: joinCodeData.team_id,
             player_id: playerProfile.id,
+            jersey_number: jerseyNumber || null,
           });
 
         if (linkError)
@@ -965,10 +965,10 @@ router.get(
         .from('team_players')
         .select(`
           created_at,
+          jersey_number,
           player_profiles (
             id,
             name,
-            jersey_number,
             user_id,
             created_at,
             user_profiles (
@@ -1080,7 +1080,7 @@ router.get(
             user_id: playerProfile.user_id,
             name: playerProfile.name,
             email: playerProfile.user_profiles?.email || null,
-            jersey_number: playerProfile.jersey_number,
+            jersey_number: teamPlayer.jersey_number,
             joined_at: teamPlayer.created_at,
             profile_created_at: playerProfile.created_at,
             user_created_at: playerProfile.user_profiles?.created_at || null,
@@ -1119,10 +1119,10 @@ router.get(
         .from('team_players')
         .select(`
           created_at,
+          jersey_number,
           player_profiles (
             id,
             name,
-            jersey_number,
             user_id,
             created_at
           )
@@ -1138,6 +1138,7 @@ router.get(
       // Flatten the structure and include join date
       const flattenedPlayers = players?.map(tp => ({
         ...tp.player_profiles,
+        jersey_number: tp.jersey_number,
         team_joined_at: tp.created_at,
       })).filter(Boolean) || [];
 
@@ -1200,12 +1201,9 @@ router.post(
       {
         const { data: existingPlayer, error: jerseyCheckError } = await supabase
           .from('team_players')
-          .select(`
-            player_profiles (
-              jersey_number
-            )
-          `)
-          .eq('team_id', teamId);
+          .select('jersey_number')
+          .eq('team_id', teamId)
+          .eq('jersey_number', jerseyNumber.trim());
 
         if (jerseyCheckError)
         {
@@ -1213,11 +1211,7 @@ router.post(
           return;
         }
 
-        const takenJerseys = existingPlayer
-          ?.map((tp: any) => tp.player_profiles?.jersey_number)
-          .filter(Boolean) || [];
-
-        if (takenJerseys.includes(jerseyNumber.trim()))
+        if (existingPlayer && existingPlayer.length > 0)
         {
           res.status(409).json({ error: 'Jersey number is already taken' });
           return;
@@ -1235,7 +1229,6 @@ router.post(
           .from('player_profiles')
           .insert({
             name: name.trim(),
-            jersey_number: jerseyNumber?.trim() || null,
             user_id: null, // Player profiles created this way don't have associated users initially
           })
           .select()
@@ -1255,6 +1248,7 @@ router.post(
           .insert({
             team_id: teamId,
             player_id: playerProfile.id,
+            jersey_number: jerseyNumber?.trim() || null,
           });
 
         if (linkError)
@@ -1310,7 +1304,7 @@ router.post(
           player: {
             id: playerProfile.id,
             name: playerProfile.name,
-            jersey_number: playerProfile.jersey_number,
+            jersey_number: jerseyNumber?.trim() || null,
             team_id: teamId,
             has_guardian_relationship: userRole === 'guardian',
           },
@@ -1510,10 +1504,10 @@ router.put(
         .from('team_players')
         .select(`
           id,
+          jersey_number,
           player_profiles (
             id,
             name,
-            jersey_number,
             user_id
           )
         `)
@@ -1596,7 +1590,7 @@ router.put(
 
         const playerProfile = teamPlayer.player_profiles;
         const playerName = playerProfile?.name || 'Unknown';
-        const jerseyNumber = playerProfile?.jersey_number;
+        const jerseyNumber = teamPlayer?.jersey_number;
         const isSelfRemoval = playerProfile?.user_id === userId;
 
         res.json({

@@ -13,7 +13,6 @@
 | ---------------- | --------- | -----------------------------------------|
 | `id`             | UUID (PK) | Unique player profile ID                 |
 | `name`           | Text      | Player's full name                       |
-| `jersey_number`  | Text      | Player's jersey number (optional)        |
 | `user_id`        | UUID (FK) | References `user_profiles.id` (nullable) |
 | `created_at`     | Timestamp | When profile was created                 |
 
@@ -37,11 +36,12 @@
 | `is_active`  | Boolean   | Whether code can still be used                                |
 
 ## team_players
-| Column      | Type      | Description                       |
-| ----------- | --------- | --------------------------------- |
-| `id`        | UUID (PK) | Unique membership ID              |
-| `team_id`   | UUID (FK) | References `teams.id`             |
-| `player_id` | UUID (FK) | References `player_profiles.id`   |
+| Column         | Type      | Description                       |
+| -------------- | --------- | --------------------------------- |
+| `id`           | UUID (PK) | Unique membership ID              |
+| `team_id`      | UUID (FK) | References `teams.id`             |
+| `player_id`    | UUID (FK) | References `player_profiles.id`   |
+| `jersey_number`| Text      | Player's jersey number (optional) |
 
 ## team_memberships
 | Column      | Type      | Description                          |
@@ -177,6 +177,7 @@ erDiagram
         UUID id PK
         UUID team_id FK
         UUID player_id FK
+        Text jersey_number
     }
     
     team_memberships {
@@ -189,7 +190,6 @@ erDiagram
     player_profiles {
         UUID id PK
         Text name
-        Text jersey_number
         UUID user_id FK
         Timestamp created_at
     }
