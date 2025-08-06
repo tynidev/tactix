@@ -279,6 +279,88 @@
   min-width: 100px;
 }
 
+/* Custom Checkbox Styles */
+.player-profile-modal .form-checkbox {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  cursor: pointer;
+  padding: var(--space-md);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
+}
+
+.player-profile-modal .form-checkbox:hover {
+  border-color: var(--color-accent-primary);
+  background: var(--color-bg-input);
+}
+
+.player-profile-modal .form-checkbox input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.player-profile-modal .form-checkbox .checkbox-custom {
+  position: relative;
+  height: 20px;
+  width: 20px;
+  background: var(--color-bg-input);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.player-profile-modal .form-checkbox input[type="checkbox"]:checked + .checkbox-custom {
+  background: var(--color-accent-primary);
+  border-color: var(--color-accent-primary);
+}
+
+.player-profile-modal .form-checkbox .checkbox-custom::after {
+  content: "";
+  position: absolute;
+  display: none;
+  left: 6px;
+  top: 2px;
+  width: 6px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.player-profile-modal .form-checkbox input[type="checkbox"]:checked + .checkbox-custom::after {
+  display: block;
+}
+
+.player-profile-modal .form-checkbox input[type="checkbox"]:focus + .checkbox-custom {
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.2);
+}
+
+.player-profile-modal .form-checkbox .checkbox-content {
+  flex: 1;
+}
+
+.player-profile-modal .form-checkbox .checkbox-content span {
+  display: block;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  font-size: 0.95rem;
+  margin-bottom: var(--space-xs);
+}
+
+.player-profile-modal .form-checkbox.checked {
+  border-color: var(--color-accent-primary);
+  background: rgba(255, 107, 53, 0.05);
+}
+
 /* Loading States */
 .player-profile-modal .btn:disabled {
   opacity: 0.6;
