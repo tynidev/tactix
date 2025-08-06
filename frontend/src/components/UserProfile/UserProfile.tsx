@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { FaPencilAlt, FaTrash } from 'react-icons/fa';
+import { FaPencilAlt } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { getApiUrl } from '../../utils/api';
-import { ConfirmationDialog } from '../ConfirmationDialog';
+// import { ConfirmationDialog } from '../ConfirmationDialog';
 import { JoinTeamModal } from '../JoinTeamModal/JoinTeamModal';
 import { PlayerProfileModal } from '../PlayerProfileModal/PlayerProfileModal';
 import './UserProfile.css';
@@ -48,11 +48,11 @@ export const UserProfilePage: React.FC = () =>
   // Guardian players state
   const [guardianPlayers, setGuardianPlayers] = useState<GuardianPlayer[]>([]);
   const [playersLoading, setPlayersLoading] = useState(false);
-  const [deletePlayerDialog, setDeletePlayerDialog] = useState<{
-    isOpen: boolean;
-    player: GuardianPlayer | null;
-  }>({ isOpen: false, player: null });
-  const [deleteLoading, setDeleteLoading] = useState(false);
+  // const [deletePlayerDialog, setDeletePlayerDialog] = useState<{
+  //   isOpen: boolean;
+  //   player: GuardianPlayer | null;
+  // }>({ isOpen: false, player: null });
+  // const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() =>
   {
@@ -219,65 +219,65 @@ export const UserProfilePage: React.FC = () =>
     }
   };
 
-  const handleDeletePlayer = (player: GuardianPlayer) =>
-  {
-    setDeletePlayerDialog({ isOpen: true, player });
-  };
+  // const handleDeletePlayer = (player: GuardianPlayer) =>
+  // {
+  //   setDeletePlayerDialog({ isOpen: true, player });
+  // };
 
-  const confirmDeletePlayer = async () =>
-  {
-    if (!deletePlayerDialog.player) return;
+  // const confirmDeletePlayer = async () =>
+  // {
+  //   if (!deletePlayerDialog.player) return;
 
-    setDeleteLoading(true);
-    try
-    {
-      const token = (await import('../../lib/supabase')).supabase.auth.getSession();
-      const session = await token;
+  //   setDeleteLoading(true);
+  //   try
+  //   {
+  //     const token = (await import('../../lib/supabase')).supabase.auth.getSession();
+  //     const session = await token;
 
-      if (!session.data.session?.access_token)
-      {
-        throw new Error('No access token');
-      }
+  //     if (!session.data.session?.access_token)
+  //     {
+  //       throw new Error('No access token');
+  //     }
 
-      const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/api/auth/players/${deletePlayerDialog.player.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${session.data.session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+  //     const apiUrl = getApiUrl();
+  //     const response = await fetch(`${apiUrl}/api/auth/players/${deletePlayerDialog.player.id}`, {
+  //       method: 'DELETE',
+  //       headers: {
+  //         'Authorization': `Bearer ${session.data.session.access_token}`,
+  //         'Content-Type': 'application/json',
+  //       },
+  //     });
 
-      if (!response.ok)
-      {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete player');
-      }
+  //     if (!response.ok)
+  //     {
+  //       const errorData = await response.json();
+  //       throw new Error(errorData.error || 'Failed to delete player');
+  //     }
 
-      const data = await response.json();
-      alert(data.message || 'Player deleted successfully');
+  //     const data = await response.json();
+  //     alert(data.message || 'Player deleted successfully');
 
-      // Refresh guardian players list
-      await fetchGuardianPlayers();
+  //     // Refresh guardian players list
+  //     await fetchGuardianPlayers();
 
-      // Close dialog
-      setDeletePlayerDialog({ isOpen: false, player: null });
-    }
-    catch (err)
-    {
-      console.error('Error deleting player:', err);
-      alert(err instanceof Error ? err.message : 'Failed to delete player');
-    }
-    finally
-    {
-      setDeleteLoading(false);
-    }
-  };
+  //     // Close dialog
+  //     setDeletePlayerDialog({ isOpen: false, player: null });
+  //   }
+  //   catch (err)
+  //   {
+  //     console.error('Error deleting player:', err);
+  //     alert(err instanceof Error ? err.message : 'Failed to delete player');
+  //   }
+  //   finally
+  //   {
+  //     setDeleteLoading(false);
+  //   }
+  // };
 
-  const cancelDeletePlayer = () =>
-  {
-    setDeletePlayerDialog({ isOpen: false, player: null });
-  };
+  // const cancelDeletePlayer = () =>
+  // {
+  //   setDeletePlayerDialog({ isOpen: false, player: null });
+  // };
 
   const getInitials = () =>
   {
