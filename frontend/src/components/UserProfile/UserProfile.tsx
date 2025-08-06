@@ -506,13 +506,13 @@ export const UserProfilePage: React.FC = () =>
                       </div>
                     </div>
                     <div className='user-profile-player-actions'>
-                      <button
+                      {/* <button
                         onClick={() => handleDeletePlayer(player)}
                         className='btn btn-danger user-profile-delete-button'
                         title='Delete player permanently'
                       >
                         <FaTrash />
-                      </button>
+                      </button> */}
                     </div>
                   </div>
                 ))}
