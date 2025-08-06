@@ -537,7 +537,7 @@ export const UserProfilePage: React.FC = () =>
       />
 
       {/* Delete Player Confirmation Dialog */}
-      <ConfirmationDialog
+      {/* <ConfirmationDialog
         isOpen={deletePlayerDialog.isOpen}
         onClose={cancelDeletePlayer}
         onConfirm={confirmDeletePlayer}
@@ -553,7 +553,7 @@ export const UserProfilePage: React.FC = () =>
         cancelButtonText='Cancel'
         variant='danger'
         loading={deleteLoading}
-      />
+      /> */}
     </div>
   );
 };
