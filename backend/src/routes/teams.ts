@@ -1466,6 +1466,150 @@ router.put(
   },
 );
 
+// Update player jersey number - require coach, admin, guardian with relationship, or player themselves
+router.put(
+  '/:teamId/players/:playerId/jersey-number',
+  authenticateUser,
+  async (req: AuthenticatedRequest, res: Response): Promise<void> =>
+  {
+    try
+    {
+      const { teamId, playerId } = req.params;
+      const { jerseyNumber } = req.body;
+      const userId = req.user?.id;
+
+      if (!userId)
+      {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
+      }
+
+      // Check if user is a member of this team
+      const { data: userMembership, error: membershipError } = await supabase
+        .from('team_memberships')
+        .select('role')
+        .eq('team_id', teamId)
+        .eq('user_id', userId)
+        .single();
+
+      if (membershipError || !userMembership)
+      {
+        res.status(403).json({ error: 'User is not a member of this team' });
+        return;
+      }
+
+      const userRole = userMembership.role as TeamRole;
+
+      // Check if player exists and belongs to this team
+      const { data: teamPlayer, error: teamPlayerError } = await supabase
+        .from('team_players')
+        .select(`
+          id,
+          jersey_number,
+          player_profiles (
+            id,
+            name,
+            user_id
+          )
+        `)
+        .eq('team_id', teamId)
+        .eq('player_id', playerId)
+        .single();
+
+      if (teamPlayerError || !teamPlayer)
+      {
+        res.status(404).json({ error: 'Player not found in this team' });
+        return;
+      }
+
+      // Check permissions
+      let hasPermission = false;
+
+      if (userRole === TeamRole.Coach || userRole === TeamRole.Admin)
+      {
+        // Coaches and admins can edit any player's jersey number
+        hasPermission = true;
+      }
+      else if (userRole === TeamRole.Guardian)
+      {
+        // Guardians can only edit jersey numbers for players they have a relationship with
+        const { data: guardianRelationship, error: relationshipError } = await supabase
+          .from('guardian_player_relationships')
+          .select('id')
+          .eq('guardian_id', userId)
+          .eq('player_profile_id', playerId)
+          .single();
+
+        if (!relationshipError && guardianRelationship)
+        {
+          hasPermission = true;
+        }
+      }
+      else if (userRole === TeamRole.Player)
+      {
+        // Players can edit their own jersey number
+        const playerProfile = teamPlayer.player_profiles;
+        if (playerProfile?.user_id === userId)
+        {
+          hasPermission = true;
+        }
+      }
+
+      if (!hasPermission)
+      {
+        res.status(403).json({ error: "Insufficient permissions to edit this player's jersey number" });
+        return;
+      }
+
+      // Validate jersey number
+      let validatedJerseyNumber: string | null = null;
+      if (jerseyNumber !== null && jerseyNumber !== undefined && jerseyNumber !== '')
+      {
+        const trimmedNumber = String(jerseyNumber).trim();
+
+        // Validate format: only numbers, max 2 characters
+        if (!/^\d{1,2}$/.test(trimmedNumber))
+        {
+          res.status(400).json({ error: 'Jersey number must be 1-2 digits only' });
+          return;
+        }
+
+        validatedJerseyNumber = trimmedNumber;
+      }
+
+      // Update jersey number
+      const { error: updateError } = await supabase
+        .from('team_players')
+        .update({ jersey_number: validatedJerseyNumber })
+        .eq('team_id', teamId)
+        .eq('player_id', playerId);
+
+      if (updateError)
+      {
+        res.status(400).json({ error: 'Failed to update jersey number' });
+        return;
+      }
+
+      const playerProfile = teamPlayer.player_profiles;
+      const playerName = playerProfile?.name || 'Unknown';
+
+      res.json({
+        message: 'Jersey number updated successfully',
+        player: {
+          id: playerId,
+          name: playerName,
+          jersey_number: validatedJerseyNumber,
+        },
+      });
+    }
+    catch (error)
+    {
+      console.error('Update jersey number error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+);
+
 // Remove player from team - require coach, admin, guardian with relationship, or player themselves
 router.put(
   '/:teamId/players/:playerId/remove',

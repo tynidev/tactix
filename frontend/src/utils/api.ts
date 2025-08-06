@@ -344,3 +344,38 @@ export const createCoachingPointWithRecording = async (
     throw error;
   }
 };
+
+/**
+ * Update a player's jersey number
+ * @param teamId - ID of the team
+ * @param playerId - ID of the player
+ * @param jerseyNumber - New jersey number (can be null to clear)
+ * @returns Promise resolving to the updated player data
+ */
+export const updatePlayerJerseyNumber = async (
+  teamId: string,
+  playerId: string,
+  jerseyNumber: string | null,
+): Promise<any> =>
+{
+  try
+  {
+    const response = await apiRequest(`/api/teams/${teamId}/players/${playerId}/jersey-number`, {
+      method: 'PUT',
+      body: JSON.stringify({ jerseyNumber }),
+    });
+
+    if (!response.ok)
+    {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to update jersey number');
+    }
+
+    return await response.json();
+  }
+  catch (error)
+  {
+    console.error('❌ Error updating jersey number:', error);
+    throw error;
+  }
+};

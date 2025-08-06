@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import {
+  FaCheck,
   FaCopy,
+  FaEdit,
   FaPlus,
   FaSearch,
   FaSignOutAlt,
@@ -8,11 +10,12 @@ import {
   FaSortAlphaUp,
   FaSortNumericDown,
   FaSortNumericUp,
+  FaTimes,
 } from 'react-icons/fa';
 import { Link, useParams } from 'react-router-dom';
 import { ConfirmationDialog } from '../components/ConfirmationDialog';
 import { PlayerProfileModal } from '../components/PlayerProfileModal';
-import { getApiUrl } from '../utils/api';
+import { getApiUrl, updatePlayerJerseyNumber } from '../utils/api';
 
 interface TeamDetails
 {
@@ -54,7 +57,7 @@ interface Player
   user_id: string | null;
   name: string;
   email: string | null;
-  jersey_number: number | null;
+  jersey_number: string | null;
   joined_at: string;
   profile_created_at: string;
   user_created_at: string | null;
@@ -106,6 +109,12 @@ export const TeamDetailPage: React.FC = () =>
     member: Member | null;
   }>({ isOpen: false, member: null });
   const [removeLoading, setRemoveLoading] = useState(false);
+
+  // Jersey number editing states
+  const [editingJerseyPlayerId, setEditingJerseyPlayerId] = useState<string | null>(null);
+  const [editingJerseyValue, setEditingJerseyValue] = useState('');
+  const [jerseyUpdateLoading, setJerseyUpdateLoading] = useState(false);
+  const [jerseyError, setJerseyError] = useState('');
 
   useEffect(() =>
   {
@@ -498,6 +507,87 @@ export const TeamDetailPage: React.FC = () =>
     setRemoveMemberDialog({ isOpen: false, member: null });
   };
 
+  // Jersey number editing functions
+  const canEditJerseyNumber = (player: Player) =>
+  {
+    // If user can remove player then they can edit jersey number
+    return player.can_remove === true;
+  };
+
+  const startEditingJersey = (player: Player) =>
+  {
+    setEditingJerseyPlayerId(player.id);
+    setEditingJerseyValue(player.jersey_number?.toString() || '');
+    setJerseyError('');
+  };
+
+  const cancelEditingJersey = () =>
+  {
+    setEditingJerseyPlayerId(null);
+    setEditingJerseyValue('');
+    setJerseyError('');
+  };
+
+  const saveJerseyNumber = async () =>
+  {
+    if (!editingJerseyPlayerId || !teamId) return;
+
+    // Validate input
+    const trimmedValue = editingJerseyValue.trim();
+    if (trimmedValue && !/^\d{1,2}$/.test(trimmedValue))
+    {
+      setJerseyError('Jersey number must be 1-2 digits only');
+      return;
+    }
+
+    setJerseyUpdateLoading(true);
+    setJerseyError('');
+
+    try
+    {
+      const jerseyNumber = trimmedValue || null;
+      await updatePlayerJerseyNumber(teamId, editingJerseyPlayerId, jerseyNumber);
+
+      // Update local state to reflect the change
+      if (teamMembers)
+      {
+        const updatedPlayers = teamMembers.players.map(player =>
+          player.id === editingJerseyPlayerId ?
+            { ...player, jersey_number: jerseyNumber ? jerseyNumber : null } :
+            player
+        );
+        setTeamMembers({
+          ...teamMembers,
+          players: updatedPlayers,
+        });
+      }
+
+      // Reset editing state
+      setEditingJerseyPlayerId(null);
+      setEditingJerseyValue('');
+    }
+    catch (error)
+    {
+      setJerseyError(error instanceof Error ? error.message : 'Failed to update jersey number');
+    }
+    finally
+    {
+      setJerseyUpdateLoading(false);
+    }
+  };
+
+  const handleJerseyKeyPress = (e: React.KeyboardEvent) =>
+  {
+    if (e.key === 'Enter')
+    {
+      saveJerseyNumber();
+    }
+    else if (e.key === 'Escape')
+    {
+      cancelEditingJersey();
+    }
+  };
+
   const renderMemberSection = (
     title: string,
     members: (Player | Member)[],
@@ -574,74 +664,201 @@ export const TeamDetailPage: React.FC = () =>
             ) :
             (
               <div style={{ display: 'grid', gap: 'var(--space-sm)' }}>
-                {sortedMembers.map((member) => (
-                  <div
-                    key={member.id}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      padding: 'var(--space-md)',
-                      backgroundColor: 'var(--color-bg-card)',
-                      borderRadius: 'var(--radius-md)',
-                      border: '1px solid var(--border-color)',
-                    }}
-                  >
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: '600', marginBottom: 'var(--space-xs)' }}>
-                        {member.name}
-                        {'jersey_number' in member && member.jersey_number && (
-                          <span
-                            style={{
-                              marginLeft: 'var(--space-sm)',
-                              color: 'var(--color-accent-primary)',
-                              fontSize: '15px',
-                              fontWeight: 'bold',
-                            }}
-                          >
-                            #{member.jersey_number}
-                          </span>
-                        )}
-                      </div>
-                      {member.email && (
+                {sortedMembers.map((member) =>
+                {
+                  const isPlayer = 'jersey_number' in member;
+                  const player = member as Player;
+                  const isEditingThisJersey = isPlayer && editingJerseyPlayerId === player.id;
+                  const canEdit = isPlayer && canEditJerseyNumber(player);
+
+                  return (
+                    <div
+                      key={member.id}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: 'var(--space-md)',
+                        backgroundColor: 'var(--color-bg-card)',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--border-color)',
+                      }}
+                    >
+                      <div style={{ flex: 1 }}>
                         <div
                           style={{
-                            fontSize: '14px',
-                            color: 'var(--color-text-secondary)',
+                            fontWeight: '600',
                             marginBottom: 'var(--space-xs)',
-                          }}
-                        >
-                          {member.email}
-                        </div>
-                      )}
-                      <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                        Joined: {new Date(member.joined_at).toLocaleDateString()}
-                      </div>
-                    </div>
-                    {('can_remove' in member && member.can_remove) && (
-                      <div style={{ marginLeft: 'var(--space-md)' }}>
-                        <button
-                          onClick={() =>
-                            isPlayersSection ?
-                              handleRemovePlayer(member as Player) :
-                              handleRemoveMember(member as Member)}
-                          className='btn btn-secondary btn-sm'
-                          title='Leave team'
-                          style={{
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center',
-                            minWidth: '32px',
-                            height: '32px',
-                            padding: '0',
+                            gap: 'var(--space-sm)',
                           }}
                         >
-                          <FaSignOutAlt />
-                        </button>
+                          {member.name}
+
+                          {/* Jersey Number Display/Edit */}
+                          {isPlayer && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-xs)' }}>
+                              {isEditingThisJersey ?
+                                (
+                                  // Editing Mode
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-xs)' }}>
+                                    <span style={{ color: 'var(--color-accent-primary)', fontWeight: 'bold' }}>#</span>
+                                    <input
+                                      type='text'
+                                      value={editingJerseyValue}
+                                      onChange={(e) => setEditingJerseyValue(e.target.value)}
+                                      onKeyDown={handleJerseyKeyPress}
+                                      placeholder='--'
+                                      autoFocus
+                                      style={{
+                                        width: '40px',
+                                        padding: '2px 4px',
+                                        border: '1px solid var(--color-accent-primary)',
+                                        borderRadius: 'var(--radius-sm)',
+                                        fontSize: '14px',
+                                        fontWeight: 'bold',
+                                        textAlign: 'center',
+                                        color: 'var(--color-accent-primary)',
+                                      }}
+                                    />
+                                    <button
+                                      onClick={saveJerseyNumber}
+                                      disabled={jerseyUpdateLoading}
+                                      className='btn btn-sm'
+                                      style={{
+                                        minWidth: '24px',
+                                        height: '24px',
+                                        padding: '0',
+                                        backgroundColor: 'var(--color-success)',
+                                        color: 'white',
+                                        border: 'none',
+                                      }}
+                                      title='Save'
+                                    >
+                                      <FaCheck style={{ fontSize: '12px' }} />
+                                    </button>
+                                    <button
+                                      onClick={cancelEditingJersey}
+                                      disabled={jerseyUpdateLoading}
+                                      className='btn btn-sm'
+                                      style={{
+                                        minWidth: '24px',
+                                        height: '24px',
+                                        padding: '0',
+                                        backgroundColor: 'var(--color-text-muted)',
+                                        color: 'white',
+                                        border: 'none',
+                                      }}
+                                      title='Cancel'
+                                    >
+                                      <FaTimes style={{ fontSize: '12px' }} />
+                                    </button>
+                                  </div>
+                                ) :
+                                (
+                                  // Display Mode
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-xs)' }}>
+                                    {player.jersey_number ?
+                                      (
+                                        <span
+                                          style={{
+                                            color: 'var(--color-accent-primary)',
+                                            fontSize: '15px',
+                                            fontWeight: 'bold',
+                                          }}
+                                        >
+                                          #{player.jersey_number}
+                                        </span>
+                                      ) :
+                                      (
+                                        <span
+                                          style={{
+                                            color: 'var(--color-text-muted)',
+                                            fontSize: '14px',
+                                            fontStyle: 'italic',
+                                          }}
+                                        >
+                                          No jersey #
+                                        </span>
+                                      )}
+                                    {canEdit && (
+                                      <button
+                                        onClick={() => startEditingJersey(player)}
+                                        className='btn btn-sm'
+                                        style={{
+                                          minWidth: '20px',
+                                          height: '20px',
+                                          padding: '0',
+                                          backgroundColor: 'transparent',
+                                          color: 'var(--color-text-muted)',
+                                          border: 'none',
+                                          opacity: 0.7,
+                                        }}
+                                        title='Edit jersey number'
+                                      >
+                                        <FaEdit style={{ fontSize: '10px' }} />
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Error message for jersey editing */}
+                        {isEditingThisJersey && jerseyError && (
+                          <div
+                            style={{
+                              fontSize: '12px',
+                              color: 'var(--color-error)',
+                              marginBottom: 'var(--space-xs)',
+                            }}
+                          >
+                            {jerseyError}
+                          </div>
+                        )}
+
+                        {member.email && (
+                          <div
+                            style={{
+                              fontSize: '14px',
+                              color: 'var(--color-text-secondary)',
+                              marginBottom: 'var(--space-xs)',
+                            }}
+                          >
+                            {member.email}
+                          </div>
+                        )}
+                        <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                          Joined: {new Date(member.joined_at).toLocaleDateString()}
+                        </div>
                       </div>
-                    )}
-                  </div>
-                ))}
+                      {('can_remove' in member && member.can_remove) && (
+                        <div style={{ marginLeft: 'var(--space-md)' }}>
+                          <button
+                            onClick={() =>
+                              isPlayersSection ?
+                                handleRemovePlayer(member as Player) :
+                                handleRemoveMember(member as Member)}
+                            className='btn btn-secondary btn-sm'
+                            title='Leave team'
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              minWidth: '32px',
+                              height: '32px',
+                              padding: '0',
+                            }}
+                          >
+                            <FaSignOutAlt />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
         </div>
