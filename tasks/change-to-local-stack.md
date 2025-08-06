@@ -21,6 +21,45 @@ Mailcow, NGINX, and your React/Node application.
 
 ## 2. Supabase for PostgreSQL, Auth, Storage Buckets
 
+### 2.1 Set Up Self-Hosted Supabase
+- Deploy Supabase using Docker Compose (includes PostgreSQL, PostgREST, GoTrue auth, Storage, etc.)
+- Configure Supabase with proper environment variables and secrets
+- Set up persistent volumes for PostgreSQL data and storage buckets
+- Configure network settings for internal Docker communication
+
+### 2.2 Database Migration
+- **Export existing data** from your remote Supabase instance:
+  - Dump PostgreSQL schema and data using `pg_dump` or Supabase CLI
+  - Export all tables: `user_profiles`, `player_profiles`, `teams`, `team_join_codes`, `team_memberships`, `team_players`, `guardian_player_relationships`, `games`, `coaching_points`, `coaching_point_events`, `coaching_point_tagged_players`, `labels`, `coaching_point_labels`, `coaching_point_views`
+- **Apply your existing migrations** to the local Supabase instance (from `supabase/migrations/` directory)
+- **Import the data** to your local PostgreSQL instance
+- **Verify data integrity** and foreign key relationships
+
+### 2.3 Authentication Migration
+- Configure GoTrue (Supabase Auth) with your domain and SMTP settings
+- **Export user accounts** from remote Supabase (if possible via API/admin tools)
+- **Import user accounts** to local instance or plan for user re-registration
+- Update JWT secrets and configure session management
+- Set up email templates for password reset, confirmation, etc.
+
+### 2.4 Storage Buckets Migration
+- **Download all files** from remote Supabase storage bucket (`coaching-audio` bucket based on your migrations)
+- **Set up local storage buckets** with same structure and policies
+- **Upload files** to local storage
+- **Update storage policies** and access controls to match your current setup
+
+### 2.5 Configuration Updates
+- **Update connection strings** in your backend (`backend/src/utils/supabase.ts`)
+- **Update Supabase URL and anon key** in both backend and frontend
+- **Configure CORS** for your local domains
+- **Update environment variables** in `.env` files for both backend and frontend
+
+### 2.6 API and SDK Integration
+- Ensure PostgREST is properly configured for your database schema
+- Test all API endpoints that interact with Supabase
+- Verify Supabase JS SDK functionality in frontend
+- Update any hardcoded URLs or endpoints
+
 
 ## 3. Configure Mailcow for Email
 
