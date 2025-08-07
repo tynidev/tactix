@@ -109,6 +109,22 @@ export const GameForm: React.FC<GameFormProps> = ({
       return;
     }
 
+    // Validate YouTube video URL is provided
+    if (!formData.video_id?.trim())
+    {
+      alert('YouTube Video URL is required');
+      return;
+    }
+
+    // Validate that we can extract a valid YouTube ID
+    const extractedId = extractYouTubeId(formData.video_id.trim());
+    if (!extractedId || extractedId === formData.video_id.trim())
+    {
+      // If extractedId equals the original input, it means no patterns matched
+      alert('Please provide a valid YouTube video URL');
+      return;
+    }
+
     setIsSubmitting(true);
     try
     {
@@ -166,7 +182,7 @@ export const GameForm: React.FC<GameFormProps> = ({
         <div className='form-row'>
           <div className='form-group'>
             <label htmlFor='opponent' className='form-label'>
-              Opponent *
+              Opponent
             </label>
             <input
               id='opponent'
@@ -182,7 +198,7 @@ export const GameForm: React.FC<GameFormProps> = ({
 
           <div className='form-group'>
             <label htmlFor='date' className='form-label'>
-              Game Date *
+              Game Date
             </label>
             <input
               id='date'
@@ -293,6 +309,7 @@ export const GameForm: React.FC<GameFormProps> = ({
             onChange={handleInputChange}
             className='form-input'
             placeholder='https://www.youtube.com/watch?v=...'
+            required
           />
           <div className='form-help'>
             Paste the full YouTube URL. We'll extract the video ID automatically.

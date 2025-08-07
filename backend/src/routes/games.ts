@@ -129,6 +129,12 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
       return;
     }
 
+    if (!video_id || !video_id.trim())
+    {
+      res.status(400).json({ error: 'YouTube video URL is required' });
+      return;
+    }
+
     // Check if user has coach or admin role in the team
     const { data: membership, error: membershipError } = await supabase
       .from('team_memberships')
@@ -405,6 +411,12 @@ router.put('/:gameId', async (req: AuthenticatedRequest, res: Response): Promise
     if (!['coach', 'admin'].includes(membership.role))
     {
       res.status(403).json({ error: 'Only coaches and admins can update games' });
+      return;
+    }
+
+    if (!video_id || !video_id.trim())
+    {
+      res.status(400).json({ error: 'YouTube video URL is required' });
       return;
     }
 
