@@ -66,6 +66,7 @@ export const GameForm: React.FC<GameFormProps> = ({
 
   const [formData, setFormData] = useState<GameFormData>(initialFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationMessage, setValidationMessage] = useState<string>('');
 
   // Update form data when initialData changes (for editing existing games)
   useEffect(() =>
@@ -102,17 +103,18 @@ export const GameForm: React.FC<GameFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) =>
   {
     e.preventDefault();
+    setValidationMessage('');
 
     if (!formData.opponent.trim() || !formData.date)
     {
-      alert('Opponent and date are required');
+      setValidationMessage('Opponent and date are required');
       return;
     }
 
     // Validate YouTube video URL is provided
     if (!formData.video_id?.trim())
     {
-      alert('YouTube Video URL is required');
+      setValidationMessage('YouTube Video URL is required');
       return;
     }
 
@@ -121,11 +123,13 @@ export const GameForm: React.FC<GameFormProps> = ({
     if (!extractedId || extractedId === formData.video_id.trim())
     {
       // If extractedId equals the original input, it means no patterns matched
-      alert('Please provide a valid YouTube video URL');
+      setValidationMessage('Please provide a valid YouTube video URL');
       return;
     }
 
     setIsSubmitting(true);
+    setValidationMessage('Validating YouTube video...');
+
     try
     {
       // Convert empty strings to null for API and extract YouTube ID
@@ -141,6 +145,14 @@ export const GameForm: React.FC<GameFormProps> = ({
     catch (error)
     {
       console.error('Error submitting game:', error);
+      if (error instanceof Error)
+      {
+        setValidationMessage(error.message || 'Failed to save game');
+      }
+      else
+      {
+        setValidationMessage('Failed to save game');
+      }
     }
     finally
     {
@@ -330,6 +342,16 @@ export const GameForm: React.FC<GameFormProps> = ({
             rows={3}
           />
         </div>
+
+        {validationMessage && (
+          <div
+            className={`form-message ${
+              validationMessage.includes('Validating') ? 'form-message-info' : 'form-message-error'
+            }`}
+          >
+            {validationMessage}
+          </div>
+        )}
 
         <div className='form-actions'>
           <button

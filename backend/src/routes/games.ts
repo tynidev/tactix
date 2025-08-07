@@ -3,6 +3,7 @@ import { AuthenticatedRequest, authenticateUser } from '../middleware/auth.js';
 import { TeamRole } from '../types/database.js';
 import { requireTeamRole } from '../utils/roleAuth.js';
 import { supabase } from '../utils/supabase.js';
+import { validateYouTubeVideo } from '../utils/youtubeValidator.js';
 
 const router = Router();
 
@@ -164,6 +165,15 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
       {
         processedVideoId = urlMatch[1];
       }
+    }
+
+    // Validate YouTube video exists and is accessible
+    const validationResult = await validateYouTubeVideo(processedVideoId);
+    if (!validationResult.isValid)
+    {
+      console.log('YouTube video validation failed:', validationResult.error);
+      res.status(400).json({ error: (validationResult.error || 'Invalid YouTube video') });
+      return;
     }
 
     // Create the game
@@ -429,6 +439,14 @@ router.put('/:gameId', async (req: AuthenticatedRequest, res: Response): Promise
       {
         processedVideoId = urlMatch[1];
       }
+    }
+
+    // Validate YouTube video exists and is accessible
+    const validationResult = await validateYouTubeVideo(processedVideoId);
+    if (!validationResult.isValid)
+    {
+      res.status(400).json({ error: validationResult.error || 'Invalid YouTube video' });
+      return;
     }
 
     // Update the game

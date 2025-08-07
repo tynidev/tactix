@@ -551,6 +551,31 @@ p {
   box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
 }
 
+/* Form Messages */
+.form-message {
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-md);
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.form-message-error {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+
+.form-message-info {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: var(--color-info);
+  border-color: var(--color-info);
+}
+
 /* Header Navigation */
 .header-nav {
   background: var(--color-bg-card);

@@ -156,7 +156,22 @@ export const GamesPage: React.FC = () =>
 
       if (!response.ok)
       {
-        throw new Error('Failed to save game');
+        // Extract the specific error message from the API response
+        let errorMessage = 'Failed to save game';
+        try
+        {
+          const errorData = await response.json();
+          if (errorData.error)
+          {
+            errorMessage = errorData.error;
+          }
+        }
+        catch (parseError)
+        {
+          // If we can't parse the response, use the default message
+          console.warn('Failed to parse error response:', parseError);
+        }
+        throw new Error(errorMessage);
       }
 
       setShowGameForm(false);
@@ -166,8 +181,9 @@ export const GamesPage: React.FC = () =>
     }
     catch (err)
     {
-      alert('Failed to save game');
+      // Re-throw the error so GameForm can catch it and display the specific message
       console.error('Error saving game:', err);
+      throw err;
     }
   };
 
