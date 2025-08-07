@@ -1703,6 +1703,18 @@ router.put(
   authenticateUser,
   async (req: AuthenticatedRequest, res: Response): Promise<void> =>
   {
+    // Local type for RPC result (until generated types include the function)
+    interface RemovePlayerFromTeamTxnResult
+    {
+      success: boolean;
+      is_self_removal: boolean;
+      player: {
+        player_profile_id: string;
+        name: string;
+        jersey_number: string | null;
+      };
+      message: string;
+    }
     try
     {
       const { teamId, playerId } = req.params;
@@ -1714,143 +1726,31 @@ router.put(
         return;
       }
 
-      // Check if user is a member of this team
-      const { data: userMembership, error: membershipError } = await supabase
-        .from('team_memberships')
-        .select('role')
-        .eq('team_id', teamId)
-        .eq('user_id', userId)
-        .single();
+      // Execute transactional removal via RPC (all-or-nothing)
+      const { data: rpcData, error: rpcError } = await (supabase as any).rpc(
+        'remove_player_from_team_transaction',
+        {
+          p_user_id: userId,
+          p_team_id: teamId,
+          p_player_id: playerId,
+        },
+      );
 
-      if (membershipError || !userMembership)
+      if (rpcError)
       {
-        res.status(403).json({ error: 'User is not a member of this team' });
+        const msg = rpcError.message || '';
+        let status = 400;
+        if (/not a member/i.test(msg) || /Insufficient permissions/i.test(msg)) status = 403;
+        else if (/not found on team/i.test(msg)) status = 404;
+        else if (/Invariant violation/i.test(msg)) status = 409;
+        console.error('remove_player_from_team_transaction RPC error:', rpcError);
+        res.status(status).json({ error: msg || 'Failed to remove player from team' });
         return;
       }
 
-      const userRole = userMembership.role as TeamRole;
-
-      // Check if player exists and belongs to this team
-      const { data: teamPlayer, error: teamPlayerError } = await supabase
-        .from('team_players')
-        .select(`
-          id,
-          jersey_number,
-          player_profiles (
-            id,
-            name,
-            user_id
-          )
-        `)
-        .eq('team_id', teamId)
-        .eq('player_id', playerId)
-        .single();
-
-      if (teamPlayerError || !teamPlayer)
-      {
-        res.status(404).json({ error: 'Player not found in this team' });
-        return;
-      }
-
-      // Check permissions
-      let hasPermission = false;
-
-      if (userRole === TeamRole.Coach || userRole === TeamRole.Admin)
-      {
-        // Coaches and admins can remove any player
-        hasPermission = true;
-      }
-      else if (userRole === TeamRole.Guardian)
-      {
-        // Guardians can only remove players they have a relationship with
-        const { data: guardianRelationship, error: relationshipError } = await supabase
-          .from('guardian_player_relationships')
-          .select('id')
-          .eq('guardian_id', userId)
-          .eq('player_profile_id', playerId)
-          .single();
-
-        if (!relationshipError && guardianRelationship)
-        {
-          hasPermission = true;
-        }
-      }
-      else if (userRole === TeamRole.Player)
-      {
-        // Players can remove themselves from the team
-        const playerProfile = teamPlayer.player_profiles;
-        if (playerProfile?.user_id === userId)
-        {
-          hasPermission = true;
-        }
-      }
-
-      if (!hasPermission)
-      {
-        res.status(403).json({ error: 'Insufficient permissions to remove this player from team' });
-        return;
-      }
-
-      // Perform removal (preserving player profile and guardian relationships)
-      try
-      {
-        // Delete coaching point views for this player
-        await supabase
-          .from('coaching_point_views')
-          .delete()
-          .eq('player_id', playerId);
-
-        // Delete coaching point tagged players for this player
-        await supabase
-          .from('coaching_point_tagged_players')
-          .delete()
-          .eq('player_id', playerId);
-
-        // Remove team player relationship (removes from team)
-        const { error: removePlayerError } = await supabase
-          .from('team_players')
-          .delete()
-          .eq('team_id', teamId)
-          .eq('player_id', playerId);
-
-        if (removePlayerError)
-        {
-          res.status(400).json({ error: 'Failed to remove player from team' });
-          return;
-        }
-
-        const playerProfile = teamPlayer.player_profiles;
-        const playerName = playerProfile?.name || 'Unknown';
-        const jerseyNumber = teamPlayer?.jersey_number;
-        const isSelfRemoval = playerProfile?.user_id === userId;
-
-        // If this is a self-removal (player removing themselves), also remove their team membership
-        if (isSelfRemoval && playerProfile?.user_id)
-        {
-          const { error: removeMembershipError } = await supabase
-            .from('team_memberships')
-            .delete()
-            .eq('team_id', teamId)
-            .eq('user_id', playerProfile.user_id);
-
-          if (removeMembershipError)
-          {
-            console.error('Failed to remove team membership for self-removal:', removeMembershipError);
-            // Don't fail the entire operation, but log the error
-          }
-        }
-
-        res.json({
-          message: isSelfRemoval ?
-            'You have left the team successfully' :
-            `${playerName}${jerseyNumber ? ` (#${jerseyNumber})` : ''} has been removed from the team`,
-        });
-      }
-      catch (removeError)
-      {
-        console.error('Remove player error:', removeError);
-        res.status(500).json({ error: 'Failed to remove player from team' });
-      }
+      const result = rpcData as RemovePlayerFromTeamTxnResult | null;
+      const message = result?.message || 'Player removed from team';
+      res.json({ message, result });
     }
     catch (error)
     {
