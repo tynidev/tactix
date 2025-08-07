@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { getApiUrl } from '../../utils/api';
+import { ClaimPlayerProfile } from '../ClaimPlayerProfile';
 import { Modal } from '../Modal';
 import './JoinTeamModal.css';
 
@@ -17,6 +18,16 @@ interface TeamValidationData
   team_id: string;
 }
 
+interface Player
+{
+  id: string;
+  name: string;
+  jerseyNumber?: string;
+  team_name?: string;
+  user_id?: string;
+  is_claimed?: boolean;
+}
+
 export const JoinTeamModal: React.FC<JoinTeamModalProps> = ({ isOpen, onClose, onSuccess }) =>
 {
   const [joinCode, setJoinCode] = useState('');
@@ -24,6 +35,9 @@ export const JoinTeamModal: React.FC<JoinTeamModalProps> = ({ isOpen, onClose, o
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [currentStep, setCurrentStep] = useState<'code' | 'player' | 'confirm'>('code');
+  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [isNewPlayer, setIsNewPlayer] = useState(false);
 
   const handleValidateCode = async () =>
   {
@@ -49,6 +63,22 @@ export const JoinTeamModal: React.FC<JoinTeamModalProps> = ({ isOpen, onClose, o
 
       const data = await response.json();
       setValidatedTeam(data);
+
+      // If joining as player, check if user already has a player profile
+      if (data.team_role === 'player')
+      {
+        await checkUserPlayerProfile();
+      }
+      else if (data.team_role === 'guardian')
+      {
+        // For guardian role, always go to player selection
+        setCurrentStep('player');
+      }
+      else
+      {
+        // For coach/admin roles, skip to confirmation
+        setCurrentStep('confirm');
+      }
     }
     catch (err)
     {
@@ -58,6 +88,76 @@ export const JoinTeamModal: React.FC<JoinTeamModalProps> = ({ isOpen, onClose, o
     {
       setLoading(false);
     }
+  };
+
+  const checkUserPlayerProfile = async () =>
+  {
+    try
+    {
+      const token = (await import('../../lib/supabase')).supabase.auth.getSession();
+      const session = await token;
+
+      if (!session.data.session?.access_token)
+      {
+        throw new Error('No access token');
+      }
+
+      const apiUrl = getApiUrl();
+      const response = await fetch(`${apiUrl}/api/auth/player-profile`, {
+        headers: {
+          'Authorization': `Bearer ${session.data.session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok)
+      {
+        throw new Error('Failed to fetch user player profile');
+      }
+
+      const playerProfile = await response.json();
+
+      if (playerProfile)
+      {
+        // User has a player profile, auto-select it and skip to confirmation
+        const selectedPlayerData: Player = {
+          id: playerProfile.id,
+          name: playerProfile.name,
+          user_id: playerProfile.user_id,
+          is_claimed: true,
+        };
+
+        setSelectedPlayer(selectedPlayerData);
+        setIsNewPlayer(false);
+        setCurrentStep('confirm');
+      }
+      else
+      {
+        // User has no player profile, go to player selection step
+        // but we'll enhance ClaimPlayerProfile to auto-show create form for players
+        setCurrentStep('player');
+      }
+    }
+    catch (error)
+    {
+      console.error('Error checking user player profile:', error);
+      // If there's an error, fall back to player selection step
+      setCurrentStep('player');
+    }
+  };
+
+  const handlePlayerSelected = (player: Player | null, isNew: boolean) =>
+  {
+    setSelectedPlayer(player);
+    setIsNewPlayer(isNew);
+    setCurrentStep('confirm');
+  };
+
+  const handleBackToTeamInfo = () =>
+  {
+    setCurrentStep('confirm');
+    setSelectedPlayer(null);
+    setIsNewPlayer(false);
   };
 
   const handleJoinTeam = async () =>
@@ -78,15 +178,31 @@ export const JoinTeamModal: React.FC<JoinTeamModalProps> = ({ isOpen, onClose, o
       }
 
       const apiUrl = getApiUrl();
+
+      // Prepare request body
+      const requestBody: any = {
+        joinCode: joinCode.trim(),
+      };
+
+      // Add player data if we're joining as player or guardian
+      if ((validatedTeam.team_role === 'player' || validatedTeam.team_role === 'guardian') && selectedPlayer)
+      {
+        requestBody.playerData = {
+          id: selectedPlayer.id,
+          name: selectedPlayer.name,
+          jerseyNumber: selectedPlayer.jerseyNumber,
+          user_id: selectedPlayer.user_id,
+          isNewPlayer: isNewPlayer,
+        };
+      }
+
       const response = await fetch(`${apiUrl}/api/teams/join`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.data.session.access_token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          joinCode: joinCode.trim(),
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok)
@@ -119,6 +235,9 @@ export const JoinTeamModal: React.FC<JoinTeamModalProps> = ({ isOpen, onClose, o
   {
     setJoinCode('');
     setValidatedTeam(null);
+    setCurrentStep('code');
+    setSelectedPlayer(null);
+    setIsNewPlayer(false);
     setError('');
     setSuccess('');
     onClose();
@@ -126,11 +245,18 @@ export const JoinTeamModal: React.FC<JoinTeamModalProps> = ({ isOpen, onClose, o
 
   const handleKeyDown = (e: React.KeyboardEvent) =>
   {
-    if (e.key === 'Enter')
+    if (e.key === 'Enter' && currentStep === 'code')
     {
       if (validatedTeam)
       {
-        handleJoinTeam();
+        if (validatedTeam.team_role === 'player' || validatedTeam.team_role === 'guardian')
+        {
+          setCurrentStep('player');
+        }
+        else
+        {
+          setCurrentStep('confirm');
+        }
       }
       else
       {
@@ -139,95 +265,148 @@ export const JoinTeamModal: React.FC<JoinTeamModalProps> = ({ isOpen, onClose, o
     }
   };
 
+  // Determine modal size based on current step
+  const modalSize = currentStep === 'player' ? 'md' : 'sm';
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
       title='Join Team'
-      size='sm'
+      size={modalSize}
       className='join-team-modal'
     >
       <div className='form'>
         {error && <div className='alert alert-error'>{error}</div>}
         {success && <div className='alert alert-success'>{success}</div>}
 
-        {!validatedTeam ?
-          (
-            // Step 1: Enter join code
-            <>
-              <div className='form-group'>
-                <label className='form-label'>Join Code</label>
-                <input
-                  type='text'
-                  value={joinCode}
-                  onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                  className='form-input'
-                  placeholder='Enter 4-character join code'
-                  maxLength={4}
-                  onKeyDown={handleKeyDown}
-                  autoFocus
-                  disabled={loading}
-                />
-                <div className='form-help'>
-                  Enter the 4-character join code provided by your team coach or admin.
+        {currentStep === 'code' && (
+          // Step 1: Enter join code
+          <>
+            <div className='form-group'>
+              <label className='form-label'>Join Code</label>
+              <input
+                type='text'
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                className='form-input'
+                placeholder='Enter 4-character join code'
+                maxLength={4}
+                onKeyDown={handleKeyDown}
+                autoFocus
+                disabled={loading}
+              />
+              <div className='form-help'>
+                Enter the 4-character join code provided by your team coach or admin.
+              </div>
+            </div>
+
+            <div className='form-actions'>
+              <button
+                onClick={handleClose}
+                className='btn btn-secondary'
+                disabled={loading}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleValidateCode}
+                className='btn btn-primary'
+                disabled={loading || !joinCode.trim()}
+              >
+                {loading ? 'Validating...' : 'Validate Code'}
+              </button>
+            </div>
+          </>
+        )}
+
+        {currentStep === 'player' && validatedTeam && (
+          // Step 2: Player selection (for player and guardian roles)
+          <ClaimPlayerProfile
+            teamId={validatedTeam.team_id}
+            teamName={validatedTeam.team_name}
+            userRole={validatedTeam.team_role as 'player' | 'guardian'}
+            joinCode={joinCode}
+            onPlayerSelected={handlePlayerSelected}
+            onBack={handleBackToTeamInfo}
+            skipToCreate={validatedTeam.team_role === 'player'}
+          />
+        )}
+
+        {currentStep === 'confirm' && validatedTeam && (
+          // Step 3: Confirm team join
+          <>
+            <div className='team-info'>
+              <h3>Team Information</h3>
+              <div className='team-details'>
+                <p>
+                  <strong>Team Name:</strong> {validatedTeam.team_name}
+                </p>
+                <p>
+                  <strong>You will join as:</strong> <span className='role-badge'>{validatedTeam.team_role}</span>
+                </p>
+              </div>
+            </div>
+
+            {selectedPlayer && (
+              <div className='player-confirmation'>
+                <h4>Player Profile</h4>
+                <div className='selected-player-summary'>
+                  <div className='player-name'>
+                    {selectedPlayer.name}
+                    {selectedPlayer.jerseyNumber && (
+                      <span className='player-jersey'>#{selectedPlayer.jerseyNumber}</span>
+                    )}
+                  </div>
+                  <div className='player-status'>
+                    {isNewPlayer ? 'New player profile' : 'Existing player profile'}
+                  </div>
+                  <div className='player-action'>
+                    {validatedTeam.team_role === 'player' ?
+                      (selectedPlayer.user_id ?
+                        'Your existing player profile' :
+                        'Will be linked to your account') :
+                      'You will be added as guardian'}
+                  </div>
                 </div>
               </div>
+            )}
 
-              <div className='form-actions'>
+            <div className='form-actions'>
+              {(validatedTeam.team_role === 'player' || validatedTeam.team_role === 'guardian') && (
                 <button
-                  onClick={handleClose}
+                  onClick={() => setCurrentStep('player')}
                   className='btn btn-secondary'
                   disabled={loading}
                 >
-                  Cancel
+                  {selectedPlayer ? 'Change Player' : 'Select Player'}
                 </button>
-                <button
-                  onClick={handleValidateCode}
-                  className='btn btn-primary'
-                  disabled={loading || !joinCode.trim()}
-                >
-                  {loading ? 'Validating...' : 'Validate Code'}
-                </button>
-              </div>
-            </>
-          ) :
-          (
-            // Step 2: Confirm team join
-            <>
-              <div className='team-info'>
-                <h3>Team Information</h3>
-                <div className='team-details'>
-                  <p>
-                    <strong>Team Name:</strong> {validatedTeam.team_name}
-                  </p>
-                  <p>
-                    <strong>You will join as:</strong> <span className='role-badge'>{validatedTeam.team_role}</span>
-                  </p>
-                </div>
-              </div>
-
-              <div className='form-actions'>
-                <button
-                  onClick={() =>
-                  {
-                    setValidatedTeam(null);
-                    setError('');
-                  }}
-                  className='btn btn-secondary'
-                  disabled={loading}
-                >
-                  Back
-                </button>
-                <button
-                  onClick={handleJoinTeam}
-                  className='btn btn-success'
-                  disabled={loading}
-                >
-                  {loading ? 'Joining...' : 'Join Team'}
-                </button>
-              </div>
-            </>
-          )}
+              )}
+              <button
+                onClick={() =>
+                {
+                  setValidatedTeam(null);
+                  setCurrentStep('code');
+                  setSelectedPlayer(null);
+                  setIsNewPlayer(false);
+                  setError('');
+                }}
+                className='btn btn-secondary'
+                disabled={loading}
+              >
+                Back to Code
+              </button>
+              <button
+                onClick={handleJoinTeam}
+                className='btn btn-success'
+                disabled={loading ||
+                  ((validatedTeam.team_role === 'player' || validatedTeam.team_role === 'guardian') && !selectedPlayer)}
+              >
+                {loading ? 'Joining...' : 'Join Team'}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </Modal>
   );

@@ -331,7 +331,7 @@ router.post('/join', async (req: AuthenticatedRequest, res: Response): Promise<v
 {
   try
   {
-    const { joinCode, selectedRole } = req.body;
+    const { joinCode, selectedRole, playerData } = req.body;
     const userId = req.user?.id;
 
     if (!userId)
@@ -397,148 +397,235 @@ router.post('/join', async (req: AuthenticatedRequest, res: Response): Promise<v
       return;
     }
 
-    // Check if user is already a member of this team
-    const { data: existingMembership, error: membershipCheckError } = await supabase
-      .from('team_memberships')
-      .select('id, role')
-      .eq('team_id', joinCodeData.team_id)
-      .eq('user_id', userId)
-      .single();
-
-    if (membershipCheckError && membershipCheckError.code !== 'PGRST116')
-    { // PGRST116 = no rows found
-      res.status(400).json({ error: membershipCheckError.message });
-      return;
-    }
-
-    if (existingMembership)
+    // Validate Guardian role requirements
+    if (roleToAssign === TeamRole.Guardian)
     {
-      res.status(409).json({
-        error: `You are already a member of this team as a ${existingMembership.role}`,
-      });
-      return;
-    }
-
-    // Get user's profile for potential player name
-    let userProfile = null;
-    if (roleToAssign === TeamRole.Player)
-    {
-      const { data: profile, error: profileError } = await supabase
-        .from('user_profiles')
-        .select('name')
-        .eq('id', userId)
-        .single();
-
-      if (!profileError && profile)
+      if (!playerData)
       {
-        userProfile = profile;
-      }
-    }
-
-    // Perform database operations with error handling for rollback
-    let membershipCreated = false;
-    let playerProfileId = null;
-
-    try
-    {
-      // Add user to team with the determined role
-      const { error: joinError } = await supabase
-        .from('team_memberships')
-        .insert({
-          team_id: joinCodeData.team_id,
-          user_id: userId!,
-          role: roleToAssign,
-        });
-
-      if (joinError)
-      {
-        res.status(400).json({ error: 'Failed to join team' });
+        res.status(400).json({ error: 'Player data is required for guardian role' });
         return;
       }
 
-      membershipCreated = true;
-
-      // If user is joining as a player, create player profile
-      if (roleToAssign === TeamRole.Player)
+      if (playerData.isNewPlayer === undefined || playerData.isNewPlayer === null)
       {
-        const { playerName, jerseyNumber } = req.body;
+        res.status(400).json({
+          error: 'playerData.isNewPlayer must be specified (true for new player, false for existing)',
+        });
+        return;
+      }
 
-        // Use provided playerName or fall back to user's name
-        const finalPlayerName = playerName || userProfile?.name;
-
-        const { data: playerProfile, error: playerError } = await supabase
-          .from('player_profiles')
-          .insert({
-            name: finalPlayerName,
-            user_id: userId,
-          })
-          .select()
-          .single();
-
-        if (playerError)
+      if (playerData.isNewPlayer)
+      {
+        if (typeof playerData.name !== 'string' || playerData.name.trim() === '')
         {
-          // Rollback membership creation
-          await supabase
-            .from('team_memberships')
-            .delete()
-            .eq('team_id', joinCodeData.team_id)
-            .eq('user_id', userId!);
+          res.status(400).json({ error: 'Player name is required for new player' });
+          return;
+        }
+        playerData.name = playerData.name.trim();
 
-          res.status(400).json({ error: 'Failed to create player profile' });
+        // Validate jersey number if provided
+        if (playerData.jerseyNumber !== undefined && playerData.jerseyNumber !== null && playerData.jerseyNumber !== '')
+        {
+          const jerseyNumber = String(playerData.jerseyNumber).trim();
+          if (!/^\d{1,2}$/.test(jerseyNumber))
+          {
+            res.status(400).json({ error: 'Jersey number must be 1-2 digits only' });
+            return;
+          }
+        }
+      }
+      else
+      {
+        if (!playerData.id || typeof playerData.id !== 'string')
+        {
+          res.status(400).json({ error: 'Player ID is required and must be a string when linking to existing player' });
+          return;
+        }
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(playerData.id))
+        {
+          res.status(400).json({ error: 'Player ID must be a valid UUID format' });
           return;
         }
 
-        playerProfileId = playerProfile.id;
+        // Verify user has permission to link to this player
+        const { data: existingPlayer, error: playerCheckError } = await supabase
+          .from('player_profiles')
+          .select('id, user_id')
+          .eq('id', playerData.id)
+          .single();
 
-        // Link player to team
-        const { error: linkError } = await supabase
-          .from('team_players')
-          .insert({
-            team_id: joinCodeData.team_id,
-            player_id: playerProfile.id,
-            jersey_number: jerseyNumber || null,
-          });
-
-        if (linkError)
+        if (playerCheckError || !existingPlayer)
         {
-          // Rollback both membership and player profile creation
-          await supabase
-            .from('player_profiles')
-            .delete()
-            .eq('id', playerProfile.id);
+          res.status(404).json({ error: 'Player profile not found' });
+          return;
+        }
 
-          await supabase
-            .from('team_memberships')
-            .delete()
-            .eq('team_id', joinCodeData.team_id)
-            .eq('user_id', userId!);
+        // Check if user has permission (must be unlinked or user is already a guardian)
+        if (existingPlayer.user_id && existingPlayer.user_id !== userId)
+        {
+          const { data: guardianRel } = await supabase
+            .from('guardian_player_relationships')
+            .select('id')
+            .eq('guardian_id', userId)
+            .eq('player_profile_id', playerData.id)
+            .single();
 
-          res.status(400).json({ error: 'Failed to link player to team' });
+          if (!guardianRel)
+          {
+            res.status(403).json({ error: 'You do not have permission to link to this player profile' });
+            return;
+          }
+        }
+
+        if (playerData.user_id !== null && playerData.user_id !== undefined)
+        {
+          if (typeof playerData.user_id !== 'string' || playerData.user_id.trim() === '')
+          {
+            res.status(400).json({ error: 'User ID must be a non-empty string if provided' });
+            return;
+          }
+          if (!uuidRegex.test(playerData.user_id))
+          {
+            res.status(400).json({ error: 'User ID must be a valid UUID format' });
+            return;
+          }
+        }
+      }
+    }
+    // Validate Player role requirements
+    else if (roleToAssign === TeamRole.Player)
+    {
+      if (!playerData)
+      {
+        res.status(400).json({ error: 'Player data is required for player role' });
+        return;
+      }
+
+      if (playerData.isNewPlayer === undefined || playerData.isNewPlayer === null)
+      {
+        res.status(400).json({
+          error: 'playerData.isNewPlayer must be specified (true for new player, false for existing)',
+        });
+        return;
+      }
+
+      if (playerData.isNewPlayer)
+      {
+        // For new players, ensure the name matches the user's profile name
+        if (!playerData.name || typeof playerData.name !== 'string' || playerData.name.trim() === '')
+        {
+          res.status(400).json({ error: 'Player name is required for new player' });
+          return;
+        }
+
+        // We'll validate the name against user profile later after we fetch it
+      }
+      else
+      {
+        if (!playerData.id || typeof playerData.id !== 'string')
+        {
+          res.status(400).json({ error: 'Player ID is required and must be a string when linking to existing player' });
+          return;
+        }
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(playerData.id))
+        {
+          res.status(400).json({ error: 'Player ID must be a valid UUID format' });
+          return;
+        }
+
+        // Verify the player profile exists and user has permission
+        const { data: existingPlayer, error: playerCheckError } = await supabase
+          .from('player_profiles')
+          .select('id, user_id')
+          .eq('id', playerData.id)
+          .single();
+
+        if (playerCheckError || !existingPlayer)
+        {
+          res.status(404).json({ error: 'Player profile not found' });
+          return;
+        }
+
+        // Only allow linking if it's unlinked or belongs to current user
+        if (existingPlayer.user_id && existingPlayer.user_id !== userId)
+        {
+          res.status(403).json({ error: 'This player profile is already linked to another user' });
+          return;
+        }
+      }
+
+      // Validate jersey number if provided
+      if (playerData.jerseyNumber !== undefined && playerData.jerseyNumber !== null && playerData.jerseyNumber !== '')
+      {
+        const jerseyNumber = String(playerData.jerseyNumber).trim();
+        if (!/^\d{1,2}$/.test(jerseyNumber))
+        {
+          res.status(400).json({ error: 'Jersey number must be 1-2 digits only' });
           return;
         }
       }
     }
-    catch (error)
+
+    // Get user's profile for fallback player name
+    let userProfile = null;
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('name')
+      .eq('id', userId)
+      .single();
+
+    if (profile)
     {
-      // Cleanup on unexpected error
-      if (playerProfileId)
+      userProfile = profile;
+    }
+
+    // Execute all operations in a transaction using Supabase RPC
+    const { data: result, error: transactionError } = await supabase.rpc('join_team_transaction', {
+      p_user_id: userId,
+      p_team_id: joinCodeData.team_id,
+      p_role: roleToAssign,
+      p_player_data: playerData ?
+        {
+          isNewPlayer: playerData.isNewPlayer,
+          id: playerData.id || null,
+          name: playerData.name || null,
+          user_id: playerData.user_id || null,
+          jerseyNumber: playerData.jerseyNumber || null,
+        } :
+        null,
+      p_user_name: userProfile?.name || 'Player',
+    });
+
+    if (transactionError)
+    {
+      console.error('Transaction error:', transactionError);
+
+      // Parse specific error messages
+      if (transactionError.message.includes('already taken'))
       {
-        await supabase
-          .from('player_profiles')
-          .delete()
-          .eq('id', playerProfileId);
+        res.status(409).json({ error: transactionError.message });
+        return;
+      }
+      else if (transactionError.message.includes('does not exist'))
+      {
+        res.status(404).json({ error: transactionError.message });
+        return;
+      }
+      else if (transactionError.message.includes('permission'))
+      {
+        res.status(403).json({ error: transactionError.message });
+        return;
+      }
+      else if (transactionError.message.includes('already linked'))
+      {
+        res.status(409).json({ error: transactionError.message });
+        return;
       }
 
-      if (membershipCreated)
-      {
-        await supabase
-          .from('team_memberships')
-          .delete()
-          .eq('team_id', joinCodeData.team_id)
-          .eq('user_id', userId!);
-      }
-
-      throw error;
+      res.status(400).json({ error: transactionError.message || 'Failed to join team' });
+      return;
     }
 
     const teamInfo = Array.isArray(joinCodeData.teams) ? joinCodeData.teams[0] : joinCodeData.teams;
@@ -1736,6 +1823,22 @@ router.put(
         const playerName = playerProfile?.name || 'Unknown';
         const jerseyNumber = teamPlayer?.jersey_number;
         const isSelfRemoval = playerProfile?.user_id === userId;
+
+        // If this is a self-removal (player removing themselves), also remove their team membership
+        if (isSelfRemoval && playerProfile?.user_id)
+        {
+          const { error: removeMembershipError } = await supabase
+            .from('team_memberships')
+            .delete()
+            .eq('team_id', teamId)
+            .eq('user_id', playerProfile.user_id);
+
+          if (removeMembershipError)
+          {
+            console.error('Failed to remove team membership for self-removal:', removeMembershipError);
+            // Don't fail the entire operation, but log the error
+          }
+        }
 
         res.json({
           message: isSelfRemoval ?

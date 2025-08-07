@@ -1,0 +1,360 @@
+/* Claim Player Profile Styles */
+.claim-player-profile {
+  width: 100%;
+  max-width: 600px;
+}
+
+/* Header Section */
+.claim-player-header {
+  margin-bottom: var(--space-xl);
+  text-align: center;
+}
+
+.claim-player-header h3 {
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-md) 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.claim-player-description {
+  color: var(--color-text-secondary);
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* Player Search Section */
+.player-search-section {
+  margin-bottom: var(--space-xl);
+}
+
+.search-loading {
+  text-align: center;
+  padding: var(--space-lg);
+}
+
+/* Search Results */
+.search-results {
+  margin-top: var(--space-lg);
+}
+
+.search-results h4 {
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-md) 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.player-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.player-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md);
+  background: var(--color-bg-secondary);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.player-item:hover:not(.player-claimed) {
+  border-color: var(--color-accent-primary);
+  background: var(--color-bg-input);
+}
+
+.player-item.player-claimed {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: var(--color-bg-input);
+}
+
+.player-info {
+  flex: 1;
+}
+
+.player-name {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: var(--space-xs);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.player-jersey {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-accent-primary);
+  color: white;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.player-team {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+}
+
+.player-status {
+  margin-left: var(--space-md);
+}
+
+.status-available {
+  color: var(--color-success);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.status-claimed {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* No Results */
+.no-results {
+  text-align: center;
+  padding: var(--space-xl);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  margin-top: var(--space-lg);
+}
+
+.no-results-content h4 {
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-md) 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.no-results-content p {
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-lg) 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* Create Player Option */
+.create-player-option {
+  margin-top: var(--space-xl);
+}
+
+.divider {
+  position: relative;
+  text-align: center;
+  margin: var(--space-lg) 0;
+}
+
+.divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--border-color);
+}
+
+.divider span {
+  background: var(--color-bg-primary);
+  color: var(--color-text-muted);
+  padding: 0 var(--space-md);
+  font-size: 0.8rem;
+  font-weight: 600;
+  position: relative;
+}
+
+/* Player Selected */
+.player-selected {
+  margin-bottom: var(--space-xl);
+}
+
+.selected-player-info h4 {
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-md) 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.player-card {
+  background: var(--color-bg-secondary);
+  padding: var(--space-lg);
+  border-radius: var(--radius-md);
+  border: 2px solid var(--color-accent-primary);
+  margin-bottom: var(--space-md);
+}
+
+.player-details .player-name {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin-bottom: var(--space-xs);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.player-details .player-team {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.linking-info {
+  background: rgba(255, 107, 53, 0.1);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-accent-primary);
+}
+
+.linking-info p {
+  color: var(--color-text-secondary);
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+/* Create Player Form */
+.create-player-form {
+  margin-bottom: var(--space-xl);
+}
+
+.create-player-form h4 {
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-lg) 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+/* Form Elements */
+.claim-player-profile .form-group {
+  margin-bottom: var(--space-lg);
+}
+
+.claim-player-profile .form-label {
+  display: block;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-sm);
+  font-size: 0.9rem;
+}
+
+.claim-player-profile .form-input {
+  width: 100%;
+  padding: var(--space-md);
+  background: var(--color-bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  font-family: var(--font-family);
+}
+
+.claim-player-profile .form-input:focus {
+  outline: none;
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+}
+
+.claim-player-profile .form-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.claim-player-profile .form-help {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin-top: var(--space-sm);
+  line-height: 1.4;
+}
+
+/* Form Actions */
+.claim-player-profile .form-actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+  margin-top: var(--space-lg);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border-color);
+}
+
+.claim-player-profile .form-actions .btn {
+  min-width: 120px;
+}
+
+/* Back Button */
+.claim-player-back {
+  margin-top: var(--space-xl);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--border-color);
+}
+
+/* Button Utilities */
+.btn-block {
+  width: 100%;
+  display: block;
+}
+
+/* Loading States */
+.claim-player-profile .btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Readonly Input */
+.form-input-readonly {
+  background: var(--color-bg-secondary) !important;
+  color: var(--color-text-secondary) !important;
+  cursor: default;
+  opacity: 0.8;
+}
+
+.form-input-readonly:focus {
+  box-shadow: none !important;
+  border-color: var(--border-color) !important;
+}
+
+/* Loading Profile */
+.loading-profile {
+  text-align: center;
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.loading-profile .loading {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .claim-player-profile .form-actions {
+    flex-direction: column;
+  }
+  
+  .claim-player-profile .form-actions .btn {
+    width: 100%;
+    min-width: auto;
+  }
+  
+  .player-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
+  }
+  
+  .player-status {
+    margin-left: 0;
+    align-self: flex-end;
+  }
+}

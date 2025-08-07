@@ -352,6 +352,46 @@ router.put('/profile', authenticateUser, async (req: AuthenticatedRequest, res: 
   }
 });
 
+// Get current user's player profile
+router.get('/player-profile', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> =>
+{
+  try
+  {
+    const userId = req.user?.id;
+
+    if (!userId)
+    {
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
+    }
+
+    // Get player profile owned by user (there should only be one)
+    const { data: playerProfile, error } = await supabase
+      .from('player_profiles')
+      .select('id, name, user_id, created_at')
+      .eq('user_id', userId)
+      .single();
+
+    if (error)
+    {
+      if (error.code === 'PGRST116')
+      { // No rows found
+        res.json(null); // User has no player profile
+        return;
+      }
+      res.status(400).json({ error: error.message });
+      return;
+    }
+
+    res.json(playerProfile);
+  }
+  catch (error)
+  {
+    console.error('Get user player profile error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Get guardian players - players the user has relationships with or owns
 router.get('/guardian-players', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> =>
 {

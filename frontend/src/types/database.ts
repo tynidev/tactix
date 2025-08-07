@@ -570,6 +570,16 @@ export type Database = {
           member_count: number;
         }[];
       };
+      join_team_transaction: {
+        Args: {
+          p_user_id: string;
+          p_team_id: string;
+          p_role: string;
+          p_player_data?: Json;
+          p_user_name?: string;
+        };
+        Returns: Json;
+      };
       join_team_with_code: {
         Args: { join_code: string; user_id_param?: string; };
         Returns: Json;

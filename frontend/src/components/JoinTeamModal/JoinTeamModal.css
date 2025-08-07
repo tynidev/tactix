@@ -70,6 +70,60 @@
   box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
 }
 
+/* Player Confirmation */
+.player-confirmation {
+  background: var(--color-bg-secondary);
+  padding: var(--space-lg);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-lg);
+  border: 1px solid var(--border-color);
+}
+
+.player-confirmation h4 {
+  margin: 0 0 var(--space-md) 0;
+  color: var(--color-text-primary);
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.selected-player-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.selected-player-summary .player-name {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.selected-player-summary .player-jersey {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-accent-primary);
+  color: white;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.selected-player-summary .player-status {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  font-style: italic;
+}
+
+.selected-player-summary .player-action {
+  color: var(--color-accent-primary);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
 /* Loading states */
 .join-team-modal .btn:disabled {
   opacity: 0.6;
