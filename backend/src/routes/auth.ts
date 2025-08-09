@@ -485,25 +485,14 @@ router.get('/confirm', async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    if (!data.user || !data.session)
+    if (!data.user)
     {
-      console.error('Email confirmation succeeded but no user/session data returned');
+      console.error('Email confirmation succeeded but no user data returned');
       res.redirect(`${process.env.FRONTEND_URL}/auth?error=confirmation_failed`);
       return;
     }
 
-    // Set session cookies for automatic frontend authentication
-    const cookieOptions = {
-      httpOnly: false, // Must be false so frontend can access it
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax' as const,
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: '/',
-    };
-
-    // Set the access token as a cookie that frontend can read
-    res.cookie('sb-access-token', data.session.access_token, cookieOptions);
-    res.cookie('sb-refresh-token', data.session.refresh_token, cookieOptions);
+    console.log('Email verification successful for user:', data.user.email);
 
     // Build redirect URL - go directly to games page
     let redirectUrl = `${process.env.FRONTEND_URL}/games`;

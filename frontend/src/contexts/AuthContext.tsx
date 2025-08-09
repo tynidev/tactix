@@ -39,50 +39,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; }> = ({ childre
 
   useEffect(() =>
   {
-    // Check for session cookies from email verification
-    const checkCookieSession = async () =>
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) =>
     {
-      const accessToken = getCookie('sb-access-token');
-      const refreshToken = getCookie('sb-refresh-token');
-
-      if (accessToken && refreshToken)
-      {
-        try
-        {
-          // Set the session using the tokens from cookies
-          const { data, error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
-
-          if (!error && data.session)
-          {
-            setSession(data.session);
-            setUser(data.session.user);
-            // Clear the cookies after successful session setup
-            clearCookie('sb-access-token');
-            clearCookie('sb-refresh-token');
-            setLoading(false);
-            return;
-          }
-        }
-        catch (error)
-        {
-          console.error('Failed to set session from cookies:', error);
-          // Clear invalid cookies
-          clearCookie('sb-access-token');
-          clearCookie('sb-refresh-token');
-        }
-      }
-
-      // Get initial session normally if no cookies
-      const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
-    };
-
-    checkCookieSession();
+    });
 
     // Listen for auth changes
     const {
@@ -118,20 +81,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; }> = ({ childre
     };
   }, []);
 
-  // Helper function to get cookie value
-  const getCookie = (name: string): string | null =>
-  {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
-    return null;
-  };
-
-  // Helper function to clear cookie
-  const clearCookie = (name: string): void =>
-  {
-    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-  };
 
   // Separate useEffect for session validation to avoid circular dependency
   useEffect(() =>
