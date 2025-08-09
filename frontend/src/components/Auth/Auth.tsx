@@ -64,60 +64,18 @@ export const Auth: React.FC = () =>
     }
   };
 
-  // Function to join team with code (for authenticated users)
-  const joinTeamWithCode = async (code: string) =>
-  {
-    try
-    {
-      const { supabase } = await import('../../lib/supabase');
-      const session = await supabase.auth.getSession();
-
-      if (!session.data.session?.access_token)
-      {
-        throw new Error('No access token available');
-      }
-
-      const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/api/teams/join`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.data.session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ joinCode: code }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok)
-      {
-        // Handle "already a member" case gracefully
-        if (data.error?.includes('already a member'))
-        {
-          setTeamJoinStatus('success');
-          setSuccessMessage(`Welcome back! You're already a member of ${teamInfo?.name}.`);
-          return true;
-        }
-        throw new Error(data.error || 'Failed to join team');
-      }
-
-      setTeamJoinStatus('success');
-      setSuccessMessage(`Successfully joined ${data.team.name} as ${data.team.role}!`);
-      return true;
-    }
-    catch (error)
-    {
-      console.error('Team join error:', error);
-      setTeamJoinStatus('error');
-      setTeamJoinError(error instanceof Error ? error.message : 'Failed to join team');
-      return false;
-    }
-  };
-
   // Check for team code in URL on component mount
   useEffect(() =>
   {
     const code = searchParams.get('teamCode');
+    const verified = searchParams.get('verified');
+
+    // Handle verified parameter (email verification success)
+    if (verified === 'true')
+    {
+      setSuccessMessage('Email verified successfully! Please sign in to continue.');
+    }
+
     if (code)
     {
       console.log('Team code found in URL:', code);
@@ -144,6 +102,14 @@ export const Auth: React.FC = () =>
       // Clear the team code from URL
       const newParams = new URLSearchParams(searchParams);
       newParams.delete('teamCode');
+      newParams.delete('verified');
+      setSearchParams(newParams, { replace: true });
+    }
+    else if (verified === 'true')
+    {
+      // Clear verified parameter if no team code
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('verified');
       setSearchParams(newParams, { replace: true });
     }
   }, [searchParams, setSearchParams]);
@@ -171,31 +137,13 @@ export const Auth: React.FC = () =>
           // Sign in successful - check if we need to join a team
           if (teamCode && teamInfo)
           {
-            const joinSuccess = await joinTeamWithCode(teamCode);
-            if (joinSuccess)
-            {
-              // Navigate to dashboard after successful team join
-              setTimeout(() =>
-              {
-                navigate('/dashboard');
-              }, 2000);
-            }
-            else
-            {
-              // Team join failed, but user is still signed in
-              setTimeout(() =>
-              {
-                navigate('/dashboard');
-              }, 3000);
-            }
+            // Navigate to games with join code
+            navigate(`/games?teamCode=${teamCode}`);
           }
           else
           {
-            // Normal login without team code - navigate to dashboard
-            setTimeout(() =>
-            {
-              navigate('/dashboard');
-            }, 1000);
+            // Normal login without team code - navigate to games
+            navigate('/games');
           }
         }
       }
@@ -216,32 +164,7 @@ export const Auth: React.FC = () =>
         else
         {
           // Authentication successful
-          let message = 'Account created successfully! Check your email for verification.';
-
-          // Handle team join result for signup
-          if (result.teamJoin)
-          {
-            if (result.teamJoin.success)
-            {
-              message += ` ${result.teamJoin.message}`;
-              setSuccessMessage(message);
-              // Navigate to dashboard after successful team join
-              setTimeout(() =>
-              {
-                navigate('/dashboard');
-              }, 2000);
-            }
-            else
-            {
-              setSuccessMessage(message);
-              setTeamJoinStatus('error');
-              setTeamJoinError(result.teamJoin.error || 'Failed to join team');
-            }
-          }
-          else
-          {
-            setSuccessMessage(message);
-          }
+          setSuccessMessage('Account created successfully! Check your email for verification.');
 
           // Clear the form
           setEmail('');

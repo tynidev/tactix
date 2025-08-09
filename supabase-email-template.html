@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to TACTIX</title>
+    <style>
+        /* Email-safe CSS that matches your branding */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background-color: #f8f9fa;
+            line-height: 1.6;
+        }
+        
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+        }
+        
+        .email-header {
+            background: linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%);
+            padding: 40px 40px 30px 40px;
+            text-align: center;
+            border-radius: 20px 20px 0 0;
+        }
+        
+        .logo {
+            height: 80px;
+            margin-bottom: 16px;
+        }
+        
+        .header-title {
+            color: #ffffff;
+            font-size: 32px;
+            font-weight: 700;
+            margin: 0 0 8px 0;
+            letter-spacing: -0.5px;
+        }
+        
+        .header-subtitle {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 16px;
+            margin: 0;
+            font-weight: 500;
+        }
+        
+        .email-body {
+            padding: 40px;
+            background-color: #ffffff;
+        }
+        
+        .team-invitation-card {
+            background-color: rgba(59, 130, 246, 0.1);
+            border: 1px solid #3B82F6;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 32px;
+            text-align: center;
+        }
+        
+        .invitation-title {
+            color: #1F2937;
+            font-size: 20px;
+            font-weight: 700;
+            margin: 0 0 12px 0;
+        }
+        
+        .invitation-text {
+            color: #6B7280;
+            font-size: 16px;
+            margin: 0 0 8px 0;
+        }
+        
+        .team-name {
+            color: #FF6B35;
+            font-weight: 700;
+        }
+        
+        .role-badge {
+            display: inline-block;
+            background-color: #FF6B35;
+            color: #ffffff;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: capitalize;
+        }
+        
+        .welcome-text {
+            color: #1F2937;
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0 0 16px 0;
+        }
+        
+        .description-text {
+            color: #6B7280;
+            font-size: 16px;
+            margin: 0 0 32px 0;
+        }
+        
+        .cta-button {
+            display: inline-block;
+            background-color: #FF6B35;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 16px 32px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 24px;
+            transition: background-color 0.2s ease;
+        }
+        
+        .cta-button:hover {
+            background-color: #FF8C42;
+        }
+        
+        .help-text {
+            color: #9CA3AF;
+            font-size: 14px;
+            margin: 0;
+            text-align: center;
+        }
+        
+        .email-footer {
+            background-color: #f8f9fa;
+            padding: 32px 40px;
+            text-align: center;
+            border-radius: 0 0 20px 20px;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .footer-text {
+            color: #6B7280;
+            font-size: 14px;
+            margin: 0 0 16px 0;
+        }
+        
+        .footer-links {
+            margin: 0;
+        }
+        
+        .footer-link {
+            color: #FF6B35;
+            text-decoration: none;
+            font-weight: 500;
+            margin: 0 8px;
+        }
+        
+        .footer-link:hover {
+            color: #FF8C42;
+        }
+        
+        /* Responsive */
+        @media (max-width: 640px) {
+            .email-header,
+            .email-body,
+            .email-footer {
+                padding: 24px;
+            }
+            
+            .header-title {
+                font-size: 28px;
+            }
+            
+            .team-invitation-card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="email-header">
+            <img src="{{ .SiteURL }}/tactix-logo.png" alt="TACTIX" class="logo">
+            <p class="header-subtitle">Video Coaching Platform</p>
+        </div>
+        
+        <!-- Body -->
+        <div class="email-body">
+            <!-- Regular Signup Email -->
+            <h2 class="welcome-text">Welcome to TACTIX!</h2>
+            <p class="description-text">
+                Thank you for joining TACTIX, the premier video coaching platform. Click the button below to confirm 
+                your email address and get started with analyzing game footage and improving team performance.
+            </p>
+            
+            <h2 class="welcome-text">Confirm your account & join your team</h2>
+            <p class="description-text">
+                Welcome to TACTIX! Click the button below to confirm your email address and join your team. 
+                You'll be able to start collaborating with your teammates right away.
+            </p>
+            
+            <div style="text-align: center; margin: 32px 0;">
+                <a href="{{ .SiteURL }}auth/confirm?token={{ .TokenHash }}&type=signup" 
+                    class="cta-button">
+                    Confirm Account & Join Team
+                </a>
+            </div>
+            
+            <p class="help-text">
+                If you didn't create this account, you can safely ignore this email.
+            </p>
+        </div>
+        
+        <!-- Footer -->
+        <div class="email-footer">
+            <p class="footer-text">
+                This email was sent by TACTIX Video Coaching Platform
+            </p>
+            <p class="footer-links">
+                <a href="{{ .SiteURL }}" class="footer-link">Visit Website</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

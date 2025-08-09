@@ -1,8 +1,10 @@
 import React, { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import DatePicker from 'react-datepicker';
 import { FaPencilAlt, FaTrash } from 'react-icons/fa';
+import { useSearchParams } from 'react-router-dom';
 import { getApiUrl, getValidAccessToken } from '../../utils/api';
 import { ConfirmationDialog } from '../ConfirmationDialog';
+import { JoinTeamModal } from '../JoinTeamModal';
 import './GamesList.css';
 import 'react-datepicker/dist/react-datepicker.css';
 
@@ -137,6 +139,7 @@ export const GamesList = memo(forwardRef<GamesListRef, GamesListProps>(({
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Filter states
   const [filtersExpanded, setFiltersExpanded] = useState(false);
@@ -145,6 +148,25 @@ export const GamesList = memo(forwardRef<GamesListRef, GamesListProps>(({
   const [gameTypeFilter, setGameTypeFilter] = useState('');
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [initialJoinCode, setInitialJoinCode] = useState<string>('');
+
+  // Check for team code in URL on mount
+  useEffect(() =>
+  {
+    const teamCode = searchParams.get('teamCode');
+    console.log('Team code found in URL:', teamCode);
+    if (teamCode)
+    {
+      setInitialJoinCode(teamCode);
+      setShowJoinModal(true);
+
+      // Clean up URL
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('teamCode');
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // Delete confirmation state
   const [deleteConfirmation, setDeleteConfirmation] = useState<{
@@ -209,6 +231,19 @@ export const GamesList = memo(forwardRef<GamesListRef, GamesListProps>(({
       setLoading(false);
     }
   }, [teamId]);
+
+  const handleJoinModalClose = () =>
+  {
+    setShowJoinModal(false);
+    setInitialJoinCode('');
+  };
+
+  const handleJoinModalSuccess = () =>
+  {
+    fetchGames(); // Refresh games list after joining
+    setShowJoinModal(false);
+    setInitialJoinCode('');
+  };
 
   const handleDeleteGame = useCallback((gameId: string) =>
   {
@@ -647,6 +682,13 @@ export const GamesList = memo(forwardRef<GamesListRef, GamesListProps>(({
         confirmButtonText='Delete Game'
         variant='danger'
         loading={deleteConfirmation.loading}
+      />
+
+      <JoinTeamModal
+        isOpen={showJoinModal}
+        onClose={handleJoinModalClose}
+        onSuccess={handleJoinModalSuccess}
+        initialJoinCode={initialJoinCode}
       />
     </div>
   );

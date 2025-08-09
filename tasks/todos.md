@@ -19,5 +19,13 @@
 * [ ] Change to local tech stack
 
 # Danny Issues
-- Not intuitive to add drawing before adding static coaching point. User thinks they need to click + first then draw.
-- After a while of adding coaching points Danny was kicked out to the sign-in page while watching a game. During this time I also re-deployed the website... Not sure what the cause was.
+* [ ] Not intuitive to add drawing before adding static coaching point. User thinks they need to click + first then draw.
+* [ ] After a while of adding coaching points Danny was kicked out to the sign-in page while watching a game. During this time I also re-deployed the website... Not sure what the cause was.
+
+# Database
+* [ ] Analyze cascading deletions and database cleanups
+* [ ] Add created_by fields to teams and player_profiles tables for orphan detection
+    * **Prompt for AI**: 
+        ```
+        Reference 'docs\schema.md' and add a `created_by` field to both `teams` and `player_profiles` tables that records what user created each record. For existing data, set `created_by` to the first coach/admin of that team (for teams) or the first coach/admin of any team the player belongs to (for player_profiles), with fallback to oldest user. Make fields nullable with SET NULL on delete for orphan detection purposes. Update the orphaned relationship detection function and documentation accordingly.
+        ```

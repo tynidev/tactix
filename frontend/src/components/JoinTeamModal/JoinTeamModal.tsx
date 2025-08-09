@@ -9,6 +9,7 @@ interface JoinTeamModalProps
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  initialJoinCode?: string;
 }
 
 interface TeamValidationData
@@ -28,7 +29,7 @@ interface Player
   is_claimed?: boolean;
 }
 
-export const JoinTeamModal: React.FC<JoinTeamModalProps> = ({ isOpen, onClose, onSuccess }) =>
+export const JoinTeamModal: React.FC<JoinTeamModalProps> = ({ isOpen, onClose, onSuccess, initialJoinCode }) =>
 {
   const [joinCode, setJoinCode] = useState('');
   const [validatedTeam, setValidatedTeam] = useState<TeamValidationData | null>(null);
@@ -38,6 +39,33 @@ export const JoinTeamModal: React.FC<JoinTeamModalProps> = ({ isOpen, onClose, o
   const [currentStep, setCurrentStep] = useState<'code' | 'player' | 'confirm'>('code');
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [isNewPlayer, setIsNewPlayer] = useState(false);
+  const [autoValidated, setAutoValidated] = useState(false); // ensure we only auto-validate once per open
+
+  // Auto-fill and validate join code when provided
+  React.useEffect(() =>
+  {
+    if (initialJoinCode && initialJoinCode.trim() && isOpen)
+    {
+      setJoinCode(initialJoinCode.trim().toUpperCase());
+      // Reset auto validation flag when a new code comes in (or modal reopened with a code)
+      setAutoValidated(false);
+    }
+  }, [initialJoinCode, isOpen]);
+
+  // Auto-validate (proceed to next step) once joinCode state reflects the provided initialJoinCode
+  React.useEffect(() =>
+  {
+    if (!isOpen) return;
+    if (!initialJoinCode || !initialJoinCode.trim()) return;
+    const formatted = initialJoinCode.trim().toUpperCase();
+    if (joinCode !== formatted) return; // wait until joinCode state updated
+    if (validatedTeam || loading) return; // already validated or busy
+    if (autoValidated) return; // already attempted
+
+    setAutoValidated(true);
+    // Trigger validation to move to next step automatically
+    handleValidateCode();
+  }, [isOpen, initialJoinCode, joinCode, validatedTeam, loading, autoValidated]);
 
   const handleValidateCode = async () =>
   {
@@ -238,6 +266,7 @@ export const JoinTeamModal: React.FC<JoinTeamModalProps> = ({ isOpen, onClose, o
     setCurrentStep('code');
     setSelectedPlayer(null);
     setIsNewPlayer(false);
+    setAutoValidated(false);
     setError('');
     setSuccess('');
     onClose();
@@ -268,11 +297,22 @@ export const JoinTeamModal: React.FC<JoinTeamModalProps> = ({ isOpen, onClose, o
   // Determine modal size based on current step
   const modalSize = currentStep === 'player' ? 'md' : 'sm';
 
+  // Dynamic modal title: after successful validation show team + role
+  const modalTitle = validatedTeam ?
+    (() =>
+    {
+      const role = validatedTeam.team_role.charAt(0).toUpperCase() + validatedTeam.team_role.slice(1);
+      const name = validatedTeam.team_name;
+      const truncated = name.length > 28 ? name.slice(0, 27) + '…' : name; // 36 total incl ellipsis
+      return `Join ${truncated} (${role})`;
+    })() :
+    'Join Team';
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title='Join Team'
+      title={modalTitle}
       size={modalSize}
       className='join-team-modal'
     >

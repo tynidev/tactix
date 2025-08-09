@@ -183,7 +183,10 @@ router.post('/signup', async (req: Request, res: Response): Promise<void> =>
       email,
       password,
       options: {
-        data: { name },
+        data: {
+          name,
+          teamCode: teamCode || null, // Include team code in user metadata
+        },
       },
     });
 
@@ -226,28 +229,6 @@ router.post('/signup', async (req: Request, res: Response): Promise<void> =>
       message: 'User created successfully',
       user: userData,
     };
-
-    // If a team code was provided, attempt to join the team
-    if (teamCode && teamCode.trim())
-    {
-      const teamJoinResult = await joinTeamWithServiceRole(authData.user.id, teamCode.trim());
-
-      if (teamJoinResult.success)
-      {
-        response.teamJoin = {
-          success: true,
-          message: `Successfully joined team "${teamJoinResult.teamInfo?.name}" as ${teamJoinResult.teamInfo?.role}`,
-          team: teamJoinResult.teamInfo,
-        };
-      }
-      else
-      {
-        response.teamJoin = {
-          success: false,
-          error: teamJoinResult.error,
-        };
-      }
-    }
 
     res.status(201).json(response);
   }
@@ -474,6 +455,76 @@ router.get('/guardian-players', authenticateUser, async (req: AuthenticatedReque
   {
     console.error('Get guardian players error:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Email confirmation handler
+router.get('/confirm', async (req: Request, res: Response): Promise<void> =>
+{
+  try
+  {
+    const { token, type } = req.query;
+
+    if (!token || !type)
+    {
+      res.status(400).json({ error: 'Missing required parameters' });
+      return;
+    }
+
+    // Verify the email confirmation token with Supabase
+    const { data, error } = await supabaseAuth.auth.verifyOtp({
+      token_hash: token as string,
+      type: type as any,
+    });
+
+    if (error)
+    {
+      console.error('Email confirmation error:', error);
+      // Redirect to frontend with error
+      res.redirect(`${process.env.FRONTEND_URL}/auth?error=confirmation_failed`);
+      return;
+    }
+
+    if (!data.user || !data.session)
+    {
+      console.error('Email confirmation succeeded but no user/session data returned');
+      res.redirect(`${process.env.FRONTEND_URL}/auth?error=confirmation_failed`);
+      return;
+    }
+
+    // Set session cookies for automatic frontend authentication
+    const cookieOptions = {
+      httpOnly: false, // Must be false so frontend can access it
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax' as const,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/',
+    };
+
+    // Set the access token as a cookie that frontend can read
+    res.cookie('sb-access-token', data.session.access_token, cookieOptions);
+    res.cookie('sb-refresh-token', data.session.refresh_token, cookieOptions);
+
+    // Build redirect URL - go directly to games page
+    let redirectUrl = `${process.env.FRONTEND_URL}/games`;
+
+    // Check if the verified user has a team code in their metadata
+    if (data.user?.user_metadata?.teamCode)
+    {
+      const teamCode = data.user.user_metadata.teamCode;
+      redirectUrl += `?teamCode=${encodeURIComponent(teamCode)}`;
+    }
+
+    // Add a parameter to indicate this is from email verification
+    redirectUrl += redirectUrl.includes('?') ? '&verified=true' : '?verified=true';
+
+    // Redirect directly to games page (team joining will happen automatically if teamCode present)
+    res.redirect(redirectUrl);
+  }
+  catch (error)
+  {
+    console.error('Email confirmation error:', error);
+    res.redirect(`${process.env.FRONTEND_URL}/auth?error=confirmation_failed`);
   }
 });
 
