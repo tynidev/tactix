@@ -951,6 +951,108 @@ BEGIN
     END IF;
     
     -- ==========================================
+    -- 13. CHECK TEAMS WITH INVALID CREATED_BY
+    -- ==========================================
+    
+    SELECT COUNT(*) INTO orphaned_count
+    FROM public.teams t
+    WHERE t.created_by IS NOT NULL 
+    AND NOT EXISTS (
+        SELECT 1 FROM public.user_profiles up 
+        WHERE up.id = t.created_by
+    );
+    
+    IF orphaned_count > 0 THEN
+        total_orphaned := total_orphaned + orphaned_count;
+        
+        temp_result := jsonb_build_object(
+            'table', 'teams',
+            'foreign_key', 'created_by',
+            'references', 'user_profiles.id',
+            'count', orphaned_count,
+            'orphaned_ids', (
+                SELECT jsonb_agg(t.id)
+                FROM public.teams t
+                WHERE t.created_by IS NOT NULL 
+                AND NOT EXISTS (
+                    SELECT 1 FROM public.user_profiles up 
+                    WHERE up.id = t.created_by
+                )
+            ),
+            'cleanup_action', 'SET created_by to NULL'
+        );
+        
+        orphaned_details := orphaned_details || temp_result;
+        
+        IF p_cleanup_mode THEN
+            UPDATE public.teams 
+            SET created_by = NULL 
+            WHERE created_by IS NOT NULL 
+            AND NOT EXISTS (
+                SELECT 1 FROM public.user_profiles up 
+                WHERE up.id = created_by
+            );
+            
+            cleanup_results := cleanup_results || jsonb_build_object(
+                'table', 'teams',
+                'action', 'SET created_by to NULL',
+                'records_affected', orphaned_count
+            );
+        END IF;
+    END IF;
+    
+    -- ==========================================
+    -- 14. CHECK PLAYER_PROFILES WITH INVALID CREATED_BY
+    -- ==========================================
+    
+    SELECT COUNT(*) INTO orphaned_count
+    FROM public.player_profiles pp
+    WHERE pp.created_by IS NOT NULL 
+    AND NOT EXISTS (
+        SELECT 1 FROM public.user_profiles up 
+        WHERE up.id = pp.created_by
+    );
+    
+    IF orphaned_count > 0 THEN
+        total_orphaned := total_orphaned + orphaned_count;
+        
+        temp_result := jsonb_build_object(
+            'table', 'player_profiles',
+            'foreign_key', 'created_by',
+            'references', 'user_profiles.id',
+            'count', orphaned_count,
+            'orphaned_ids', (
+                SELECT jsonb_agg(pp.id)
+                FROM public.player_profiles pp
+                WHERE pp.created_by IS NOT NULL 
+                AND NOT EXISTS (
+                    SELECT 1 FROM public.user_profiles up 
+                    WHERE up.id = pp.created_by
+                )
+            ),
+            'cleanup_action', 'SET created_by to NULL'
+        );
+        
+        orphaned_details := orphaned_details || temp_result;
+        
+        IF p_cleanup_mode THEN
+            UPDATE public.player_profiles 
+            SET created_by = NULL 
+            WHERE created_by IS NOT NULL 
+            AND NOT EXISTS (
+                SELECT 1 FROM public.user_profiles up 
+                WHERE up.id = created_by
+            );
+            
+            cleanup_results := cleanup_results || jsonb_build_object(
+                'table', 'player_profiles',
+                'action', 'SET created_by to NULL',
+                'records_affected', orphaned_count
+            );
+        END IF;
+    END IF;
+    
+    -- ==========================================
     -- RETURN RESULTS
     -- ==========================================
     

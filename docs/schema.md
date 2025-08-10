@@ -14,6 +14,7 @@
 | `id`             | UUID (PK) | Unique player profile ID                 |
 | `name`           | Text      | Player's full name                       |
 | `user_id`        | UUID (FK) | References `user_profiles.id` (nullable) |
+| `created_by`     | UUID (FK) | References `user_profiles.id` (nullable) |
 | `created_at`     | Timestamp | When profile was created                 |
 
 ## teams
@@ -21,6 +22,7 @@
 | ------------------ | --------- | -------------------------------- |
 | `id`               | UUID (PK) | Unique team ID                   |
 | `name`             | Text      | Team name                        |
+| `created_by`       | UUID (FK) | References `user_profiles.id` (nullable) |
 | `created_at`       | Timestamp | Team creation timestamp          |
 
 ## team_join_codes

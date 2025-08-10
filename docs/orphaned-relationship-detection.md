@@ -9,6 +9,8 @@ The system checks all foreign key relationships in the schema:
 
 ### Core User & Team Relationships
 - `player_profiles.user_id` → `user_profiles.id`
+- `player_profiles.created_by` → `user_profiles.id`
+- `teams.created_by` → `user_profiles.id`
 - `team_join_codes.created_by` → `user_profiles.id`
 - `team_players.team_id` → `teams.id`
 - `team_players.player_id` → `player_profiles.id`

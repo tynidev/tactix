@@ -124,6 +124,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
       .from('teams')
       .insert({
         name,
+        created_by: userId,
       })
       .select()
       .single();
@@ -1317,6 +1318,7 @@ router.post(
           .insert({
             name: name.trim(),
             user_id: null, // Player profiles created this way don't have associated users initially
+            created_by: userId,
           })
           .select()
           .single();
