@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ConfirmationDialog } from '../components/ConfirmationDialog';
 import { CreateTeamModal } from '../components/CreateTeamModal';
 import { TeamsGrid } from '../components/TeamsGrid';
+import { JoinTeamModal } from '../components/JoinTeamModal';
 import { useAuth } from '../contexts/AuthContext';
 import { getApiUrl } from '../utils/api';
 
@@ -28,8 +29,9 @@ export const TeamsPage: React.FC = () =>
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [teamToEdit, setTeamToEdit] = useState<{ id: string; name: string; } | null>(null);
-  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+const [teamToEdit, setTeamToEdit] = useState<{ id: string; name: string; } | null>(null);
+const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
+const [deleteConfirmation, setDeleteConfirmation] = useState<{
     isOpen: boolean;
     teamId: string | null;
     teamName: string;
@@ -108,6 +110,22 @@ export const TeamsPage: React.FC = () =>
   const handleCreateModalSuccess = () =>
   {
     fetchTeams();
+  };
+
+  const handleOpenJoinTeam = () =>
+  {
+    setIsJoinModalOpen(true);
+  };
+
+  const handleJoinModalClose = () =>
+  {
+    setIsJoinModalOpen(false);
+  };
+
+  const handleJoinModalSuccess = () =>
+  {
+    fetchTeams();
+    setIsJoinModalOpen(false);
   };
 
   const handleEditTeam = (teamId: string, currentName: string) =>
@@ -193,9 +211,14 @@ export const TeamsPage: React.FC = () =>
     <main className='dashboard-main'>
       <div className='section-header'>
         <h1 className='section-title'>My Teams</h1>
-        <button onClick={handleCreateTeam} className='btn btn-primary'>
-          Create Team
-        </button>
+        <div className='header-actions' style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+          <button onClick={handleCreateTeam} className='btn btn-primary'>
+            Create Team
+          </button>
+          <button onClick={handleOpenJoinTeam} className='btn btn-secondary'>
+            Join Team
+          </button>
+        </div>
       </div>
 
       {error && <div className='alert alert-error'>{error}</div>}
@@ -225,6 +248,12 @@ export const TeamsPage: React.FC = () =>
         onClose={handleCreateModalClose}
         onSuccess={handleCreateModalSuccess}
         teamToEdit={teamToEdit}
+      />
+
+      <JoinTeamModal
+        isOpen={isJoinModalOpen}
+        onClose={handleJoinModalClose}
+        onSuccess={handleJoinModalSuccess}
       />
 
       <ConfirmationDialog
