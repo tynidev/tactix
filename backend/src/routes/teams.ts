@@ -1059,7 +1059,7 @@ router.get(
             name,
             user_id,
             created_at,
-            user_profiles (
+            user_profiles!player_profiles_user_id_fkey (
               id,
               name,
               email,

@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ConfirmationDialog } from '../components/ConfirmationDialog';
 import { CreateTeamModal } from '../components/CreateTeamModal';
-import { TeamsGrid } from '../components/TeamsGrid';
 import { JoinTeamModal } from '../components/JoinTeamModal';
+import { TeamsGrid } from '../components/TeamsGrid';
 import { useAuth } from '../contexts/AuthContext';
 import { getApiUrl } from '../utils/api';
 
@@ -29,9 +29,9 @@ export const TeamsPage: React.FC = () =>
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-const [teamToEdit, setTeamToEdit] = useState<{ id: string; name: string; } | null>(null);
-const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
-const [deleteConfirmation, setDeleteConfirmation] = useState<{
+  const [teamToEdit, setTeamToEdit] = useState<{ id: string; name: string; } | null>(null);
+  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
     isOpen: boolean;
     teamId: string | null;
     teamName: string;
