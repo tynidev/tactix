@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { DashboardPage, GamesPage, ReviewPage, TeamDetailPage, TeamsPage } from '../../pages';
 import { Auth } from '../Auth/Auth';
 import { Navigation } from '../Navigation/Navigation';
+import { RootRedirect } from '../RootRedirect';
 import UserProfilePage from '../UserProfile/UserProfile';
 
 export const AppRouter: React.FC = () =>
@@ -16,7 +17,8 @@ export const AppRouter: React.FC = () =>
     <div className='dashboard-container'>
       {!hideNavigation && <Navigation />}
       <Routes>
-        <Route path='/' element={<Navigate to='/games' replace />} />
+        <Route path='' element={<RootRedirect />} />
+        <Route path='/' element={<RootRedirect />} />
         <Route path='/auth' element={<Auth />} />
         <Route path='/dashboard' element={<DashboardPage />} />
         <Route path='/teams' element={<TeamsPage />} />
@@ -25,7 +27,8 @@ export const AppRouter: React.FC = () =>
         <Route path='/games/:teamId' element={<GamesPage />} />
         <Route path='/profile' element={<UserProfilePage />} />
         <Route path='/review/:gameId' element={<ReviewPage />} />
-        {/* Catch all route - redirect to games */}
+        
+        {/* Catch all route - redirect to games, preserving query params */}
         <Route path='*' element={<Navigate to='/games' replace />} />
       </Routes>
     </div>

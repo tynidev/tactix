@@ -6,6 +6,7 @@ import ThemeToggle from '../ThemeToggle/ThemeToggle';
 
 export const Auth: React.FC = () =>
 {
+  const { signIn, signUp, user, loading: authLoading, isSessionValid } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -19,10 +20,28 @@ export const Auth: React.FC = () =>
   const [teamInfo, setTeamInfo] = useState<{ name: string; role: string; } | null>(null);
   const [teamJoinStatus, setTeamJoinStatus] = useState<'pending' | 'success' | 'error' | null>(null);
   const [teamJoinError, setTeamJoinError] = useState<string>('');
-
-  const { signIn, signUp } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+
+  // If still loading auth state, show loading
+  if (authLoading) {
+    return (
+      <div className='auth-container'>
+        <div className='auth-card'>
+          <div style={{ textAlign: 'center', padding: 'var(--space-lg)' }}>
+            <div>Loading...</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // If user is authenticated and session is valid, redirect to root with query params
+  if (user && isSessionValid()) {
+    const currentSearch = window.location.search;
+    navigate(`/${currentSearch}`);
+    return null;
+  }
 
   // Function to validate team code and get team info
   const validateTeamCode = async (code: string) =>
