@@ -1093,6 +1093,67 @@ router.get(
         }
       }
 
+      // Build guardian relationship map for all guardians on this team (only players on this team)
+      const guardianIds = (memberships || [])
+        .filter(m => m.role === TeamRole.Guardian)
+        .map(m => m.user_profiles?.id)
+        .filter((id): id is string => Boolean(id));
+
+      const teamPlayerProfileIds = (players || [])
+        .map(tp => tp.player_profiles?.id)
+        .filter((id): id is string => Boolean(id));
+
+      let guardianRelationshipMap: Record<string, { id: string; name: string; jersey_number: string | null; }[]> = {};
+
+      if (guardianIds.length > 0 && teamPlayerProfileIds.length > 0)
+      {
+        const { data: guardianRelsAll, error: guardianRelsAllError } = await supabase
+          .from('guardian_player_relationships')
+          .select(`
+            guardian_id,
+            player_profile_id,
+            player_profiles (
+              id,
+              name
+            )
+          `)
+          .in('guardian_id', guardianIds)
+          .in('player_profile_id', teamPlayerProfileIds);
+
+        if (!guardianRelsAllError && guardianRelsAll)
+        {
+          // Map player profile id -> jersey number for quick lookup
+          const jerseyMap: Record<string, string | null> = {};
+          (players || []).forEach(tp =>
+          {
+            const pid = tp.player_profiles?.id;
+            if (pid)
+            {
+              jerseyMap[pid] = tp.jersey_number || null;
+            }
+          });
+
+          guardianRelationshipMap = guardianRelsAll.reduce((acc, rel) =>
+          {
+            const guardianId = rel.guardian_id;
+            const profile = Array.isArray(rel.player_profiles) ? rel.player_profiles[0] : rel.player_profiles;
+            if (profile?.id && profile?.name)
+            {
+              if (!acc[guardianId])
+              {
+                acc[guardianId] = [];
+              }
+              acc[guardianId].push({
+                id: profile.id,
+                name: profile.name,
+                jersey_number: jerseyMap[profile.id] || null,
+              });
+            }
+            return acc;
+          }, {} as Record<string, { id: string; name: string; jersey_number: string | null; }[]>);
+        }
+      }
+
       // Group members by role
       const membersByRole: Record<string, any[]> = {
         players: [],
@@ -1138,6 +1199,10 @@ router.get(
           joined_at: membership.created_at,
           user_created_at: membership.user_profiles?.created_at,
           can_remove: canRemove,
+          // Include related players (names only) for guardians (frontend will decide what to display)
+          related_players: membership.role === TeamRole.Guardian ?
+            (guardianRelationshipMap[membership.user_profiles?.id || ''] || []) :
+            undefined,
         };
 
         switch (membership.role)

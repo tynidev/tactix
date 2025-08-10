@@ -74,6 +74,7 @@ interface Member
   joined_at: string;
   user_created_at: string;
   can_remove?: boolean;
+  related_players?: { id: string; name: string; jersey_number: string | null; }[];
 }
 
 type SortOption = 'name-asc' | 'name-desc' | 'date-newest' | 'date-oldest';
@@ -670,6 +671,9 @@ export const TeamDetailPage: React.FC = () =>
                   const player = member as Player;
                   const isEditingThisJersey = isPlayer && editingJerseyPlayerId === player.id;
                   const canEdit = isPlayer && canEditJerseyNumber(player);
+                  const guardianRelated = !isPlayer && (member as Member).role === 'guardian' ?
+                    (member as Member).related_players :
+                    undefined;
 
                   return (
                     <div
@@ -806,6 +810,23 @@ export const TeamDetailPage: React.FC = () =>
                           )}
                         </div>
 
+                        {!isPlayer && (member as Member).role === 'guardian' && guardianRelated &&
+                          guardianRelated.length > 0 && (
+                          <div
+                            style={{
+                              fontSize: '12px',
+                              color: 'var(--color-text-secondary)',
+                              marginBottom: 'var(--space-xs)',
+                              lineHeight: '1.2',
+                              display: 'block',
+                              whiteSpace: 'normal',
+                            }}
+                          >
+                            Players:&nbsp;
+                            {guardianRelated.map(p => p.name).join(', ')}
+                          </div>
+                        )}
+
                         {/* Error message for jersey editing */}
                         {isEditingThisJersey && jerseyError && (
                           <div
@@ -819,7 +840,8 @@ export const TeamDetailPage: React.FC = () =>
                           </div>
                         )}
 
-                        {member.email && (
+                        {
+                          /* {member.email && (
                           <div
                             style={{
                               fontSize: '14px',
@@ -829,7 +851,8 @@ export const TeamDetailPage: React.FC = () =>
                           >
                             {member.email}
                           </div>
-                        )}
+                        )} */
+                        }
                         <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
                           Joined: {new Date(member.joined_at).toLocaleDateString()}
                         </div>

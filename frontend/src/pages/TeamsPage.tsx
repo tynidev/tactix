@@ -212,7 +212,7 @@ export const TeamsPage: React.FC = () =>
       <div className='section-header'>
         <h1 className='section-title'>My Teams</h1>
         <div className='header-actions' style={{ display: 'flex', gap: 'var(--space-sm)' }}>
-          <button onClick={handleCreateTeam} className='btn btn-primary'>
+          <button onClick={handleCreateTeam} className='btn btn-secondary'>
             Create Team
           </button>
           <button onClick={handleOpenJoinTeam} className='btn btn-secondary'>
