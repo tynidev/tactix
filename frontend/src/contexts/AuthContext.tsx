@@ -81,7 +81,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; }> = ({ childre
     };
   }, []);
 
-
   // Separate useEffect for session validation to avoid circular dependency
   useEffect(() =>
   {

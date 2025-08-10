@@ -24,7 +24,8 @@ export const Auth: React.FC = () =>
   const navigate = useNavigate();
 
   // If still loading auth state, show loading
-  if (authLoading) {
+  if (authLoading)
+  {
     return (
       <div className='auth-container'>
         <div className='auth-card'>
@@ -37,7 +38,8 @@ export const Auth: React.FC = () =>
   }
 
   // If user is authenticated and session is valid, redirect to root with query params
-  if (user && isSessionValid()) {
+  if (user && isSessionValid())
+  {
     const currentSearch = window.location.search;
     navigate(`/${currentSearch}`);
     return null;

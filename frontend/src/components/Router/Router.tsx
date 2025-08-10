@@ -27,7 +27,7 @@ export const AppRouter: React.FC = () =>
         <Route path='/games/:teamId' element={<GamesPage />} />
         <Route path='/profile' element={<UserProfilePage />} />
         <Route path='/review/:gameId' element={<ReviewPage />} />
-        
+
         {/* Catch all route - redirect to games, preserving query params */}
         <Route path='*' element={<Navigate to='/games' replace />} />
       </Routes>
