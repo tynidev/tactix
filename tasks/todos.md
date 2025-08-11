@@ -18,6 +18,7 @@
 # Danny Issues
 * [ ] Not intuitive to add drawing before adding static coaching point. User thinks they need to click + first then draw.
 * [ ] After a while of adding coaching points Danny was kicked out to the sign-in page while watching a game. During this time I also re-deployed the website... Not sure what the cause was.
-
+    * [ ] Noticed myself get logged out automatically
+    
 # Database
 * [ ] Analyze cascading deletions and database cleanups
