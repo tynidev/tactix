@@ -589,14 +589,18 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
       // For non-player roles, pass the selected player ID
       const playerId = game.user_role !== 'player' ? selectedPlayerId || undefined : undefined;
 
+      // Auto-acknowledge if notes are provided
+      const shouldAcknowledge = acknowledgedValue || !!(notesValue && notesValue.trim().length > 0);
+
       const result = await updateCoachingPointAcknowledgment(
         selectedCoachingPoint.id,
-        acknowledgedValue,
+        shouldAcknowledge,
         notesValue || undefined,
         playerId
       );
 
       setAcknowledgment(result);
+      setAcknowledgedValue(result.acknowledged); // Update checkbox state to reflect saved value
       setHasUnsavedChanges(false);
       setSaveSuccess(true);
       
