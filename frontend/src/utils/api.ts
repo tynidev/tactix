@@ -379,3 +379,107 @@ export const updatePlayerJerseyNumber = async (
     throw error;
   }
 };
+
+/**
+ * Get acknowledgment for a coaching point (supports guardian proxy via playerId)
+ * @param coachingPointId - ID of the coaching point
+ * @param playerId - Optional player ID for guardian proxy acknowledgments
+ * @returns Promise resolving to acknowledgment data
+ */
+export const getCoachingPointAcknowledgment = async (
+  coachingPointId: string,
+  playerId?: string,
+): Promise<{ acknowledged: boolean; ack_at: string | null; notes: string | null }> =>
+{
+  try
+  {
+    const url = playerId 
+      ? `/api/coaching-points/${coachingPointId}/acknowledgment?player_id=${playerId}`
+      : `/api/coaching-points/${coachingPointId}/acknowledgment`;
+    
+    const response = await apiRequest(url);
+
+    if (!response.ok)
+    {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to fetch acknowledgment');
+    }
+
+    return await response.json();
+  }
+  catch (error)
+  {
+    console.error('❌ Error fetching acknowledgment:', error);
+    throw error;
+  }
+};
+
+/**
+ * Create or update acknowledgment for a coaching point (supports guardian proxy via playerId)
+ * @param coachingPointId - ID of the coaching point
+ * @param acknowledged - Whether the coaching point is acknowledged
+ * @param notes - Optional notes about what was learned
+ * @param playerId - Optional player ID for guardian proxy acknowledgments
+ * @returns Promise resolving to updated acknowledgment data
+ */
+export const updateCoachingPointAcknowledgment = async (
+  coachingPointId: string,
+  acknowledged: boolean,
+  notes?: string,
+  playerId?: string,
+): Promise<{ acknowledged: boolean; ack_at: string | null; notes: string | null }> =>
+{
+  try
+  {
+    const requestBody: any = { acknowledged, notes };
+    if (playerId) {
+      requestBody.player_id = playerId;
+    }
+
+    const response = await apiRequest(`/api/coaching-points/${coachingPointId}/acknowledge`, {
+      method: 'POST',
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok)
+    {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to update acknowledgment');
+    }
+
+    return await response.json();
+  }
+  catch (error)
+  {
+    console.error('❌ Error updating acknowledgment:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get players for a guardian in a specific team
+ * @param teamId - ID of the team
+ * @returns Promise resolving to array of guardian's players in the team
+ */
+export const getGuardianPlayers = async (
+  teamId: string,
+): Promise<{ id: string; name: string; jersey_number: string | null }[]> =>
+{
+  try
+  {
+    const response = await apiRequest(`/api/players/guardian/team/${teamId}`);
+
+    if (!response.ok)
+    {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to fetch guardian players');
+    }
+
+    return await response.json();
+  }
+  catch (error)
+  {
+    console.error('❌ Error fetching guardian players:', error);
+    throw error;
+  }
+};

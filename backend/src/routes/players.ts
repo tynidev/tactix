@@ -250,4 +250,72 @@ router.post('/link', async (req: AuthenticatedRequest, res: Response): Promise<v
   }
 });
 
+// GET /api/players/guardian/team/:teamId - Get players for a guardian in a specific team
+router.get('/guardian/team/:teamId', async (req: AuthenticatedRequest, res: Response): Promise<void> =>
+{
+  try
+  {
+    const userId = req.user?.id;
+    if (!userId)
+    {
+      res.status(401).json({ message: 'User ID not found' });
+      return;
+    }
+
+    const { teamId } = req.params;
+
+    // Verify the user is a member of the team (any role)
+    const { data: teamMembership, error: teamError } = await supabase
+      .from('team_memberships')
+      .select('role')
+      .eq('team_id', teamId)
+      .eq('user_id', userId)
+      .single();
+
+    if (teamError || !teamMembership)
+    {
+      res.status(403).json({ message: 'Access denied: not a member of this team' });
+      return;
+    }
+
+    // Get the guardian's players that are on this team
+    const { data: guardianPlayers, error: playersError } = await supabase
+      .from('guardian_player_relationships')
+      .select(`
+        player_profile_id,
+        player_profiles!inner(
+          id,
+          name,
+          team_players!inner(
+            team_id,
+            jersey_number
+          )
+        )
+      `)
+      .eq('guardian_id', userId)
+      .eq('player_profiles.team_players.team_id', teamId);
+
+    if (playersError)
+    {
+      console.error('Error fetching guardian players:', playersError);
+      res.status(500).json({ message: 'Failed to fetch guardian players' });
+      return;
+    }
+
+    // Transform the data for easier frontend consumption
+    const players = guardianPlayers.map(relationship => ({
+      id: relationship.player_profiles.id,
+      name: relationship.player_profiles.name,
+      jersey_number: relationship.player_profiles.team_players[0]?.jersey_number || null
+    }));
+
+    res.json(players);
+  }
+  catch (error)
+  {
+    console.error('Error in GET /players/guardian/team/:teamId:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 export default router;

@@ -121,6 +121,7 @@ export type Database = {
           ack_at: string | null;
           acknowledged: boolean | null;
           id: string;
+          notes: string | null;
           player_id: string;
           point_id: string;
           viewed_at: string | null;
@@ -129,6 +130,7 @@ export type Database = {
           ack_at?: string | null;
           acknowledged?: boolean | null;
           id?: string;
+          notes?: string | null;
           player_id: string;
           point_id: string;
           viewed_at?: string | null;
@@ -137,6 +139,7 @@ export type Database = {
           ack_at?: string | null;
           acknowledged?: boolean | null;
           id?: string;
+          notes?: string | null;
           player_id?: string;
           point_id?: string;
           viewed_at?: string | null;

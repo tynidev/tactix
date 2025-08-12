@@ -146,6 +146,7 @@ This event captures the initial state when a coaching point recording begins, al
 | `viewed_at`   | Timestamp | When user first viewed the point      |
 | `acknowledged`| Boolean   | Whether user acknowledged the point   |
 | `ack_at`      | Timestamp | When user acknowledged (nullable)     |
+| `notes`       | Text      | Player notes about what they learned (nullable) |
 
 # Diagram
 
@@ -267,6 +268,7 @@ erDiagram
         Timestamp viewed_at
         Boolean acknowledged
         Timestamp ack_at
+        Text notes
     }
     
     user_profiles ||--o{ team_memberships : "has many"
