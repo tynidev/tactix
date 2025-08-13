@@ -161,6 +161,57 @@ export type Database = {
           },
         ];
       };
+      coaching_point_reels: {
+        Row: {
+          coaching_point_ids: string[];
+          created_at: string | null;
+          created_by: string;
+          description: string | null;
+          id: string;
+          is_published: boolean | null;
+          reel_id: string;
+          team_id: string;
+          title: string;
+        };
+        Insert: {
+          coaching_point_ids?: string[];
+          created_at?: string | null;
+          created_by: string;
+          description?: string | null;
+          id?: string;
+          is_published?: boolean | null;
+          reel_id?: string;
+          team_id: string;
+          title: string;
+        };
+        Update: {
+          coaching_point_ids?: string[];
+          created_at?: string | null;
+          created_by?: string;
+          description?: string | null;
+          id?: string;
+          is_published?: boolean | null;
+          reel_id?: string;
+          team_id?: string;
+          title?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'coaching_point_reels_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'user_profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'coaching_point_reels_team_id_fkey';
+            columns: ['team_id'];
+            isOneToOne: false;
+            referencedRelation: 'teams';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       coaching_points: {
         Row: {
           audio_url: string | null;
@@ -170,6 +221,7 @@ export type Database = {
           feedback: string | null;
           game_id: string;
           id: string;
+          is_highlight: boolean | null;
           timestamp: string | null;
           title: string;
         };
@@ -181,6 +233,7 @@ export type Database = {
           feedback?: string | null;
           game_id: string;
           id?: string;
+          is_highlight?: boolean | null;
           timestamp?: string | null;
           title: string;
         };
@@ -192,6 +245,7 @@ export type Database = {
           feedback?: string | null;
           game_id?: string;
           id?: string;
+          is_highlight?: boolean | null;
           timestamp?: string | null;
           title?: string;
         };
