@@ -9,7 +9,7 @@ This document provides a comprehensive analysis of the Coach's Ideal TACTIX Feat
 The TACTIX platform already has a robust foundation that supports many of the requested features:
 
 ### Existing Database Schema
-- **`coaching_point_views`** - Already tracks viewing with `acknowledged` and `ack_at` fields
+- **`coaching_point_acknowledgments`** - Already tracks viewing with `acknowledged` and `ack_at` fields
 - **`guardian_player_relationships`** - Links guardians to their children
 - **`coaching_point_tagged_players`** - Associates players with specific coaching points
 - **`labels` & `coaching_point_labels`** - Categorization system for coaching points
@@ -31,17 +31,16 @@ The TACTIX platform already has a robust foundation that supports many of the re
 **Description:** Players watch a clip → check a box to confirm they watched it. Field to add a note on what they learned → sent to the coach.
 
 #### Current Foundation
-- `coaching_point_views` table already exists with:
+- `coaching_point_acknowledgments` table already exists with:
   - `acknowledged` (boolean) field
   - `ack_at` (timestamp) field
-  - `viewed_at` (timestamp) field
 
 #### Implementation Plan
 
 **Database Changes:**
 ```sql
--- Add notes field to existing coaching_point_views table
-ALTER TABLE coaching_point_views 
+-- Add notes field to existing coaching_point_acknowledgments table
+ALTER TABLE coaching_point_acknowledgments 
 ADD COLUMN notes TEXT;
 ```
 
@@ -169,7 +168,6 @@ CREATE TABLE highlight_reels (
 >   * Only highlights for a specific label.
 >   * All highlights for the game.
 > * Shows segment title (`coaching_points.title`) and optional labels (`labels.name`) on screen while playing.
-> * Tracks when a player watches each segment, and records `coaching_point_views.viewed_at` and sets `acknowledged=true` when they click "Acknowledge."
 > * Sends an optional note back to the coach linked to that `coaching_point_id`.
 > * Notifies guardians (via existing guardian relationships) when a new highlight for their player is published.
 > 
@@ -179,7 +177,7 @@ CREATE TABLE highlight_reels (
 > 2. Accept an array of `{ point_id, startSec, endSec, title, labels[] }` from the backend.
 > 3. Implement auto-advance to the next segment when `currentTime >= endSec`.
 > 4. Provide UI controls for play/pause, prev/next segment, filter dropdown, and acknowledgement button.
-> 5. On acknowledgement, send a POST request to update `coaching_point_views` and optionally save a note to a new `notes` field (if implemented).
+> 5. On acknowledgement, send a POST request to update `coaching_point_acknowledgments` and optionally save a note to a new `notes` field (if implemented).
 > 6. Make the component embeddable anywhere a YouTube game video would normally display.
 > 
 > Output:
@@ -334,7 +332,7 @@ class NotificationService {
 **Description:** System tracks which clips each player has watched & acknowledged. Bar chart view for coach, player, and guardians.
 
 #### Current Foundation
-- `coaching_point_views` table already tracks viewing and acknowledgments
+- `coaching_point_acknowledgments` table already tracks acknowledgments
 - Existing API endpoints for coaching point data
 
 #### Implementation Plan
@@ -352,7 +350,7 @@ SELECT
   COUNT(CASE WHEN cpv.acknowledged THEN 1 END) as total_acknowledgments,
   COUNT(DISTINCT cpv.player_id) as unique_viewers
 FROM coaching_points cp
-LEFT JOIN coaching_point_views cpv ON cp.id = cpv.point_id
+LEFT JOIN coaching_point_acknowledgments cpv ON cp.id = cpv.point_id
 GROUP BY cp.id, cp.title, cp.game_id, cp.created_at;
 
 -- Player progress view
@@ -365,7 +363,7 @@ SELECT
   COUNT(CASE WHEN cpv.acknowledged THEN 1 END) as acknowledged_points
 FROM player_profiles pp
 LEFT JOIN coaching_point_tagged_players cptp ON pp.id = cptp.player_id
-LEFT JOIN coaching_point_views cpv ON cptp.coaching_point_id = cpv.point_id AND pp.id = cpv.player_id
+LEFT JOIN coaching_point_acknowledgments cpv ON cptp.coaching_point_id = cpv.point_id AND pp.id = cpv.player_id
 GROUP BY pp.id, pp.name;
 ```
 

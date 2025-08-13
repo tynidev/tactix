@@ -139,7 +139,7 @@ The application uses PostgreSQL with the following main tables:
 - `coaching_point_events` - Recording session events
 - `coaching_point_tagged_players` - Player tagging
 - `labels` - Categorization labels
-- `coaching_point_views` - View tracking and acknowledgments
+- `coaching_point_acknowledgments` - View tracking and acknowledgments
 
 See [docs/schema.md](./docs/schema.md) for detailed schema documentation.
 

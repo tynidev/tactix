@@ -179,7 +179,7 @@ Delete a coaching point and all associated data.
   - coaching_point_events
   - coaching_point_tagged_players
   - coaching_point_labels
-  - coaching_point_views
+  - coaching_point_acknowledgments
 - Verifies user permissions before deletion
 - Returns 204 status on successful deletion
 - Irreversible operation

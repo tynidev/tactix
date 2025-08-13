@@ -32,8 +32,8 @@ The system checks all foreign key relationships in the schema:
 - `labels.team_id` → `teams.id`
 - `coaching_point_labels.point_id` → `coaching_points.id`
 - `coaching_point_labels.label_id` → `labels.id`
-- `coaching_point_views.point_id` → `coaching_points.id`
-- `coaching_point_views.player_id` → `player_profiles.id`
+- `coaching_point_acknowledgments.point_id` → `coaching_points.id`
+- `coaching_point_acknowledgments.player_id` → `player_profiles.id`
 
 ## Usage
 

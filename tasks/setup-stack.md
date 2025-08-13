@@ -23,7 +23,7 @@ The application needs the following tables (already designed see [schema.md](../
 - `user_profiles`, `teams`, `team_memberships`, `guardian_child_relationships`
 - `games`, `coaching_points`, `coaching_point_events`
 - `coaching_point_tagged_players`, `labels`, `coaching_point_labels`
-- `coaching_point_views`
+- `coaching_point_acknowledgments`
 
 **Important**: The `user_profiles` table needs to be integrated with Supabase Auth. Need to set up:
 - Supabase Auth integration with the existing user_profiles table

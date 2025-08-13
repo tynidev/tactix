@@ -579,7 +579,7 @@ router.delete('/players/:playerId', authenticateUser, async (req: AuthenticatedR
     {
       // Delete coaching point views
       await supabase
-        .from('coaching_point_views')
+        .from('coaching_point_acknowledgments')
         .delete()
         .eq('player_id', playerId);
 

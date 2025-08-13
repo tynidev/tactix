@@ -203,7 +203,7 @@ Delete a player profile. Only accessible by guardians or the player owner.
 
 **Business Logic Notes:**
 - Performs cascading deletion in correct order:
-  1. coaching_point_views
+  1. coaching_point_acknowledgments
   2. coaching_point_tagged_players
   3. team_players
   4. guardian_player_relationships
