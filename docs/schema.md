@@ -147,6 +147,26 @@ This event captures the initial state when a coaching point recording begins, al
 | `ack_at`      | Timestamp | When user acknowledged (nullable)     |
 | `notes`       | Text      | Player notes about what they learned (nullable) |
 
+## coaching_point_view_events
+| Column                | Type       | Description                           |
+| --------------------- | ---------- | ------------------------------------- |
+| `id`                  | UUID (PK)  | Unique view event ID                  |
+| `point_id`            | UUID (FK)  | References `coaching_points.id`       |
+| `user_id`             | UUID (FK)  | References `user_profiles.id`         |
+| `completion_percentage`| Integer   | How much was viewed (0-100)           |
+| `created_at`          | Timestamp  | When the view occurred                |
+
+## coaching_point_view_summary
+| Column           | Type       | Description                           |
+| ---------------- | ---------- | ------------------------------------- |
+| `id`             | UUID (PK)  | Unique summary ID                     |
+| `point_id`       | UUID (FK)  | References `coaching_points.id`       |
+| `user_id`        | UUID (FK)  | References `user_profiles.id`         |
+| `view_count`     | Integer    | Total number of views                 |
+| `first_viewed_at`| Timestamp  | When first viewed (nullable)          |
+| `last_viewed_at` | Timestamp  | When last viewed (nullable)           |
+| `created_at`     | Timestamp  | When summary was created              |
+
 # Diagram
 
 ```mermaid
@@ -269,6 +289,24 @@ erDiagram
         Text notes
     }
     
+    coaching_point_view_events {
+        UUID id PK
+        UUID point_id FK
+        UUID user_id FK
+        Integer completion_percentage
+        Timestamp created_at
+    }
+    
+    coaching_point_view_summary {
+        UUID id PK
+        UUID point_id FK
+        UUID user_id FK
+        Integer view_count
+        Timestamp first_viewed_at
+        Timestamp last_viewed_at
+        Timestamp created_at
+    }
+    
     user_profiles ||--o{ team_memberships : "has many"
     teams ||--o{ team_memberships : "has many"
     teams ||--o{ team_join_codes : "has many"
@@ -290,4 +328,8 @@ erDiagram
     labels ||--o{ coaching_point_labels : "applied to"
     coaching_points ||--o{ coaching_point_acknowledgments : "has many"
     player_profiles ||--o{ coaching_point_acknowledgments : "acknowledges"
+    coaching_points ||--o{ coaching_point_view_events : "has many"
+    user_profiles ||--o{ coaching_point_view_events : "views"
+    coaching_points ||--o{ coaching_point_view_summary : "has many"
+    user_profiles ||--o{ coaching_point_view_summary : "has summary"
 ```

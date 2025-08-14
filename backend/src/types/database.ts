@@ -116,6 +116,90 @@ export type Database = {
           },
         ];
       };
+      coaching_point_view_events: {
+        Row: {
+          id: string;
+          point_id: string;
+          user_id: string;
+          completion_percentage: number | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          point_id: string;
+          user_id: string;
+          completion_percentage?: number | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          point_id?: string;
+          user_id?: string;
+          completion_percentage?: number | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'coaching_point_view_events_point_id_fkey';
+            columns: ['point_id'];
+            isOneToOne: false;
+            referencedRelation: 'coaching_points';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'coaching_point_view_events_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'user_profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      coaching_point_view_summary: {
+        Row: {
+          id: string;
+          point_id: string;
+          user_id: string;
+          view_count: number;
+          first_viewed_at: string | null;
+          last_viewed_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          point_id: string;
+          user_id: string;
+          view_count?: number;
+          first_viewed_at?: string | null;
+          last_viewed_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          point_id?: string;
+          user_id?: string;
+          view_count?: number;
+          first_viewed_at?: string | null;
+          last_viewed_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'coaching_point_view_summary_point_id_fkey';
+            columns: ['point_id'];
+            isOneToOne: false;
+            referencedRelation: 'coaching_points';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'coaching_point_view_summary_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'user_profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       coaching_point_acknowledgments: {
         Row: {
           ack_at: string | null;
@@ -638,6 +722,29 @@ export type Database = {
         Args: { join_code: string; user_id_param?: string; };
         Returns: Json;
       };
+      get_unviewed_coaching_points: {
+        Args: { p_user_id: string; };
+        Returns: {
+          id: string;
+          game_id: string;
+          author_id: string;
+          title: string;
+          feedback: string | null;
+          timestamp: string | null;
+          audio_url: string | null;
+          duration: number | null;
+          created_at: string | null;
+          game: Json;
+          tagged_players: string[];
+        }[];
+      };
+      get_unviewed_coaching_points_for_game: {
+        Args: {
+          p_user_id: string;
+          p_game_id: string;
+        };
+        Returns: Database['public']['Functions']['get_unviewed_coaching_points']['Returns'];
+      };
     };
     Enums: {
       event_type: 'play' | 'pause' | 'seek' | 'draw' | 'change_speed' | 'recording_start';
@@ -778,4 +885,25 @@ export enum HomeAway
   Home = 'home',
   Away = 'away',
   Neutral = 'neutral',
+}
+
+// Additional interfaces for the new view analytics tables
+export interface CoachingPointViewSummary
+{
+  id: string;
+  point_id: string;
+  user_id: string;
+  view_count: number;
+  first_viewed_at: string | null;
+  last_viewed_at: string | null;
+  created_at: string;
+}
+
+export interface CoachingPointViewEvent
+{
+  id: string;
+  point_id: string;
+  user_id: string;
+  completion_percentage: number | null;
+  created_at: string;
 }

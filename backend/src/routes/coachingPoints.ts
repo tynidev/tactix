@@ -5,7 +5,8 @@ import { supabase } from '../utils/supabase.js';
 const router = express.Router();
 
 // Helper function to validate coaching point access and get target player ID
-interface CoachingPointValidationResult {
+interface CoachingPointValidationResult
+{
   targetPlayerId: string;
   coachingPoint: any;
 }
@@ -13,8 +14,9 @@ interface CoachingPointValidationResult {
 async function validateCoachingPointAccess(
   coachingPointId: string,
   userId: string,
-  playerIdOverride?: string
-): Promise<CoachingPointValidationResult> {
+  playerIdOverride?: string,
+): Promise<CoachingPointValidationResult>
+{
   // First verify the coaching point exists and user has access to it
   const { data: coachingPoint, error: coachingPointError } = await supabase
     .from('coaching_points')
@@ -33,13 +35,15 @@ async function validateCoachingPointAccess(
     .eq('games.teams.team_memberships.user_id', userId)
     .single();
 
-  if (coachingPointError || !coachingPoint) {
+  if (coachingPointError || !coachingPoint)
+  {
     throw new Error('COACHING_POINT_NOT_FOUND');
   }
 
   let targetPlayerId: string;
 
-  if (playerIdOverride) {
+  if (playerIdOverride)
+  {
     // Guardian proxy acknowledgment - verify the user is a guardian of the specified player
     const { data: guardianRelationship, error: guardianError } = await supabase
       .from('guardian_player_relationships')
@@ -48,12 +52,15 @@ async function validateCoachingPointAccess(
       .eq('player_profile_id', playerIdOverride)
       .single();
 
-    if (guardianError || !guardianRelationship) {
+    if (guardianError || !guardianRelationship)
+    {
       throw new Error('GUARDIAN_ACCESS_DENIED');
     }
 
     targetPlayerId = playerIdOverride;
-  } else {
+  }
+  else
+  {
     // Get user's own player profile
     const { data: playerProfile, error: playerError } = await supabase
       .from('player_profiles')
@@ -61,7 +68,8 @@ async function validateCoachingPointAccess(
       .eq('user_id', userId)
       .single();
 
-    if (playerError || !playerProfile) {
+    if (playerError || !playerProfile)
+    {
       throw new Error('PLAYER_PROFILE_NOT_FOUND');
     }
 
@@ -341,20 +349,25 @@ router.get('/:id/acknowledgment', authenticateUser, async (req: AuthenticatedReq
 
     const { id } = req.params;
     const { player_id } = req.query;
-    
+
     // Type guard for player_id query parameter
     const playerIdParam = typeof player_id === 'string' ? player_id : undefined;
 
     let targetPlayerId: string;
 
-    try {
+    try
+    {
       // Validate that the coaching point exists, user has team access, and get target player ID
       // For guardian proxy: verifies guardian relationship; For direct access: gets user's player profile
       const result = await validateCoachingPointAccess(id, userId, playerIdParam);
       targetPlayerId = result.targetPlayerId;
-    } catch (error) {
-      if (error instanceof Error) {
-        switch (error.message) {
+    }
+    catch (error)
+    {
+      if (error instanceof Error)
+      {
+        switch (error.message)
+        {
           case 'COACHING_POINT_NOT_FOUND':
             res.status(404).json({ message: 'Coaching point not found or access denied' });
             return;
@@ -366,7 +379,7 @@ router.get('/:id/acknowledgment', authenticateUser, async (req: AuthenticatedReq
             res.json({
               acknowledged: false,
               ack_at: null,
-              notes: null
+              notes: null,
             });
             return;
           default:
@@ -384,8 +397,8 @@ router.get('/:id/acknowledgment', authenticateUser, async (req: AuthenticatedReq
       .eq('player_id', targetPlayerId)
       .single();
 
-    if (ackError && ackError.code !== 'PGRST116') // PGRST116 = no rows returned
-    {
+    if (ackError && ackError.code !== 'PGRST116')
+    { // PGRST116 = no rows returned
       console.error('Error fetching acknowledgment:', ackError);
       res.status(500).json({ message: 'Failed to fetch acknowledgment' });
       return;
@@ -395,7 +408,7 @@ router.get('/:id/acknowledgment', authenticateUser, async (req: AuthenticatedReq
     res.json({
       acknowledged: acknowledgment?.acknowledged || false,
       ack_at: acknowledgment?.ack_at || null,
-      notes: acknowledgment?.notes || null
+      notes: acknowledgment?.notes || null,
     });
   }
   catch (error)
@@ -449,14 +462,19 @@ router.post('/:id/acknowledge', authenticateUser, async (req: AuthenticatedReque
 
     let targetPlayerId: string;
 
-    try {
+    try
+    {
       // Validate that the coaching point exists, user has team access, and get target player ID
       // For guardian proxy: verifies guardian relationship; For direct access: gets user's player profile
       const result = await validateCoachingPointAccess(id, userId, player_id);
       targetPlayerId = result.targetPlayerId;
-    } catch (error) {
-      if (error instanceof Error) {
-        switch (error.message) {
+    }
+    catch (error)
+    {
+      if (error instanceof Error)
+      {
+        switch (error.message)
+        {
           case 'COACHING_POINT_NOT_FOUND':
             res.status(404).json({ message: 'Coaching point not found or access denied' });
             return;
@@ -479,14 +497,14 @@ router.post('/:id/acknowledge', authenticateUser, async (req: AuthenticatedReque
       player_id: targetPlayerId,
       acknowledged: acknowledged,
       ack_at: acknowledged ? new Date().toISOString() : null,
-      notes: notes || null
+      notes: notes || null,
     };
 
     // Upsert the acknowledgment record
     const { data: acknowledgmentRecord, error: upsertError } = await supabase
       .from('coaching_point_acknowledgments')
       .upsert(upsertData, {
-        onConflict: 'point_id,player_id'
+        onConflict: 'point_id,player_id',
       })
       .select('acknowledged, ack_at, notes')
       .single();
