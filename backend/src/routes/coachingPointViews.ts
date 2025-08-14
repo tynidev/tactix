@@ -299,7 +299,7 @@ router.get(
 
         const totalViews = viewEvents?.length || 0;
         const completedViews = viewEvents?.filter(e =>
-          e.completion_percentage && e.completion_percentage > 80
+          typeof e.completion_percentage === 'number' && e.completion_percentage > 80
         ).length || 0;
         const avgCompletion = totalViews > 0 ?
           Math.round(viewEvents!.reduce((sum, e) => sum + (e.completion_percentage || 0), 0) / totalViews) :
