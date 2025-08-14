@@ -263,7 +263,7 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
   {
     // Get current progress before cleanup
     const currentProgress = progress;
-    
+
     // Call completion handler before cleanup to notify parent component (e.g., to clear canvas)
     // Pass 'manual' reason since this is called by user action, not natural completion
     handlersRef.current.onPlaybackComplete?.('manual', currentProgress);
@@ -360,7 +360,7 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
     {
       // Natural completion - audio finished playing
       handlersRef.current.onPlaybackComplete?.('natural', 100);
-      
+
       // Clean up without calling the completion handler again
       if (audioRef.current)
       {

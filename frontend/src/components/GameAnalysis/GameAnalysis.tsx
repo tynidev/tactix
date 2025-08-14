@@ -6,7 +6,13 @@ import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { useRecordingSession } from '../../hooks/useRecordingSession';
 import { useYouTubePlayer } from '../../hooks/useYouTubePlayer';
 import type { Drawing, RecordingStartEventData } from '../../types/drawing';
-import { getCoachingPointAcknowledgment, getGuardianPlayers, recordCoachingPointView, updateCoachingPointAcknowledgment, updateViewCompletion } from '../../utils/api';
+import {
+  getCoachingPointAcknowledgment,
+  getGuardianPlayers,
+  recordCoachingPointView,
+  updateCoachingPointAcknowledgment,
+  updateViewCompletion,
+} from '../../utils/api';
 import { CoachingPointModal } from '../CoachingPointModal/CoachingPointModal';
 import { CoachingPointsFlyout } from '../CoachingPointsFlyout/CoachingPointsFlyout';
 import DrawingCanvas from '../DrawingCanvas/DrawingCanvas';
@@ -467,7 +473,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
       playback.stopPlayback();
     }
 
-    if(point && !point.audio_url)
+    if (point && !point.audio_url)
     {
       await recordCoachingPointView(point.id, 100);
     }
@@ -732,7 +738,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
           console.warn('Failed to send view completion:', e);
         }
       }
-      
+
       // Reset the flyout flag when playback completes
       setPlaybackStartedFromFlyout(false);
       // Reset transport controls when playback finishes
@@ -818,9 +824,9 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
     if (!selectedCoachingPoint?.audio_url || !playback.isPlaying || !currentViewEventId) return;
     // Initialize baseline to current progress to avoid resending earlier percentages on resume
     const { currentTime, duration } = playbackTimeRef.current;
-    lastReportedPercentRef.current = duration > 0
-      ? Math.max(0, Math.min(100, Math.floor((currentTime / duration) * 100)))
-      : 0;
+    lastReportedPercentRef.current = duration > 0 ?
+      Math.max(0, Math.min(100, Math.floor((currentTime / duration) * 100))) :
+      0;
 
     const intervalId = setInterval(() =>
     {

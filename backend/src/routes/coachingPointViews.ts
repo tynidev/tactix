@@ -314,8 +314,8 @@ router.get(
           title: point.title,
           timestamp: point.timestamp,
           uniqueViewers: uniqueViewers || 0,
-          totalViews,     // Total number of view events
-          avgCompletion,  // Average completion percentage across all views
+          totalViews, // Total number of view events
+          avgCompletion, // Average completion percentage across all views
           completedViews, // Number of views where user watched more than 80% of the content (considered "completed")
         };
       }));
