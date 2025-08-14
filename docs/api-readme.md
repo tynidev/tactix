@@ -41,6 +41,7 @@ The API implements role-based access control with the following roles:
 | [Coaching Point Events](./backend/API/coaching-point-events.md) | Event tracking for coaching point playback | `/api/coaching-point-events` |
 | [Coaching Point Labels](./backend/API/coaching-point-labels.md) | Label management for coaching points | `/api/coaching-point-labels` |
 | [Coaching Point Tagged Players](./backend/API/coaching-point-tagged-players.md) | Player tagging for coaching points | `/api/coaching-point-tagged-players` |
+| [Coaching Point Views](./backend/API/coaching-point-views.md) | View tracking and analytics for coaching points | `/api/coaching-points/:id/view` |
 
 ## Common Response Formats
 

@@ -306,7 +306,7 @@ router.get('/guardian/team/:teamId', async (req: AuthenticatedRequest, res: Resp
     const players = guardianPlayers.map(relationship => ({
       id: relationship.player_profiles.id,
       name: relationship.player_profiles.name,
-      jersey_number: relationship.player_profiles.team_players[0]?.jersey_number || null
+      jersey_number: relationship.player_profiles.team_players[0]?.jersey_number || null,
     }));
 
     res.json(players);

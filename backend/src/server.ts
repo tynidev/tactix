@@ -12,6 +12,7 @@ import coachingPointEventRoutes from './routes/coachingPointEvents.js';
 import coachingPointLabelRoutes from './routes/coachingPointLabels.js';
 import coachingPointRoutes from './routes/coachingPoints.js';
 import coachingPointTaggedPlayerRoutes from './routes/coachingPointTaggedPlayers.js';
+import coachingPointViewRoutes from './routes/coachingPointViews.js';
 import gameRoutes from './routes/games.js';
 import playerRoutes from './routes/players.js';
 import teamRoutes from './routes/teams.js';
@@ -56,6 +57,7 @@ app.use('/api/coaching-points', coachingPointRoutes);
 app.use('/api/coaching-point-events', coachingPointEventRoutes);
 app.use('/api/coaching-point-labels', coachingPointLabelRoutes);
 app.use('/api/coaching-point-tagged-players', coachingPointTaggedPlayerRoutes);
+app.use('/api', coachingPointViewRoutes); // Mounted at /api since routes include full paths
 app.use('/api/games', gameRoutes);
 app.use('/api/players', playerRoutes);
 app.use('/api/teams', teamRoutes);

@@ -1,19 +1,20 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useAudioRecording } from '../../hooks/useAudioRecording';
 import { useCoachingPointPlayback } from '../../hooks/useCoachingPointPlayback';
+import { useCoachingPointView } from '../../hooks/useCoachingPointView';
 import { useDrawingCanvas } from '../../hooks/useDrawingCanvas';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { useRecordingSession } from '../../hooks/useRecordingSession';
 import { useYouTubePlayer } from '../../hooks/useYouTubePlayer';
 import type { Drawing, RecordingStartEventData } from '../../types/drawing';
-import { getCoachingPointAcknowledgment, updateCoachingPointAcknowledgment, getGuardianPlayers } from '../../utils/api';
+import { getCoachingPointAcknowledgment, getGuardianPlayers, updateCoachingPointAcknowledgment } from '../../utils/api';
 import { CoachingPointModal } from '../CoachingPointModal/CoachingPointModal';
 import { CoachingPointsFlyout } from '../CoachingPointsFlyout/CoachingPointsFlyout';
 import DrawingCanvas from '../DrawingCanvas/DrawingCanvas';
 import DrawingToolbar from '../DrawingToolbar/DrawingToolbar';
 import YouTubePlayer from '../YouTubePlayer/YouTubePlayer';
 import './GameAnalysis.css';
-import { FaArrowLeft, FaPause, FaPlay, FaSpinner, FaStop, FaCheck } from 'react-icons/fa';
+import { FaArrowLeft, FaCheck, FaPause, FaPlay, FaSpinner, FaStop } from 'react-icons/fa';
 
 interface Game
 {
@@ -113,7 +114,9 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Guardian player selection state
-  const [guardianPlayers, setGuardianPlayers] = useState<{ id: string; name: string; jersey_number: string | null }[]>([]);
+  const [guardianPlayers, setGuardianPlayers] = useState<{ id: string; name: string; jersey_number: string | null; }[]>(
+    [],
+  );
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [isLoadingGuardianPlayers, setIsLoadingGuardianPlayers] = useState(false);
   const [guardianPlayersError, setGuardianPlayersError] = useState<string | null>(null);
@@ -142,6 +145,9 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
 
   // Coaching point playback functionality
   const playback = useCoachingPointPlayback();
+
+  // View tracking functionality
+  const viewTracking = useCoachingPointView();
 
   // Unified auto-hide functionality with cursor hiding
   const startInactivityTimer = useCallback(() =>
@@ -454,15 +460,35 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
   }, [player, isPlaying]);
 
   // Handle selecting a coaching point
-  const handleSelectCoachingPoint = useCallback((point: CoachingPoint | null) =>
+  const handleSelectCoachingPoint = useCallback(async (point: CoachingPoint | null) =>
   {
     // Stop any current playback when switching coaching points
     if (playback.isPlaying)
     {
       playback.stopPlayback();
     }
+
+    // Record view when a coaching point is selected
+    if (point)
+    {
+      try
+      {
+        const hasAudio = !!point.audio_url;
+        const viewEvent = await viewTracking.recordView(point.id, hasAudio);
+
+        if (viewEvent)
+        {
+          console.log(`Recorded view for coaching point: ${point.id}, View count: ${viewEvent.viewCount}`);
+        }
+      }
+      catch (error)
+      {
+        console.error('Failed to record coaching point view:', error);
+      }
+    }
+
     setSelectedCoachingPoint(point);
-  }, [playback]);
+  }, [playback, viewTracking]);
 
   // Load guardian players for non-player roles (coach, admin, guardian)
   useEffect(() =>
@@ -477,7 +503,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
         setGuardianPlayersError(null);
         const players = await getGuardianPlayers(game.teams!.id);
         setGuardianPlayers(players);
-        
+
         // Auto-select first player if any players exist
         if (players.length > 0)
         {
@@ -510,10 +536,10 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
         setAcknowledmentError(null);
         setSaveSuccess(false);
         setHasUnsavedChanges(false);
-        
+
         // For non-player roles, use the selected player ID
         const playerId = game.user_role !== 'player' ? selectedPlayerId || undefined : undefined;
-        
+
         if (game.user_role !== 'player' && !playerId)
         {
           // Non-player hasn't selected a player yet, don't load acknowledgment
@@ -522,7 +548,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
           setAcknowledgedValue(false);
           return;
         }
-        
+
         const ackData = await getCoachingPointAcknowledgment(selectedCoachingPoint.id, playerId);
         setAcknowledgment(ackData);
         setNotesValue(ackData.notes || '');
@@ -542,19 +568,25 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
   useEffect(() =>
   {
     if (!selectedCoachingPoint) return;
-    
-    const hasChanges = 
-      acknowledgedValue !== acknowledgment.acknowledged ||
+
+    const hasChanges = acknowledgedValue !== acknowledgment.acknowledged ||
       notesValue !== (acknowledgment.notes || '');
-    
+
     setHasUnsavedChanges(hasChanges);
-    
+
     // Clear success message when user makes changes
     if (hasChanges && saveSuccess)
     {
       setSaveSuccess(false);
     }
-  }, [acknowledgedValue, notesValue, acknowledgment.acknowledged, acknowledgment.notes, selectedCoachingPoint, saveSuccess]);
+  }, [
+    acknowledgedValue,
+    notesValue,
+    acknowledgment.acknowledged,
+    acknowledgment.notes,
+    selectedCoachingPoint,
+    saveSuccess,
+  ]);
 
   // Handle acknowledgment checkbox change (no auto-save)
   const handleAcknowledgmentChange = useCallback((acknowledged: boolean) =>
@@ -596,14 +628,14 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
         selectedCoachingPoint.id,
         shouldAcknowledge,
         notesValue || undefined,
-        playerId
+        playerId,
       );
 
       setAcknowledgment(result);
       setAcknowledgedValue(result.acknowledged); // Update checkbox state to reflect saved value
       setHasUnsavedChanges(false);
       setSaveSuccess(true);
-      
+
       // Clear success message after 3 seconds
       setTimeout(() => setSaveSuccess(false), 3000);
     }
@@ -729,6 +761,23 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
     const handlers = playbackEventHandlers();
     playback.startPlayback(selectedCoachingPoint, handlers);
   }, [selectedCoachingPoint, playback, playbackEventHandlers]);
+
+  // Track audio playback progress for view completion
+  useEffect(() =>
+  {
+    if (!selectedCoachingPoint?.audio_url || !playback.isPlaying || !viewTracking.isTracking) return;
+
+    const interval = setInterval(() =>
+    {
+      if (playback.duration > 0 && playback.currentTime >= 0)
+      {
+        const completionPercentage = Math.min(100, (playback.currentTime / playback.duration) * 100);
+        viewTracking.updateCompletion(completionPercentage);
+      }
+    }, 1000); // Update every second
+
+    return () => clearInterval(interval);
+  }, [selectedCoachingPoint?.audio_url, playback.isPlaying, playback.duration, playback.currentTime, viewTracking]);
 
   // Handle play/resume playback
   const handlePlayPlayback = useCallback(() =>
@@ -1170,50 +1219,56 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
                 {(game.user_role === 'player' || guardianPlayers.length > 0) && (
                   <div className='acknowledgment-section'>
                     <h5>Acknowledgment:</h5>
-                    
+
                     {/* Player Selection for non-player roles */}
                     {game.user_role !== 'player' && guardianPlayers.length > 0 && (
                       <div className='guardian-player-selection'>
                         <label htmlFor='player-select'>Acknowledge for:</label>
-                        {isLoadingGuardianPlayers ? (
-                          <div className='loading-players'>
-                            <FaSpinner className='spinning' /> Loading your players...
-                          </div>
-                        ) : guardianPlayersError ? (
-                          <div className='players-error'>
-                            ❌ {guardianPlayersError}
-                          </div>
-                        ) : guardianPlayers.length === 1 ? (
-                          <div className='single-player-display'>
-                            <strong>
-                              {guardianPlayers[0].name}
-                              {guardianPlayers[0].jersey_number && ` (#${guardianPlayers[0].jersey_number})`}
-                            </strong>
-                          </div>
-                        ) : (
-                          <select
-                            id='player-select'
-                            value={selectedPlayerId || ''}
-                            onChange={(e) => setSelectedPlayerId(e.target.value || null)}
-                            disabled={isSavingAcknowledgment}
-                          >
-                            {guardianPlayers.map((player) => (
-                              <option key={player.id} value={player.id}>
-                                {player.name}
-                                {player.jersey_number && ` (#${player.jersey_number})`}
-                              </option>
-                            ))}
-                          </select>
-                        )}
+                        {isLoadingGuardianPlayers ?
+                          (
+                            <div className='loading-players'>
+                              <FaSpinner className='spinning' /> Loading your players...
+                            </div>
+                          ) :
+                          guardianPlayersError ?
+                          (
+                            <div className='players-error'>
+                              ❌ {guardianPlayersError}
+                            </div>
+                          ) :
+                          guardianPlayers.length === 1 ?
+                          (
+                            <div className='single-player-display'>
+                              <strong>
+                                {guardianPlayers[0].name}
+                                {guardianPlayers[0].jersey_number && ` (#${guardianPlayers[0].jersey_number})`}
+                              </strong>
+                            </div>
+                          ) :
+                          (
+                            <select
+                              id='player-select'
+                              value={selectedPlayerId || ''}
+                              onChange={(e) => setSelectedPlayerId(e.target.value || null)}
+                              disabled={isSavingAcknowledgment}
+                            >
+                              {guardianPlayers.map((player) => (
+                                <option key={player.id} value={player.id}>
+                                  {player.name}
+                                  {player.jersey_number && ` (#${player.jersey_number})`}
+                                </option>
+                              ))}
+                            </select>
+                          )}
                       </div>
                     )}
-                    
+
                     {acknowledgmentError && (
                       <div className='acknowledgment-error'>
                         ❌ {acknowledgmentError}
                       </div>
                     )}
-                    
+
                     <div className='acknowledgment-controls'>
                       <label className='acknowledgment-checkbox'>
                         <input
@@ -1229,14 +1284,14 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
                           I have watched and understood this coaching point
                         </span>
                       </label>
-                      
+
                       {acknowledgment.ack_at && (
                         <div className='acknowledgment-date'>
                           Acknowledged on {new Date(acknowledgment.ack_at).toLocaleString()}
                         </div>
                       )}
                     </div>
-                    
+
                     <div className='notes-section'>
                       <label htmlFor='acknowledgment-notes'>Notes (optional):</label>
                       <textarea
@@ -1261,15 +1316,17 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
                         disabled={isSavingAcknowledgment || !hasUnsavedChanges}
                         title={hasUnsavedChanges ? 'Save acknowledgment and notes' : 'No changes to save'}
                       >
-                        {isSavingAcknowledgment ? (
-                          <>
-                            <FaSpinner className='spinning' /> Saving...
-                          </>
-                        ) : (
-                          <>
-                            <FaCheck /> Save
-                          </>
-                        )}
+                        {isSavingAcknowledgment ?
+                          (
+                            <>
+                              <FaSpinner className='spinning' /> Saving...
+                            </>
+                          ) :
+                          (
+                            <>
+                              <FaCheck /> Save
+                            </>
+                          )}
                       </button>
 
                       {hasUnsavedChanges && !isSavingAcknowledgment && (

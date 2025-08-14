@@ -58,6 +58,113 @@ export const getValidAccessToken = async (): Promise<string | null> =>
 };
 
 /**
+ * Record a view for a coaching point
+ * @param pointId - ID of the coaching point
+ * @param completionPercentage - Initial completion percentage (0-100)
+ * @returns { eventId: string; viewCount: number }
+ */
+export const recordCoachingPointView = async (
+  pointId: string,
+  completionPercentage: number = 0,
+): Promise<{ eventId: string; viewCount: number; }> =>
+{
+  try
+  {
+    const response = await apiRequest(`/api/coaching-points/${pointId}/view`, {
+      method: 'POST',
+      body: JSON.stringify({ completionPercentage }),
+    });
+
+    if (!response.ok)
+    {
+      const errorText = await response.text();
+      throw new Error(errorText || 'Failed to record coaching point view');
+    }
+
+    return await response.json();
+  }
+  catch (error)
+  {
+    console.error('❌ Error recording coaching point view:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update the completion percentage for a specific view event
+ * @param eventId - ID of the view event
+ * @param completionPercentage - Percentage complete (0-100)
+ */
+export const updateViewCompletion = async (
+  eventId: string,
+  completionPercentage: number,
+): Promise<void> =>
+{
+  try
+  {
+    const response = await apiRequest(`/api/coaching-points/view-events/${eventId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ completionPercentage }),
+    });
+
+    if (!response.ok)
+    {
+      const errorText = await response.text();
+      throw new Error(errorText || 'Failed to update view completion');
+    }
+
+    // Intentionally ignore response body; callers don't require it
+    return;
+  }
+  catch (error)
+  {
+    console.error('❌ Error updating view completion:', error);
+    throw error;
+  }
+};
+
+export type UnviewedCoachingPoint = {
+  id: string;
+  game_id: string;
+  title: string;
+  feedback: string;
+  timestamp: number;
+  created_at: string;
+};
+
+/**
+ * Get unviewed coaching points for the current user
+ * If gameId is provided, returns unviewed points for that game; otherwise returns all
+ */
+export const getUnviewedCoachingPoints = async (
+  gameId?: string,
+): Promise<UnviewedCoachingPoint[]> =>
+{
+  try
+  {
+    const endpoint = gameId ?
+      `/api/games/${gameId}/coaching-points/unviewed` :
+      '/api/coaching-points/unviewed';
+
+    const response = await apiRequest(endpoint, { method: 'GET' });
+
+    if (!response.ok)
+    {
+      const errorText = await response.text();
+      throw new Error(errorText || 'Failed to fetch unviewed coaching points');
+    }
+
+    const data = await response.json();
+    return Array.isArray(data) ? data as UnviewedCoachingPoint[] : [];
+  }
+  catch (error)
+  {
+    console.error('❌ Error fetching unviewed coaching points:', error);
+    throw error;
+  }
+};
+
+/**
  * Make an authenticated API request to the backend
  * @param endpoint - API endpoint path (with or without leading slash)
  * @param options - Fetch options (method, body, headers, etc.)
@@ -389,14 +496,14 @@ export const updatePlayerJerseyNumber = async (
 export const getCoachingPointAcknowledgment = async (
   coachingPointId: string,
   playerId?: string,
-): Promise<{ acknowledged: boolean; ack_at: string | null; notes: string | null }> =>
+): Promise<{ acknowledged: boolean; ack_at: string | null; notes: string | null; }> =>
 {
   try
   {
-    const url = playerId 
-      ? `/api/coaching-points/${coachingPointId}/acknowledgment?player_id=${playerId}`
-      : `/api/coaching-points/${coachingPointId}/acknowledgment`;
-    
+    const url = playerId ?
+      `/api/coaching-points/${coachingPointId}/acknowledgment?player_id=${playerId}` :
+      `/api/coaching-points/${coachingPointId}/acknowledgment`;
+
     const response = await apiRequest(url);
 
     if (!response.ok)
@@ -427,12 +534,13 @@ export const updateCoachingPointAcknowledgment = async (
   acknowledged: boolean,
   notes?: string,
   playerId?: string,
-): Promise<{ acknowledged: boolean; ack_at: string | null; notes: string | null }> =>
+): Promise<{ acknowledged: boolean; ack_at: string | null; notes: string | null; }> =>
 {
   try
   {
     const requestBody: any = { acknowledged, notes };
-    if (playerId) {
+    if (playerId)
+    {
       requestBody.player_id = playerId;
     }
 
@@ -463,7 +571,7 @@ export const updateCoachingPointAcknowledgment = async (
  */
 export const getGuardianPlayers = async (
   teamId: string,
-): Promise<{ id: string; name: string; jersey_number: string | null }[]> =>
+): Promise<{ id: string; name: string; jersey_number: string | null; }[]> =>
 {
   try
   {
