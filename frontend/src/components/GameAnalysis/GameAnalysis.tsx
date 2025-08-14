@@ -1,13 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useAudioRecording } from '../../hooks/useAudioRecording';
 import { useCoachingPointPlayback } from '../../hooks/useCoachingPointPlayback';
-import { useCoachingPointView } from '../../hooks/useCoachingPointView';
 import { useDrawingCanvas } from '../../hooks/useDrawingCanvas';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { useRecordingSession } from '../../hooks/useRecordingSession';
 import { useYouTubePlayer } from '../../hooks/useYouTubePlayer';
 import type { Drawing, RecordingStartEventData } from '../../types/drawing';
-import { getCoachingPointAcknowledgment, getGuardianPlayers, updateCoachingPointAcknowledgment } from '../../utils/api';
+import { getCoachingPointAcknowledgment, getGuardianPlayers, recordCoachingPointView, updateCoachingPointAcknowledgment, updateViewCompletion } from '../../utils/api';
 import { CoachingPointModal } from '../CoachingPointModal/CoachingPointModal';
 import { CoachingPointsFlyout } from '../CoachingPointsFlyout/CoachingPointsFlyout';
 import DrawingCanvas from '../DrawingCanvas/DrawingCanvas';
@@ -146,8 +145,8 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
   // Coaching point playback functionality
   const playback = useCoachingPointPlayback();
 
-  // View tracking functionality
-  const viewTracking = useCoachingPointView();
+  // Direct view tracking state (replacing useCoachingPointView hook)
+  const [currentViewEventId, setCurrentViewEventId] = useState<string | null>(null);
 
   // Unified auto-hide functionality with cursor hiding
   const startInactivityTimer = useCallback(() =>
@@ -468,27 +467,13 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
       playback.stopPlayback();
     }
 
-    // Record view when a coaching point is selected
-    if (point)
+    if(point && !point.audio_url)
     {
-      try
-      {
-        const hasAudio = !!point.audio_url;
-        const viewEvent = await viewTracking.recordView(point.id, hasAudio);
-
-        if (viewEvent)
-        {
-          console.log(`Recorded view for coaching point: ${point.id}, View count: ${viewEvent.viewCount}`);
-        }
-      }
-      catch (error)
-      {
-        console.error('Failed to record coaching point view:', error);
-      }
+      await recordCoachingPointView(point.id, 100);
     }
 
     setSelectedCoachingPoint(point);
-  }, [playback, viewTracking]);
+  }, [playback]);
 
   // Load guardian players for non-player roles (coach, admin, guardian)
   useEffect(() =>
@@ -676,7 +661,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
   }, [player, selectedCoachingPoint, clearCanvas]);
 
   // Playback event handlers for coaching_point_events during coaching point playback
-  const playbackEventHandlers = useCallback(() => ({
+  const playbackEventHandlers = useCallback((capturedViewEventId?: string) => ({
     onPlayEvent: () =>
     {
       if (player && player.getPlayerState() !== 1)
@@ -730,17 +715,33 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
         setDrawingData(initialState.existingDrawings);
       }
     },
-    onPlaybackComplete: () =>
+    onPlaybackComplete: (reason: 'natural' | 'manual', currentProgress: number) =>
     {
+      // Use captured view event ID to avoid race condition
+      const viewEventId = capturedViewEventId || currentViewEventId;
+      if (viewEventId)
+      {
+        try
+        {
+          // For natural completion, send 100%. For manual stop, send actual progress
+          const finalProgress = reason === 'natural' ? 100 : Math.round(currentProgress);
+          updateViewCompletion(viewEventId, finalProgress);
+        }
+        catch (e)
+        {
+          console.warn('Failed to send view completion:', e);
+        }
+      }
+      
       // Reset the flyout flag when playback completes
       setPlaybackStartedFromFlyout(false);
-      // Reset transport controls when playback finishes naturally
+      // Reset transport controls when playback finishes
       resetTransportControls();
     },
-  }), [player, setDrawingData, resetTransportControls]);
+  }), [player, setDrawingData, resetTransportControls, currentViewEventId]);
 
   // Handle auto-starting coaching point playback when clicked in flyout
-  const handleStartCoachingPointPlayback = useCallback((point: CoachingPoint) =>
+  const handleStartCoachingPointPlayback = useCallback(async (point: CoachingPoint) =>
   {
     // Ensure the point is selected first (this should already be done by handleSelectCoachingPoint)
     setSelectedCoachingPoint(point);
@@ -748,36 +749,96 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
     // Mark this as flyout-initiated playback
     setPlaybackStartedFromFlyout(true);
 
-    // Start playback using the existing handler
-    const handlers = playbackEventHandlers();
+    // Always record a new view when starting playback from flyout
+    let capturedViewEventId: string | undefined;
+    if (point.audio_url)
+    {
+      try
+      {
+        // Direct API call to record view
+        const response = await recordCoachingPointView(point.id, 0);
+        capturedViewEventId = response.eventId;
+        setCurrentViewEventId(capturedViewEventId);
+      }
+      catch (error)
+      {
+        console.error('Failed to start view tracking for flyout playback:', error);
+      }
+    }
+
+    // Start playback using the existing handler with captured view event ID
+    const handlers = playbackEventHandlers(capturedViewEventId);
     playback.startPlayback(point, handlers);
   }, [playback, playbackEventHandlers]);
 
   // Handle starting playback of a coaching point
-  const handleStartPlayback = useCallback(() =>
+  const handleStartPlayback = useCallback(async () =>
   {
     if (!selectedCoachingPoint) return;
 
-    const handlers = playbackEventHandlers();
+    // Always record a new view when starting fresh playback
+    let capturedViewEventId: string | undefined;
+    if (selectedCoachingPoint.audio_url)
+    {
+      try
+      {
+        // Direct API call to record view
+        const response = await recordCoachingPointView(selectedCoachingPoint.id, 0);
+        capturedViewEventId = response.eventId;
+        setCurrentViewEventId(capturedViewEventId);
+      }
+      catch (error)
+      {
+        console.error('Failed to start view tracking for manual playback:', error);
+      }
+    }
+
+    const handlers = playbackEventHandlers(capturedViewEventId);
     playback.startPlayback(selectedCoachingPoint, handlers);
   }, [selectedCoachingPoint, playback, playbackEventHandlers]);
 
   // Track audio playback progress for view completion
+  // Note: Avoid depending on rapidly changing values (currentTime/duration) so the interval can actually fire.
+  const playbackTimeRef = useRef({ currentTime: 0, duration: 0 });
+  const lastReportedPercentRef = useRef<number>(0);
+
+  // Keep refs in sync with latest playback times
   useEffect(() =>
   {
-    if (!selectedCoachingPoint?.audio_url || !playback.isPlaying || !viewTracking.isTracking) return;
+    playbackTimeRef.current.currentTime = playback.currentTime;
+  }, [playback.currentTime]);
 
-    const interval = setInterval(() =>
+  useEffect(() =>
+  {
+    playbackTimeRef.current.duration = playback.duration;
+  }, [playback.duration]);
+
+  useEffect(() =>
+  {
+    if (!selectedCoachingPoint?.audio_url || !playback.isPlaying || !currentViewEventId) return;
+    // Initialize baseline to current progress to avoid resending earlier percentages on resume
+    const { currentTime, duration } = playbackTimeRef.current;
+    lastReportedPercentRef.current = duration > 0
+      ? Math.max(0, Math.min(100, Math.floor((currentTime / duration) * 100)))
+      : 0;
+
+    const intervalId = setInterval(() =>
     {
-      if (playback.duration > 0 && playback.currentTime >= 0)
+      const { currentTime, duration } = playbackTimeRef.current;
+      if (duration > 0 && currentTime >= 0 && currentViewEventId)
       {
-        const completionPercentage = Math.min(100, (playback.currentTime / playback.duration) * 100);
-        viewTracking.updateCompletion(completionPercentage);
+        const percent = Math.min(100, Math.floor((currentTime / duration) * 100));
+        if (percent > lastReportedPercentRef.current)
+        {
+          lastReportedPercentRef.current = percent;
+          // Direct API call for progress updates
+          updateViewCompletion(currentViewEventId, percent);
+        }
       }
     }, 1000); // Update every second
 
-    return () => clearInterval(interval);
-  }, [selectedCoachingPoint?.audio_url, playback.isPlaying, playback.duration, playback.currentTime, viewTracking]);
+    return () => clearInterval(intervalId);
+  }, [selectedCoachingPoint?.audio_url, playback.isPlaying, currentViewEventId]);
 
   // Handle play/resume playback
   const handlePlayPlayback = useCallback(() =>

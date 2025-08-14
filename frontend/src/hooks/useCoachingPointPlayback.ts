@@ -32,7 +32,7 @@ export interface PlaybackEventHandlers
   onDrawEvent?: (drawings: Drawing[]) => void;
   onSpeedEvent?: (speed: number) => void;
   onRecordingStartEvent?: (initialState: RecordingStartEventData) => void;
-  onPlaybackComplete?: () => void;
+  onPlaybackComplete?: (reason: 'natural' | 'manual', currentProgress: number) => void;
 }
 
 export interface UseCoachingPointPlaybackReturn
@@ -212,13 +212,10 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
   }, [processEvents]);
 
   /**
-   * Stops playback and cleans up
+   * Internal cleanup function that doesn't call completion handler
    */
-  const stopPlayback = useCallback(() =>
+  const cleanupPlayback = useCallback(() =>
   {
-    // Call completion handler before cleanup to notify parent component (e.g., to clear canvas)
-    handlersRef.current.onPlaybackComplete?.();
-
     if (audioRef.current)
     {
       const audio = audioRef.current;
@@ -260,6 +257,22 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
   }, []);
 
   /**
+   * Stops playback and cleans up
+   */
+  const stopPlayback = useCallback(() =>
+  {
+    // Get current progress before cleanup
+    const currentProgress = progress;
+    
+    // Call completion handler before cleanup to notify parent component (e.g., to clear canvas)
+    // Pass 'manual' reason since this is called by user action, not natural completion
+    handlersRef.current.onPlaybackComplete?.('manual', currentProgress);
+
+    // Clean up without dependencies
+    cleanupPlayback();
+  }, [progress, cleanupPlayback]);
+
+  /**
    * Starts playback of a coaching point with its events
    */
   const startPlayback = useCallback((
@@ -267,8 +280,8 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
     handlers: PlaybackEventHandlers = {},
   ) =>
   {
-    // Stop any current playback
-    stopPlayback();
+    // Clean up any current playback without triggering completion handler
+    cleanupPlayback();
 
     // Validate audio URL
     if (!coachingPoint.audio_url)
@@ -345,8 +358,41 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
 
     audio.addEventListener('ended', () =>
     {
-      // Stop playback completely instead of just pausing
-      stopPlayback();
+      // Natural completion - audio finished playing
+      handlersRef.current.onPlaybackComplete?.('natural', 100);
+      
+      // Clean up without calling the completion handler again
+      if (audioRef.current)
+      {
+        const audio = audioRef.current;
+        isCleaningUpRef.current = true;
+        audio.pause();
+        audio.removeAttribute('src');
+        audio.load();
+        audioRef.current = null;
+        isCleaningUpRef.current = false;
+      }
+
+      if (animationFrameRef.current)
+      {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+
+      // Reset state
+      setIsPlaying(false);
+      setCurrentTime(0);
+      setDuration(0);
+      setProgress(0);
+      setIsLoading(false);
+      setError(null);
+      setActiveEventIndex(null);
+      setTotalEvents(0);
+
+      // Clear refs
+      eventsRef.current = [];
+      handlersRef.current = {};
+      executedEventsRef.current.clear();
     });
 
     audio.addEventListener('error', (e) =>
@@ -376,7 +422,7 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
       setError('Failed to start playback. Please try again.');
       setIsLoading(false);
     });
-  }, [animationLoop, stopPlayback]);
+  }, [animationLoop, cleanupPlayback]);
 
   /**
    * Pauses playback
@@ -435,9 +481,9 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
   {
     return () =>
     {
-      stopPlayback();
+      cleanupPlayback();
     };
-  }, [stopPlayback]);
+  }, [cleanupPlayback]);
 
   return {
     isPlaying,
