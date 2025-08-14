@@ -137,13 +137,12 @@ This event captures the initial state when a coaching point recording begins, al
 | `label_id`    | UUID (FK) | References `labels.id`                |
 | `created_at`  | Timestamp | When label was applied                |
 
-## coaching_point_views
+## coaching_point_acknowledgments
 | Column        | Type      | Description                           |
 | ------------- | --------- | ------------------------------------- |
-| `id`          | UUID (PK) | Unique view ID                        |
+| `id`          | UUID (PK) | Unique acknowledgment ID              |
 | `point_id`    | UUID (FK) | References `coaching_points.id`       |
 | `player_id`   | UUID (FK) | References `player_profiles.id`       |
-| `viewed_at`   | Timestamp | When user first viewed the point      |
 | `acknowledged`| Boolean   | Whether user acknowledged the point   |
 | `ack_at`      | Timestamp | When user acknowledged (nullable)     |
 | `notes`       | Text      | Player notes about what they learned (nullable) |
@@ -261,11 +260,10 @@ erDiagram
         Timestamp created_at
     }
     
-    coaching_point_views {
+    coaching_point_acknowledgments {
         UUID id PK
         UUID point_id FK
         UUID player_id FK
-        Timestamp viewed_at
         Boolean acknowledged
         Timestamp ack_at
         Text notes
@@ -290,6 +288,6 @@ erDiagram
     teams ||--o{ labels : "has many"
     coaching_points ||--o{ coaching_point_labels : "has many"
     labels ||--o{ coaching_point_labels : "applied to"
-    coaching_points ||--o{ coaching_point_views : "has many"
-    player_profiles ||--o{ coaching_point_views : "views"
+    coaching_points ||--o{ coaching_point_acknowledgments : "has many"
+    player_profiles ||--o{ coaching_point_acknowledgments : "acknowledges"
 ```

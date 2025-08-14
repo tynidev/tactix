@@ -30,7 +30,7 @@ Mailcow, NGINX, and your React/Node application.
 ### 2.2 Database Migration
 - **Export existing data** from your remote Supabase instance:
   - Dump PostgreSQL schema and data using `pg_dump` or Supabase CLI
-  - Export all tables: `user_profiles`, `player_profiles`, `teams`, `team_join_codes`, `team_memberships`, `team_players`, `guardian_player_relationships`, `games`, `coaching_points`, `coaching_point_events`, `coaching_point_tagged_players`, `labels`, `coaching_point_labels`, `coaching_point_views`
+  - Export all tables: `user_profiles`, `player_profiles`, `teams`, `team_join_codes`, `team_memberships`, `team_players`, `guardian_player_relationships`, `games`, `coaching_points`, `coaching_point_events`, `coaching_point_tagged_players`, `labels`, `coaching_point_labels`, `coaching_point_acknowledgments`
 - **Apply your existing migrations** to the local Supabase instance (from `supabase/migrations/` directory)
 - **Import the data** to your local PostgreSQL instance
 - **Verify data integrity** and foreign key relationships

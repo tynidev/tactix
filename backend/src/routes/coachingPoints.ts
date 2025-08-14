@@ -378,7 +378,7 @@ router.get('/:id/acknowledgment', authenticateUser, async (req: AuthenticatedReq
 
     // Get the acknowledgment record
     const { data: acknowledgment, error: ackError } = await supabase
-      .from('coaching_point_views')
+      .from('coaching_point_acknowledgments')
       .select('acknowledged, ack_at, notes')
       .eq('point_id', id)
       .eq('player_id', targetPlayerId)
@@ -484,7 +484,7 @@ router.post('/:id/acknowledge', authenticateUser, async (req: AuthenticatedReque
 
     // Upsert the acknowledgment record
     const { data: acknowledgmentRecord, error: upsertError } = await supabase
-      .from('coaching_point_views')
+      .from('coaching_point_acknowledgments')
       .upsert(upsertData, {
         onConflict: 'point_id,player_id'
       })

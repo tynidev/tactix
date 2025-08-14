@@ -629,7 +629,7 @@ Remove a player from the team with cascading cleanup.
 
 **Business Logic Notes:**
 - Performs cascading deletion of related data:
-  1. coaching_point_views
+  1. coaching_point_acknowledgments
   2. coaching_point_tagged_players
   3. team_players relationship
 - Preserves player profile and guardian relationships

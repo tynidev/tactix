@@ -116,7 +116,7 @@ export type Database = {
           },
         ];
       };
-      coaching_point_views: {
+      coaching_point_acknowledgments: {
         Row: {
           ack_at: string | null;
           acknowledged: boolean | null;
@@ -124,7 +124,6 @@ export type Database = {
           notes: string | null;
           player_id: string;
           point_id: string;
-          viewed_at: string | null;
         };
         Insert: {
           ack_at?: string | null;
@@ -133,7 +132,6 @@ export type Database = {
           notes?: string | null;
           player_id: string;
           point_id: string;
-          viewed_at?: string | null;
         };
         Update: {
           ack_at?: string | null;
@@ -142,18 +140,17 @@ export type Database = {
           notes?: string | null;
           player_id?: string;
           point_id?: string;
-          viewed_at?: string | null;
         };
         Relationships: [
           {
-            foreignKeyName: 'coaching_point_views_player_id_fkey';
+            foreignKeyName: 'coaching_point_acknowledgments_player_id_fkey';
             columns: ['player_id'];
             isOneToOne: false;
             referencedRelation: 'player_profiles';
             referencedColumns: ['id'];
           },
           {
-            foreignKeyName: 'coaching_point_views_point_id_fkey';
+            foreignKeyName: 'coaching_point_acknowledgments_point_id_fkey';
             columns: ['point_id'];
             isOneToOne: false;
             referencedRelation: 'coaching_points';
