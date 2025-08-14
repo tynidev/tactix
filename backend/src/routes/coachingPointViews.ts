@@ -297,6 +297,10 @@ router.get(
           console.error('Error fetching view events:', eventsError);
         }
 
+        // Calculate view metrics:
+        // - totalViews = Total number of view events
+        // - completedViews = Number of views where user watched more than 80% of the content (considered "completed")
+        // - avgCompletion = Average completion percentage across all views
         const totalViews = viewEvents?.length || 0;
         const completedViews = viewEvents?.filter(e =>
           typeof e.completion_percentage === 'number' && e.completion_percentage > 80
@@ -310,9 +314,9 @@ router.get(
           title: point.title,
           timestamp: point.timestamp,
           uniqueViewers: uniqueViewers || 0,
-          totalViews,
-          avgCompletion,
-          completedViews,
+          totalViews,     // Total number of view events
+          avgCompletion,  // Average completion percentage across all views
+          completedViews, // Number of views where user watched more than 80% of the content (considered "completed")
         };
       }));
 
