@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import ThemeToggle from '../ThemeToggle/ThemeToggle';
 import { getApiUrl } from '../../utils/api';
+import ThemeToggle from '../ThemeToggle/ThemeToggle';
 
 export const Navigation: React.FC = () =>
 {
@@ -68,7 +68,10 @@ export const Navigation: React.FC = () =>
       }
     })();
 
-    return () => { cancelled = true; };
+    return () =>
+    {
+      cancelled = true;
+    };
   }, []);
 
   // Handle escape key to close menu

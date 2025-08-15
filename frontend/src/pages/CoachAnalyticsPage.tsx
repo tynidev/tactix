@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { getApiUrl } from '../utils/api';
+import '../styles/coach-analytics.css';
 
 interface CoachOverview
 {
@@ -120,6 +121,18 @@ type PlayerAnalytics = {
     views: number;
     avgCompletionPercent: number;
   }[];
+  notViewedTaggedPoints?: {
+    pointId: string;
+    title: string;
+    game: { id: string; opponent: string; date: string; } | null;
+    created_at?: string;
+  }[];
+  unacknowledgedTaggedPoints?: {
+    pointId: string;
+    title: string;
+    game: { id: string; opponent: string; date: string; } | null;
+    created_at?: string;
+  }[];
 };
 
 type CoachingPointDetail = {
@@ -174,38 +187,46 @@ const roleOrder = ['coach', 'player', 'guardian', 'admin'];
 
 function Heatmap({ data }: { data: { dow: number; hour: number; views: number; }[]; })
 {
-  // Build 7x24 matrix of views
+  const tzOffsetHours = -new Date().getTimezoneOffset() / 60; // shift from UTC to local
+  // Build local matrix by shifting hours then rolling over days
   const matrix = useMemo(() =>
   {
-    const m: number[][] = Array.from({ length: 7 }, () => Array.from({ length: 24 }, () => 0));
+    const local: number[][] = Array.from({ length: 7 }, () => Array.from({ length: 24 }, () => 0));
     data.forEach(d =>
     {
-      if (d.dow >= 0 && d.dow <= 6 && d.hour >= 0 && d.hour <= 23)
-      {
-        m[d.dow][d.hour] = d.views || 0;
-      }
+      if (d.dow < 0 || d.dow > 6 || d.hour < 0 || d.hour > 23) return;
+      const raw = d.hour + tzOffsetHours;
+      const dayShift = Math.floor(raw / 24) + (raw < 0 && raw % 24 !== 0 ? -1 : 0);
+      let localHour = ((raw % 24) + 24) % 24;
+      let localDow = (d.dow + dayShift + 7) % 7;
+      local[localDow][localHour] += d.views || 0;
     });
-    return m;
-  }, [data]);
+    return local;
+  }, [data, tzOffsetHours]);
 
   const maxVal = useMemo(() =>
   {
-    let max = 0;
-    matrix.forEach(row => row.forEach(v => { if (v > max) max = v; }));
-    return max || 1;
+    let m = 0;
+    matrix.forEach(r =>
+      r.forEach(v =>
+      {
+        if (v > m) m = v;
+      })
+    );
+    return m || 1;
   }, [matrix]);
-
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
   return (
     <div>
-      <div className='stat-label' style={{ marginBottom: 8 }}>Engagement Heatmap (UTC)</div>
+      <div className='stat-label' style={{ marginBottom: 8 }}>Engagement Heatmap (Local Time)</div>
       <div style={{ display: 'grid', gridTemplateColumns: '40px repeat(24, 1fr)', gap: 2, alignItems: 'center' }}>
         {/* Header row */}
         <div></div>
-        {Array.from({ length: 24 }, (_, h) => (
-          <div key={h} className='stat-label' style={{ textAlign: 'center', fontSize: 10 }}>{h}</div>
-        ))}
+        {Array.from({ length: 24 }, (_, h) =>
+        {
+          const twelve = ((h + 11) % 12) + 1; // 0->12, 13->1 etc.
+          return <div key={h} className='stat-label' style={{ textAlign: 'center', fontSize: 10 }}>{twelve}</div>;
+        })}
         {matrix.map((row, dow) => (
           <React.Fragment key={dow}>
             <div className='stat-label' style={{ fontSize: 12 }}>{dayNames[dow]}</div>
@@ -233,32 +254,89 @@ function Heatmap({ data }: { data: { dow: number; hour: number; views: number; }
   );
 }
 
-function TimelineBars({ points }: { points: { day: number; views: number; }[]; })
+// (Legacy TimelineBars removed in favor of GameTimelineHeatmap)
+
+// Lightweight spark bar chart for daily engagement
+function EngagementSpark({ data }: { data: { date: string; views: number; }[]; })
 {
-  const maxViews = points.reduce((m, p) => Math.max(m, p.views), 0) || 1;
+  const max = useMemo(() => data.reduce((m, d) => Math.max(m, d.views), 0) || 1, [data]);
   return (
-    <div>
-      <div className='stat-label' style={{ marginBottom: 8 }}>Views after game date (days since game)</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(40px, 1fr))', gap: 6 }}>
-        {points.map(p => (
-          <div key={p.day} className='card card-compact' title={`${p.day}d: ${p.views} views`}>
-            <div className='stat' style={{ alignItems: 'stretch' }}>
-              <div className='stat-label' style={{ textAlign: 'center' }}>{p.day}</div>
-              <div style={{ height: 40, background: 'var(--surface-2)', position: 'relative' }}>
-                <div style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  height: `${(p.views / maxViews) * 100}%`,
-                  background: 'rgba(30,136,229,0.6)',
-                }} />
-              </div>
-              <div className='stat-label' style={{ textAlign: 'center' }}>{p.views}</div>
-            </div>
-          </div>
+    <div className='spark-wrapper'>
+      <div className='spark-bars'>
+        {data.map(d => (
+          <div
+            key={d.date}
+            className='spark-bar'
+            style={{ height: `${(d.views / max) * 100}%` }}
+            title={`${d.date}: ${d.views} views`}
+          />
         ))}
-        {points.length === 0 && <div className='stat-label'>No timeline data</div>}
+      </div>
+      <div className='spark-footer'>
+        <span>{data[0]?.date}</span>
+        <span>{data[data.length - 1]?.date}</span>
+      </div>
+    </div>
+  );
+}
+
+// Hourly heatmap for first 7 days after game (7x24)
+function GameTimelineHeatmap({ data }: { data: { dow: number; hour: number; views: number; }[]; })
+{
+  const tzOffsetHours = -new Date().getTimezoneOffset() / 60;
+  const matrix = useMemo(() =>
+  {
+    const local = Array.from({ length: 7 }, () => Array.from({ length: 24 }, () => 0));
+    data.forEach(d =>
+    {
+      if (d.dow < 0 || d.dow > 6 || d.hour < 0 || d.hour > 23) return;
+      const raw = d.hour + tzOffsetHours;
+      const dayShift = Math.floor(raw / 24) + (raw < 0 && raw % 24 !== 0 ? -1 : 0);
+      const localHour = ((raw % 24) + 24) % 24;
+      const localDow = (d.dow + dayShift + 7) % 7;
+      local[localDow][localHour] += d.views;
+    });
+    return local;
+  }, [data, tzOffsetHours]);
+  const max = useMemo(() =>
+  {
+    let mv = 0;
+    matrix.forEach(r =>
+      r.forEach(v =>
+      {
+        if (v > mv) mv = v;
+      })
+    );
+    return mv || 1;
+  }, [matrix]);
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  return (
+    <div className='timeline-heatmap'>
+      <div className='stat-label' style={{ marginBottom: 8 }}>Hourly Views (first 7 days, Local Time)</div>
+      <div className='timeline-hourly-grid'>
+        <div></div>
+        {Array.from({ length: 24 }, (_, h) =>
+        {
+          const twelve = ((h + 11) % 12) + 1;
+          return <div key={h} className='hour-hdr'>{twelve}</div>;
+        })}
+        {matrix.map((row, dow) => (
+          <React.Fragment key={dow}>
+            <div className='dow-label'>{dayNames[dow]}</div>
+            {row.map((v, h) =>
+            {
+              const intensity = v === 0 ? 0 : 0.15 + 0.85 * (v / max);
+              return (
+                <div
+                  key={h}
+                  className='hour-cell'
+                  title={`${dayNames[dow]} ${h}:00 — ${v} views`}
+                  style={{ backgroundColor: v ? `rgba(64,132,255,${intensity})` : 'transparent' }}
+                />
+              );
+            })}
+          </React.Fragment>
+        ))}
       </div>
     </div>
   );
@@ -290,16 +368,32 @@ export const CoachAnalyticsPage: React.FC = () =>
   const [gameAnalyticsError, setGameAnalyticsError] = useState<string | null>(null);
 
   // Player-level states
-  const [coachPlayers, setCoachPlayers] = useState<{ id: string; name: string; team_name: string; }[]>([]);
+  const [coachPlayers, setCoachPlayers] = useState<{ id: string; name: string; team_id: string; team_name: string; }[]>(
+    [],
+  );
   const [playersLoading, setPlayersLoading] = useState(false);
   const [playersError, setPlayersError] = useState<string | null>(null);
+  const [selectedPlayerTeamId, setSelectedPlayerTeamId] = useState<string>('all');
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>('');
   const [playerAnalytics, setPlayerAnalytics] = useState<PlayerAnalytics | null>(null);
   const [playerAnalyticsLoading, setPlayerAnalyticsLoading] = useState(false);
   const [playerAnalyticsError, setPlayerAnalyticsError] = useState<string | null>(null);
 
   // Coaching Point Detail states
-  const [coachingPoints, setCoachingPoints] = useState<{ id: string; title: string; game_opponent: string; game_date: string; team_name: string; }[]>([]);
+  const [coachingPoints, setCoachingPoints] = useState<
+    {
+      id: string;
+      title: string;
+      game_id: string;
+      game_opponent: string;
+      game_date: string;
+      team_id: string | null;
+      team_name: string;
+      timestamp: number;
+    }[]
+  >([]);
+  const [selectedPointTeamId, setSelectedPointTeamId] = useState<string>('all');
+  const [selectedPointGameId, setSelectedPointGameId] = useState<string>(''); // empty means must choose
   const [pointsLoading, setPointsLoading] = useState(false);
   const [pointsError, setPointsError] = useState<string | null>(null);
   const [selectedPointId, setSelectedPointId] = useState<string>('');
@@ -332,7 +426,7 @@ export const CoachAnalyticsPage: React.FC = () =>
       const { supabase } = await import('../lib/supabase');
       const { data: { session } } = await supabase.auth.getSession();
       const accessToken = session?.access_token;
-      if (!accessToken) { throw new Error('No access token'); }
+      if (!accessToken) throw new Error('No access token');
 
       const apiUrl = getApiUrl();
       const res = await fetch(`${apiUrl}/api/analytics/coach-overview`, {
@@ -467,7 +561,8 @@ export const CoachAnalyticsPage: React.FC = () =>
         setSelectedGameId(list[0].id);
         setSelectedTeamFilter('all');
         // Fetch analytics for preselected game
-        fetchGameAnalytics(list[0].id).catch(() => { /* handled in inner function */ });
+        fetchGameAnalytics(list[0].id).catch(() =>
+        {/* handled in inner function */});
       }
     }
     catch (e)
@@ -555,14 +650,6 @@ export const CoachAnalyticsPage: React.FC = () =>
 
       const data = await r.json();
       setCoachPlayers(data || []);
-
-      // Preselect the first player if available
-      if (data && data.length > 0)
-      {
-        setSelectedPlayerId(data[0].id);
-        // Fetch analytics for preselected player
-        fetchPlayerAnalytics(data[0].id).catch(() => { /* handled in inner function */ });
-      }
     }
     catch (e)
     {
@@ -598,8 +685,49 @@ export const CoachAnalyticsPage: React.FC = () =>
         throw new Error(t || 'Failed to load player analytics');
       }
 
-      const data = await r.json() as PlayerAnalytics;
-      setPlayerAnalytics(data);
+      const raw = await r.json();
+      // Normalize backend structure (raw.totals.*) to PlayerAnalytics shape used in UI
+      const mapped: PlayerAnalytics = {
+        player: { id: raw.player.id, name: raw.player.name },
+        totalCoachingPointsTagged: raw.totals.totalTaggedPoints || 0,
+        percentViewed: raw.totals.percentViewed || 0,
+        percentAcknowledged: raw.totals.percentAcknowledged || 0,
+        avgCompletionPercent: raw.totals.avgCompletionPercent || 0,
+        avgTimeToFirstViewHours: raw.totals.avgTimeToFirstViewMs != null ?
+          raw.totals.avgTimeToFirstViewMs / 3600000 :
+          null,
+        avgTimeToAcknowledgeHours: raw.totals.avgTimeToAcknowledgeMs != null ?
+          raw.totals.avgTimeToAcknowledgeMs / 3600000 :
+          null,
+        engagementOverTime: raw.engagementOverTime || [],
+        mostViewedTaggedPoints: (raw.mostViewedTaggedPoints || []).map((p: any) => ({
+          pointId: p.pointId,
+          title: p.title,
+          game: p.game || null,
+          views: p.viewsByPlayer ?? p.views ?? 0,
+          avgCompletionPercent: p.avgCompletionPercent ?? 0,
+        })),
+        leastViewedTaggedPoints: (raw.leastViewedTaggedPoints || []).map((p: any) => ({
+          pointId: p.pointId,
+          title: p.title,
+          game: p.game || null,
+          views: p.viewsByPlayer ?? p.views ?? 0,
+          avgCompletionPercent: p.avgCompletionPercent ?? 0,
+        })),
+        notViewedTaggedPoints: (raw.notViewedTaggedPoints || []).map((p: any) => ({
+          pointId: p.pointId,
+          title: p.title,
+          game: p.game || null,
+          created_at: p.created_at,
+        })),
+        unacknowledgedTaggedPoints: (raw.unacknowledgedTaggedPoints || []).map((p: any) => ({
+          pointId: p.pointId,
+          title: p.title,
+          game: p.game || null,
+          created_at: p.created_at,
+        })),
+      };
+      setPlayerAnalytics(mapped);
     }
     catch (e)
     {
@@ -636,15 +764,39 @@ export const CoachAnalyticsPage: React.FC = () =>
       }
 
       const data = await r.json();
-      setCoachingPoints(data || []);
+      const mapped = (data || []).map((cp: any) => ({
+        id: cp.id,
+        title: cp.title,
+        game_id: cp.game_id,
+        game_opponent: cp.game_opponent,
+        game_date: cp.game_date,
+        team_id: cp.team_id,
+        team_name: cp.team_name,
+        timestamp: cp.timestamp || 0,
+      }));
+      setCoachingPoints(mapped);
 
-      // Preselect the first coaching point if available
-      if (data && data.length > 0)
+      // Default select latest game (by date) if any
+      if (mapped.length > 0)
       {
-        setSelectedPointId(data[0].id);
-        // Fetch details for preselected point
-        fetchPointDetail(data[0].id).catch(() => { /* handled in inner function */ });
+        const latestGame = mapped.reduce((acc: (typeof mapped)[number] | null, cp: (typeof mapped)[number]) =>
+        {
+          if (!acc) return cp;
+          return new Date(cp.game_date).getTime() > new Date(acc.game_date).getTime() ? cp : acc;
+        }, null as (typeof mapped)[number] | null);
+        if (latestGame)
+        {
+          setSelectedPointTeamId(latestGame.team_id || 'all');
+          setSelectedPointGameId(latestGame.game_id);
+        }
       }
+      else
+      {
+        setSelectedPointTeamId('all');
+        setSelectedPointGameId('');
+      }
+      // Require explicit point selection
+      setSelectedPointId('');
     }
     catch (e)
     {
@@ -694,20 +846,119 @@ export const CoachAnalyticsPage: React.FC = () =>
     }
   };
 
-  const timelineDayCounts = useMemo(() =>
+  const timelineHourly = useMemo(() =>
   {
-    if (!gameAnalytics?.viewTimeline) return [];
-    const counter = new Map<number, number>();
+    if (!gameAnalytics?.viewTimeline || !gameAnalytics.game?.date) return [];
+    const base = new Date(gameAnalytics.game.date).getTime();
+    const bucket = new Map<string, number>();
     gameAnalytics.viewTimeline.forEach(ev =>
     {
-      if (typeof ev.daysSinceGame === 'number' && !Number.isNaN(ev.daysSinceGame))
-      {
-        counter.set(ev.daysSinceGame, (counter.get(ev.daysSinceGame) || 0) + 1);
-      }
+      const ts = new Date(ev.created_at).getTime();
+      if (Number.isNaN(ts) || ts < base) return;
+      const hrs = Math.floor((ts - base) / 3600000);
+      if (hrs < 0) return;
+      const dow = Math.floor(hrs / 24);
+      if (dow > 6) return; // limit to first 7 days
+      const hour = hrs % 24;
+      const key = `${dow}-${hour}`;
+      bucket.set(key, (bucket.get(key) || 0) + 1);
     });
-    const arr = Array.from(counter.entries()).map(([day, views]) => ({ day, views })) as { day: number; views: number; }[];
-    return arr.sort((a, b) => a.day - b.day);
+    return Array.from(bucket.entries()).map(([k, views]) =>
+    {
+      const [dow, hour] = k.split('-').map(Number);
+      return { dow, hour, views };
+    });
   }, [gameAnalytics]);
+
+  // Coaching point filter derivations
+  const pointTeams = useMemo(() =>
+  {
+    const map = new Map<string, string>();
+    coachingPoints.forEach(cp =>
+    {
+      if (cp.team_id) map.set(cp.team_id, cp.team_name);
+    });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [coachingPoints]);
+
+  const pointGames = useMemo(() =>
+  {
+    return coachingPoints
+      .filter(cp => selectedPointTeamId === 'all' || cp.team_id === selectedPointTeamId)
+      .reduce<{ id: string; opponent: string; date: string; team_id: string | null; team_name: string; }[]>((acc, cp) =>
+      {
+        if (!acc.find(g => g.id === cp.game_id))
+        {
+          acc.push({
+            id: cp.game_id,
+            opponent: cp.game_opponent,
+            date: cp.game_date,
+            team_id: cp.team_id,
+            team_name: cp.team_name,
+          });
+        }
+        return acc;
+      }, [])
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [coachingPoints, selectedPointTeamId]);
+
+  const filteredCoachingPoints = useMemo(() =>
+  {
+    if (!selectedPointGameId) return [];
+    return coachingPoints
+      .filter(cp =>
+        (selectedPointTeamId === 'all' || cp.team_id === selectedPointTeamId) && cp.game_id === selectedPointGameId
+      )
+      .sort((a, b) => a.timestamp - b.timestamp);
+  }, [coachingPoints, selectedPointTeamId, selectedPointGameId]);
+
+  const pointAckPercent = useMemo(() =>
+  {
+    if (!pointDetail) return 0;
+    const total = pointDetail.taggedPlayers.length;
+    if (!total) return 0;
+    return Math.round(pointDetail.taggedPlayers.filter(tp => tp.acknowledged).length / total * 100);
+  }, [pointDetail]);
+
+  // Player tab derived lists for team filtering
+  const playerTeams = useMemo(() =>
+  {
+    const map = new Map<string, string>();
+    coachPlayers.forEach(p =>
+    {
+      if (p.team_id) map.set(p.team_id, p.team_name);
+    });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [coachPlayers]);
+  const filteredPlayers = useMemo(() =>
+  {
+    return coachPlayers.filter(p => selectedPlayerTeamId === 'all' || p.team_id === selectedPlayerTeamId);
+  }, [coachPlayers, selectedPlayerTeamId]);
+
+  // Helper to format ms -> h:mm:ss (h no pad, mm & ss pad 2)
+  const formatHMS = (ms: number) =>
+  {
+    if (!ms || ms < 0) ms = 0;
+    const totalSeconds = Math.floor(ms / 1000);
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
+
+  // Generic safe formatters for player tab KPIs
+  const formatPercent = (value: number | null | undefined, disable?: boolean) =>
+  {
+    if (disable) return '—';
+    if (value === null || value === undefined || isNaN(value)) return '—';
+    return `${Math.round(value)}%`;
+  };
+  const formatHours = (value: number | null | undefined) =>
+  {
+    if (value === null || value === undefined || isNaN(value) || !isFinite(value)) return '—';
+    if (value < 0) return '—';
+    return `${Math.round(value)}h`;
+  };
 
   return (
     <main className='dashboard-main'>
@@ -750,118 +1001,112 @@ export const CoachAnalyticsPage: React.FC = () =>
       {/* Overview Tab */}
       {selectedTab === 'overview' && (
         <>
-          <div className='card' style={{ marginBottom: 'var(--space-lg)' }}>
+          <div className='card intro-card'>
             <div className='stat-label'>
-              Compare engagement across everything you manage and see trend summaries.
+              High-level engagement snapshot across all teams & games you manage (last 30 days).
             </div>
           </div>
-
           {coachOverviewLoading && <div className='loading'>Loading coach overview...</div>}
           {coachOverviewError && <div className='alert alert-error'>{coachOverviewError}</div>}
-
           {coachOverview && (
-            <>
-              <div className='card'>
-                <h3 className='mt-0 mb-md'>Coach Overview (Last 30 days)</h3>
-                <div className='grid grid-3'>
-                  <div className='card card-compact'>
-                    <div className='stat'>
-                      <div className='stat-value'>{coachOverview.totals.totalPoints}</div>
-                      <div className='stat-label'>Coaching Points</div>
-                    </div>
-                  </div>
-                  <div className='card card-compact'>
-                    <div className='stat'>
-                      <div className='stat-value'>{coachOverview.totals.totalViews}</div>
-                      <div className='stat-label'>Total Views</div>
-                    </div>
-                  </div>
-                  <div className='card card-compact'>
-                    <div className='stat'>
-                      <div className='stat-value'>{coachOverview.totals.percentAcknowledged}%</div>
-                      <div className='stat-label'>% Acknowledged</div>
-                    </div>
-                  </div>
-                  <div className='card card-compact'>
-                    <div className='stat'>
-                      <div className='stat-value'>{coachOverview.totals.avgCompletionPercent}%</div>
-                      <div className='stat-label'>Avg Completion</div>
-                    </div>
-                  </div>
+            <div className='analytics-overview'>
+              {/* KPI Row */}
+              <div className='kpi-grid'>
+                <div className='kpi-card'>
+                  <div className='kpi-label'>Coaching Points</div>
+                  <div className='kpi-value'>{coachOverview.totals.totalPoints}</div>
+                </div>
+                <div className='kpi-card'>
+                  <div className='kpi-label'>Total Views</div>
+                  <div className='kpi-value'>{coachOverview.totals.totalViews}</div>
+                </div>
+                <div className='kpi-card'>
+                  <div className='kpi-label'>% Acknowledged</div>
+                  <div className='kpi-value'>{coachOverview.totals.percentAcknowledged}%</div>
+                </div>
+                <div className='kpi-card'>
+                  <div className='kpi-label'>Avg Completion</div>
+                  <div className='kpi-value'>{coachOverview.totals.avgCompletionPercent}%</div>
                 </div>
               </div>
 
-              <div className='grid grid-2' style={{ gap: 'var(--space-lg)', marginBottom: 'var(--space-lg)' }}>
-                <div className='card'>
-                  <h4 className='mt-0'>Top 5 Most Viewed Points</h4>
-                  <ul className='list'>
+              <div className='section-grid'>
+                {/* Top Points */}
+                <div className='subcard'>
+                  <div className='subcard-header'>Top 5 Most Viewed Points</div>
+                  <ul className='simple-list scrollable'>
                     {coachOverview.topPoints.map(tp => (
-                      <li key={tp.pointId} className='list-item'>
-                        <div className='list-item-title'>{tp.title}</div>
-                        <div className='list-item-subtitle'>
-                          {tp.game ? `${tp.game.opponent} (${new Date(tp.game.date).toLocaleDateString()})` : '—'} · {tp.views} views · {tp.avgCompletionPercent}%
-                        </div>
+                      <li key={tp.pointId}>
+                        <span className='list-primary clamp-1'>{tp.title}</span>
+                        <span className='list-secondary'>
+                          {tp.game ? `${tp.game.opponent} (${new Date(tp.game.date).toLocaleDateString()})` : '—'} ·
+                          {' '}
+                          {tp.views} views · {tp.avgCompletionPercent}%
+                        </span>
                       </li>
                     ))}
-                    {coachOverview.topPoints.length === 0 && <li className='list-item'>No data</li>}
+                    {coachOverview.topPoints.length === 0 && <li className='empty-block'>No data</li>}
                   </ul>
                 </div>
-                <div className='card'>
-                  <h4 className='mt-0'>Bottom 5 Least Viewed Points</h4>
-                  <ul className='list'>
+                {/* Bottom Points */}
+                <div className='subcard'>
+                  <div className='subcard-header'>Bottom 5 Least Viewed Points</div>
+                  <ul className='simple-list scrollable'>
                     {coachOverview.bottomPoints.map(tp => (
-                      <li key={tp.pointId} className='list-item'>
-                        <div className='list-item-title'>{tp.title}</div>
-                        <div className='list-item-subtitle'>
-                          {tp.game ? `${tp.game.opponent} (${new Date(tp.game.date).toLocaleDateString()})` : '—'} · {tp.views} views · {tp.avgCompletionPercent}%
-                        </div>
+                      <li key={tp.pointId}>
+                        <span className='list-primary clamp-1'>{tp.title}</span>
+                        <span className='list-secondary'>
+                          {tp.game ? `${tp.game.opponent} (${new Date(tp.game.date).toLocaleDateString()})` : '—'} ·
+                          {' '}
+                          {tp.views} views · {tp.avgCompletionPercent}%
+                        </span>
                       </li>
                     ))}
-                    {coachOverview.bottomPoints.length === 0 && <li className='list-item'>No data</li>}
+                    {coachOverview.bottomPoints.length === 0 && <li className='empty-block'>No data</li>}
                   </ul>
                 </div>
-              </div>
-
-              <div className='grid grid-2' style={{ gap: 'var(--space-lg)', marginBottom: 'var(--space-lg)' }}>
-                <div className='card'>
-                  <h4 className='mt-0'>Top Engaged Player</h4>
-                  {coachOverview.topEngagedPlayer ? (
-                    <div>
-                      <div className='stat-value'>{coachOverview.topEngagedPlayer.name}</div>
-                      <div className='stat-label'>Score {coachOverview.topEngagedPlayer.scorePercent}% · Ack {coachOverview.topEngagedPlayer.ackRatePercent}% · Completion {coachOverview.topEngagedPlayer.completionPercent}%</div>
-                    </div>
-                  ) : <div>No data</div>}
+                {/* Players */}
+                <div className='subcard'>
+                  <div className='subcard-header'>Top Engaged Player</div>
+                  {coachOverview.topEngagedPlayer ?
+                    (
+                      <div className='player-engagement-card'>
+                        <div className='player-name'>{coachOverview.topEngagedPlayer.name}</div>
+                        <div className='player-metrics'>
+                          Score {coachOverview.topEngagedPlayer.scorePercent}% · Ack{' '}
+                          {coachOverview.topEngagedPlayer.ackRatePercent}% · Completion{' '}
+                          {coachOverview.topEngagedPlayer.completionPercent}%
+                        </div>
+                      </div>
+                    ) :
+                    <div className='empty-block'>No data</div>}
+                  <div className='divider' />
+                  <div className='subcard-header'>Lowest Engaged Player</div>
+                  {coachOverview.lowestEngagedPlayer ?
+                    (
+                      <div className='player-engagement-card low'>
+                        <div className='player-name'>{coachOverview.lowestEngagedPlayer.name}</div>
+                        <div className='player-metrics'>
+                          Score {coachOverview.lowestEngagedPlayer.scorePercent}% · Ack{' '}
+                          {coachOverview.lowestEngagedPlayer.ackRatePercent}% · Completion{' '}
+                          {coachOverview.lowestEngagedPlayer.completionPercent}%
+                        </div>
+                      </div>
+                    ) :
+                    <div className='empty-block'>No data</div>}
                 </div>
-                <div className='card'>
-                  <h4 className='mt-0'>Lowest Engaged Player</h4>
-                  {coachOverview.lowestEngagedPlayer ? (
-                    <div>
-                      <div className='stat-value'>{coachOverview.lowestEngagedPlayer.name}</div>
-                      <div className='stat-label'>Score {coachOverview.lowestEngagedPlayer.scorePercent}% · Ack {coachOverview.lowestEngagedPlayer.ackRatePercent}% · Completion {coachOverview.lowestEngagedPlayer.completionPercent}%</div>
-                    </div>
-                  ) : <div>No data</div>}
-                </div>
-              </div>
-
-              <div className='card'>
-                <h4 className='mt-0'>Engagement Over Time</h4>
-                <div className='table'>
-                  <div className='table-row table-header'>
-                    <div className='table-cell'>Date</div>
-                    <div className='table-cell'>Views</div>
+                {/* Engagement timeline */}
+                <div className='subcard'>
+                  <div className='subcard-header with-help'>
+                    <span>Engagement Over Time</span>
+                    <span className='subtle-muted'>Daily views (last 30)</span>
                   </div>
-                  {coachOverview.engagementOverTime.map((d) => (
-                    <div key={d.date} className='table-row'>
-                      <div className='table-cell'>{d.date}</div>
-                      <div className='table-cell'>{d.views}</div>
-                    </div>
-                  ))}
-                  {coachOverview.engagementOverTime.length === 0 && (
-                    <div className='table-row'><div className='table-cell'>No data</div><div className='table-cell'></div></div>
-                  )}
+                  {coachOverview.engagementOverTime.length > 0 ?
+                    <EngagementSpark data={coachOverview.engagementOverTime} /> :
+                    <div className='empty-block'>No data</div>}
                 </div>
               </div>
-            </>
+            </div>
           )}
         </>
       )}
@@ -871,7 +1116,8 @@ export const CoachAnalyticsPage: React.FC = () =>
         <>
           <div className='card' style={{ marginBottom: 'var(--space-lg)' }}>
             <div className='stat-label'>
-              Compare team engagement side-by-side: totals, heatmap, role breakdown, top players, and games by viewership.
+              Compare team engagement side-by-side: totals, heatmap, role breakdown, top players, and games by
+              viewership.
             </div>
           </div>
 
@@ -885,122 +1131,147 @@ export const CoachAnalyticsPage: React.FC = () =>
           {coachTeams.map(team =>
           {
             const a = teamAnalytics[team.id];
+            const formatPct = (v?: number) => (v === null || v === undefined) ? '—' : `${Math.round(v)}%`;
             return (
-              <div key={team.id} className='card' style={{ marginBottom: 'var(--space-xl)' }}>
-                <h3 className='mt-0 mb-md'>{team.name}</h3>
+              <div key={team.id} className='analytics-team card'>
+                <div className='team-header-row'>
+                  <h3 className='mt-0 mb-0 team-name-heading'>{team.name}</h3>
+                  {a && (
+                    <div className='team-meta-inline'>
+                      <span>{a.totals.totalPoints} points</span>
+                      <span>· {a.totals.totalViews} views</span>
+                      <span>· {formatPct(a.totals.percentAcknowledged)} ack</span>
+                      <span>· {formatPct(a.totals.avgCompletionPercent)} completion</span>
+                    </div>
+                  )}
+                </div>
 
-                {/* Totals */}
-                <div className='grid grid-3' style={{ marginBottom: 'var(--space-lg)' }}>
-                  <div className='card card-compact'>
-                    <div className='stat'>
-                      <div className='stat-value'>{a?.totals.totalPoints ?? 0}</div>
-                      <div className='stat-label'>Total Coaching Points</div>
-                    </div>
+                {/* KPI Cards */}
+                <div className='kpi-grid'>
+                  <div className='kpi-card'>
+                    <div className='kpi-label'>Total Coaching Points</div>
+                    <div className='kpi-value'>{a?.totals.totalPoints ?? 0}</div>
                   </div>
-                  <div className='card card-compact'>
-                    <div className='stat'>
-                      <div className='stat-value'>{a?.totals.totalViews ?? 0}</div>
-                      <div className='stat-label'>Total Views</div>
-                    </div>
+                  <div className='kpi-card'>
+                    <div className='kpi-label'>Total Views</div>
+                    <div className='kpi-value'>{a?.totals.totalViews ?? 0}</div>
                   </div>
-                  <div className='card card-compact'>
-                    <div className='stat'>
-                      <div className='stat-value'>{a?.totals.percentAcknowledged ?? 0}%</div>
-                      <div className='stat-label'>% Acknowledged</div>
-                    </div>
+                  <div className='kpi-card'>
+                    <div className='kpi-label'>% Ack'd</div>
+                    <div className='kpi-value'>{formatPct(a?.totals.percentAcknowledged)}</div>
                   </div>
-                  <div className='card card-compact'>
-                    <div className='stat'>
-                      <div className='stat-value'>{a?.totals.avgCompletionPercent ?? 0}%</div>
-                      <div className='stat-label'>Avg Completion %</div>
-                    </div>
+                  <div className='kpi-card'>
+                    <div className='kpi-label'>Avg Completion</div>
+                    <div className='kpi-value'>{formatPct(a?.totals.avgCompletionPercent)}</div>
                   </div>
                 </div>
 
-                <div className='grid grid-2' style={{ gap: 'var(--space-lg)', marginBottom: 'var(--space-lg)' }}>
+                <div className='section-grid'>
                   {/* Per-Role Breakdown */}
-                  <div className='card'>
-                    <h4 className='mt-0'>Per-Role Breakdown</h4>
-                    <div className='table'>
-                      <div className='table-row table-header'>
-                        <div className='table-cell'>Role</div>
-                        <div className='table-cell'>Total Views</div>
-                        <div className='table-cell'>Avg % Viewed</div>
-                      </div>
-                      {a?.perRoleBreakdown && a.perRoleBreakdown
-                        .slice()
-                        .sort((x: TeamRoleBreakdown, y: TeamRoleBreakdown) => roleOrder.indexOf(x.role) - roleOrder.indexOf(y.role))
-                        .map(rb => (
-                          <div key={rb.role} className='table-row'>
-                            <div className='table-cell'>{rb.role}</div>
-                            <div className='table-cell'>{rb.totalViews}</div>
-                            <div className='table-cell'>{rb.avgCompletionPercent}%</div>
+                  <div className='subcard'>
+                    <div className='subcard-header'>Per-Role Breakdown</div>
+                    {a?.perRoleBreakdown && a.perRoleBreakdown.length > 0 ?
+                      (
+                        <div className='role-table'>
+                          <div className='role-table-head'>
+                            <div>Role</div>
+                            <div className='text-right'>Views</div>
+                            <div className='text-right'>Avg Viewed</div>
                           </div>
-                        ))}
-                      {(!a?.perRoleBreakdown || a.perRoleBreakdown.length === 0) && (
-                        <div className='table-row'><div className='table-cell'>No data</div><div className='table-cell'></div><div className='table-cell'></div></div>
-                      )}
-                    </div>
+                          {a.perRoleBreakdown
+                            .slice()
+                            .sort((x: TeamRoleBreakdown, y: TeamRoleBreakdown) =>
+                              roleOrder.indexOf(x.role) - roleOrder.indexOf(y.role)
+                            )
+                            .map(rb => (
+                              <div key={rb.role} className='role-row'>
+                                <div className='role-cell role-name'>{rb.role}</div>
+                                <div className='role-cell text-right'>{rb.totalViews}</div>
+                                <div className='role-cell text-right'>
+                                  <span className='role-pct'>{formatPct(rb.avgCompletionPercent)}</span>
+                                  <div
+                                    className='progress-bar'
+                                    aria-label={`Avg completion ${rb.avgCompletionPercent}%`}
+                                  >
+                                    <div
+                                      className='progress-fill'
+                                      style={{ width: `${Math.min(100, Math.max(0, rb.avgCompletionPercent))}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      ) :
+                      <div className='empty-block'>No data</div>}
                   </div>
 
                   {/* Engagement Heatmap */}
-                  <div className='card'>
-                    <h4 className='mt-0'>Engagement Heatmap</h4>
-                    {a?.engagementHeatmap && a.engagementHeatmap.length > 0 ? (
-                      <Heatmap data={a.engagementHeatmap} />
-                    ) : (
-                      <div className='stat-label'>No data</div>
-                    )}
+                  <div className='subcard'>
+                    <div className='subcard-header with-help'>
+                      <span>Engagement Heatmap</span>
+                      <span className='subtle-muted'>UTC</span>
+                    </div>
+                    {a?.engagementHeatmap && a.engagementHeatmap.length > 0 ?
+                      <Heatmap data={a.engagementHeatmap} /> :
+                      <div className='empty-block'>No data</div>}
                   </div>
                 </div>
 
-                <div className='grid grid-2' style={{ gap: 'var(--space-lg)' }}>
-                  {/* Top Players by Engagement */}
-                  <div className='card'>
-                    <h4 className='mt-0'>Top Players by Engagement</h4>
-                    <ul className='list'>
-                      {a?.topPlayers?.map(p => (
-                        <li key={p.player_profile_id} className='list-item'>
-                          <div className='list-item-title'>{p.name}</div>
-                          <div className='list-item-subtitle'>
-                            Score {p.scorePercent}% · Ack {p.ackRatePercent}% · Completion {p.completionPercent}%
+                <div className='section-grid'>
+                  {/* Top Players */}
+                  <div className='subcard'>
+                    <div className='subcard-header'>Top Players by Engagement</div>
+                    <ul className='ranked-list'>
+                      {a?.topPlayers?.map((p, idx) => (
+                        <li key={p.player_profile_id} className='ranked-item'>
+                          <div className='rank-index'>{idx + 1}</div>
+                          <div className='rank-main'>
+                            <div className='rank-title'>{p.name}</div>
+                            <div className='rank-sub'>
+                              Score {p.scorePercent}% · Ack {p.ackRatePercent}% · Completion {p.completionPercent}%
+                            </div>
                           </div>
                         </li>
                       ))}
-                      {(!a?.topPlayers || a.topPlayers.length === 0) && <li className='list-item'>No data</li>}
+                      {(!a?.topPlayers || a.topPlayers.length === 0) && <li className='empty-block'>No data</li>}
                     </ul>
                   </div>
 
-                  {/* Games with Highest/Lowest Viewership */}
-                  <div className='card'>
-                    <h4 className='mt-0'>Games by Viewership</h4>
-                    <div className='grid grid-2' style={{ gap: 'var(--space-lg)' }}>
+                  {/* Games Viewership */}
+                  <div className='subcard'>
+                    <div className='subcard-header'>Games by Viewership</div>
+                    <div className='games-split'>
                       <div>
-                        <div className='stat-label' style={{ marginBottom: 8 }}>Highest</div>
-                        <ul className='list'>
+                        <div className='mini-heading'>Highest</div>
+                        <ul className='simple-list'>
                           {a?.gamesMostViewed?.map(g => (
-                            <li key={g.id} className='list-item'>
-                              <div className='list-item-title'>{g.opponent}</div>
-                              <div className='list-item-subtitle'>
+                            <li key={g.id}>
+                              <span className='list-primary'>{g.opponent}</span>
+                              <span className='list-secondary'>
                                 {new Date(g.date).toLocaleDateString()} · {g.views} views
-                              </div>
+                              </span>
                             </li>
                           ))}
-                          {(!a?.gamesMostViewed || a.gamesMostViewed.length === 0) && <li className='list-item'>No data</li>}
+                          {(!a?.gamesMostViewed || a.gamesMostViewed.length === 0) && (
+                            <li className='empty-block'>No data</li>
+                          )}
                         </ul>
                       </div>
                       <div>
-                        <div className='stat-label' style={{ marginBottom: 8 }}>Lowest</div>
-                        <ul className='list'>
+                        <div className='mini-heading'>Lowest</div>
+                        <ul className='simple-list'>
                           {a?.gamesLeastViewed?.map(g => (
-                            <li key={g.id} className='list-item'>
-                              <div className='list-item-title'>{g.opponent}</div>
-                              <div className='list-item-subtitle'>
+                            <li key={g.id}>
+                              <span className='list-primary'>{g.opponent}</span>
+                              <span className='list-secondary'>
                                 {new Date(g.date).toLocaleDateString()} · {g.views} views
-                              </div>
+                              </span>
                             </li>
                           ))}
-                          {(!a?.gamesLeastViewed || a.gamesLeastViewed.length === 0) && <li className='list-item'>No data</li>}
+                          {(!a?.gamesLeastViewed || a.gamesLeastViewed.length === 0) && (
+                            <li className='empty-block'>No data</li>
+                          )}
                         </ul>
                       </div>
                     </div>
@@ -1015,35 +1286,32 @@ export const CoachAnalyticsPage: React.FC = () =>
       {/* Games Tab */}
       {selectedTab === 'games' && (
         <>
-          <div className='card' style={{ marginBottom: 'var(--space-lg)' }}>
-            <div className='stat-label'>
-              Drill into a single game: points, viewers, acknowledgments, per-point engagement, timeline, and labels.
-            </div>
+          <div className='card intro-card'>
+            <div className='stat-label'>Deep-dive into a game: point engagement, viewer behavior, and content mix.</div>
           </div>
 
           {gamesLoading && <div className='loading'>Loading games...</div>}
           {gamesError && <div className='alert alert-error'>{gamesError}</div>}
 
           {!gamesLoading && !gamesError && (
-            <div className='card' style={{ marginBottom: 'var(--space-lg)' }}>
-              <div className='grid grid-3' style={{ alignItems: 'center', gap: 'var(--space-md)' }}>
-                <div>
-                  <div className='stat-label'>Team</div>
+            <div className='subcard filters-bar'>
+              <div className='filters-grid'>
+                <label className='filter-item'>
+                  <span className='filter-label'>Team</span>
                   <select
-                    className='input'
                     value={selectedTeamFilter}
-                    onChange={(e) => { setSelectedTeamFilter(e.target.value); }}
+                    onChange={(e) =>
+                    {
+                      setSelectedTeamFilter(e.target.value);
+                    }}
                   >
                     <option value='all'>All</option>
-                    {teamsFromGames.map(t => (
-                      <option key={t.id} value={t.id}>{t.name}</option>
-                    ))}
+                    {teamsFromGames.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                   </select>
-                </div>
-                <div>
-                  <div className='stat-label'>Game</div>
+                </label>
+                <label className='filter-item'>
+                  <span className='filter-label'>Game</span>
                   <select
-                    className='input'
                     value={selectedGameId}
                     onChange={(e) =>
                     {
@@ -1059,13 +1327,18 @@ export const CoachAnalyticsPage: React.FC = () =>
                       </option>
                     ))}
                   </select>
-                </div>
-                <div>
-                  <div className='stat-label'>&nbsp;</div>
+                </label>
+                <div className='filter-actions'>
                   <button
-                    className='btn'
-                    onClick={() => { if (selectedGameId) fetchGameAnalytics(selectedGameId); }}
+                    className='btn btn-secondary'
                     disabled={!selectedGameId}
+                    onClick={() =>
+                    {
+                      if (selectedGameId)
+                      {
+                        fetchGameAnalytics(selectedGameId);
+                      }
+                    }}
                   >
                     Refresh
                   </button>
@@ -1078,104 +1351,117 @@ export const CoachAnalyticsPage: React.FC = () =>
           {gameAnalyticsError && <div className='alert alert-error'>{gameAnalyticsError}</div>}
 
           {gameAnalytics && (
-            <div className='card' style={{ marginBottom: 'var(--space-xl)' }}>
-              <h3 className='mt-0 mb-md'>
-                {gameAnalytics.game ? (
-                  <>
-                    {gameAnalytics.game.opponent} — {new Date(gameAnalytics.game.date).toLocaleDateString()}
-                  </>
-                ) : 'Selected Game'}
-              </h3>
-
-              {/* Totals */}
-              <div className='grid grid-3' style={{ marginBottom: 'var(--space-lg)' }}>
-                <div className='card card-compact'>
-                  <div className='stat'>
-                    <div className='stat-value'>{gameAnalytics.numberOfCoachingPoints}</div>
-                    <div className='stat-label'># Coaching Points</div>
-                  </div>
-                </div>
-                <div className='card card-compact'>
-                  <div className='stat'>
-                    <div className='stat-value'>{gameAnalytics.totalViews}</div>
-                    <div className='stat-label'>Total Views</div>
-                  </div>
-                </div>
-                <div className='card card-compact'>
-                  <div className='stat'>
-                    <div className='stat-value'>{gameAnalytics.uniqueViewers}</div>
-                    <div className='stat-label'>Unique Viewers</div>
-                  </div>
-                </div>
-                <div className='card card-compact'>
-                  <div className='stat'>
-                    <div className='stat-value'>{gameAnalytics.percentPointsAcknowledged}%</div>
-                    <div className='stat-label'>% of Points Ack’d</div>
-                  </div>
-                </div>
-                <div className='card card-compact'>
-                  <div className='stat'>
-                    <div className='stat-value'>{gameAnalytics.avgCompletionPercent}%</div>
-                    <div className='stat-label'>Avg Completion</div>
-                  </div>
+            <div className='analytics-game card'>
+              <div className='game-header'>
+                <div className='game-title'>
+                  {gameAnalytics.game.opponent}
+                  <span className='game-date'>{new Date(gameAnalytics.game.date).toLocaleDateString()}</span>
                 </div>
               </div>
 
-              {/* Per-Point Engagement Table */}
-              <div className='card' style={{ marginBottom: 'var(--space-lg)' }}>
-                <h4 className='mt-0'>Per-Point Engagement</h4>
-                <div className='table'>
-                  <div className='table-row table-header'>
-                    <div className='table-cell'>Point Title</div>
-                    <div className='table-cell'>Tagged Players</div>
-                    <div className='table-cell'>Views</div>
-                    <div className='table-cell'>Avg % Viewed</div>
-                    <div className='table-cell'>% Ack’d</div>
-                    <div className='table-cell'>Last Viewed</div>
+              <div className='kpi-grid'>
+                <div className='kpi-card'>
+                  <div className='kpi-label'>Coaching Points</div>
+                  <div className='kpi-value'>{gameAnalytics.numberOfCoachingPoints}</div>
+                </div>
+                <div className='kpi-card'>
+                  <div className='kpi-label'>Total Views</div>
+                  <div className='kpi-value'>{gameAnalytics.totalViews}</div>
+                </div>
+                <div className='kpi-card'>
+                  <div className='kpi-label'>Unique Viewers</div>
+                  <div className='kpi-value'>{gameAnalytics.uniqueViewers}</div>
+                </div>
+                <div className='kpi-card'>
+                  <div className='kpi-label'>Points Ack’d</div>
+                  <div className='kpi-value'>{gameAnalytics.percentPointsAcknowledged}%</div>
+                </div>
+                <div className='kpi-card'>
+                  <div className='kpi-label'>Avg Completion</div>
+                  <div className='kpi-value'>{gameAnalytics.avgCompletionPercent}%</div>
+                </div>
+              </div>
+
+              <div className='section-grid games-sections'>
+                {/* Per point engagement (spans all 3 cols on large screens) */}
+                <div className='subcard engagement-full'>
+                  <div className='subcard-header with-help'>
+                    <span>Per-Point Engagement</span>
+                    <span className='subtle-muted'>View & ack quality</span>
                   </div>
-                  {gameAnalytics.perPointEngagement.map(row => (
-                    <div key={row.pointId} className='table-row'>
-                      <div className='table-cell'>{row.title}</div>
-                      <div className='table-cell'>{row.taggedPlayers}</div>
-                      <div className='table-cell'>{row.views}</div>
-                      <div className='table-cell'>{row.avgCompletionPercent}%</div>
-                      <div className='table-cell'>{row.percentAckd}%</div>
-                      <div className='table-cell'>
-                        {row.lastViewedAt ? new Date(row.lastViewedAt).toLocaleString() : '—'}
+                  <div className='engagement-table'>
+                    <div className='engagement-head'>
+                      <div>Point Title</div>
+                      <div className='text-right'>Tagged</div>
+                      <div className='text-right'>Views</div>
+                      <div className='text-right'>Avg Viewed</div>
+                      <div className='text-right'>Ack’d</div>
+                      <div className='text-right'>Last Viewed</div>
+                    </div>
+                    <div className='engagement-body'>
+                      {gameAnalytics.perPointEngagement.map(row => (
+                        <div key={row.pointId} className='engagement-row'>
+                          <div className='title clamp-1'>{row.title}</div>
+                          <div className='text-right'>{row.taggedPlayers}</div>
+                          <div className='text-right'>{row.views}</div>
+                          <div className='text-right'>
+                            <span className='mini-pct'>{row.avgCompletionPercent}%</span>
+                            <div className='progress-bar mini'>
+                              <div
+                                className='progress-fill'
+                                style={{ width: `${Math.min(100, Math.max(0, row.avgCompletionPercent))}%` }}
+                              />
+                            </div>
+                          </div>
+                          <div className='text-right'>
+                            <span className='mini-pct'>{row.percentAckd}%</span>
+                            <div className='progress-bar mini ack'>
+                              <div
+                                className='progress-fill'
+                                style={{ width: `${Math.min(100, Math.max(0, row.percentAckd))}%` }}
+                              />
+                            </div>
+                          </div>
+                          <div className='text-right'>
+                            {row.lastViewedAt ? new Date(row.lastViewedAt).toLocaleDateString() : '—'}
+                          </div>
+                        </div>
+                      ))}
+                      {gameAnalytics.perPointEngagement.length === 0 && <div className='empty-block'>No data</div>}
+                    </div>
+                  </div>
+                </div>
+
+                {/* View Timeline Heatmap (spans 2 columns) */}
+                <div className='subcard timeline-heatmap-wide'>
+                  <div className='subcard-header with-help'>
+                    <span>View Timeline Heatmap</span>
+                    <span className='subtle-muted'>Views by day since game</span>
+                  </div>
+                  <GameTimelineHeatmap data={timelineHourly} />
+                </div>
+
+                {/* Point Type Breakdown */}
+                <div className='subcard'>
+                  <div className='subcard-header with-help'>
+                    <span>Point Type Breakdown</span>
+                    <span className='subtle-muted'>Mix of labels</span>
+                  </div>
+                  <div className='breakdown-table'>
+                    <div className='breakdown-head'>
+                      <div>Label</div>
+                      <div className='text-right'>Points</div>
+                      <div className='text-right'>Views</div>
+                    </div>
+                    {gameAnalytics.pointTypeBreakdown.map((b, i) => (
+                      <div key={`${b.label}-${i}`} className='breakdown-row'>
+                        <div>{b.label}</div>
+                        <div className='text-right'>{b.points}</div>
+                        <div className='text-right'>{b.views}</div>
                       </div>
-                    </div>
-                  ))}
-                  {gameAnalytics.perPointEngagement.length === 0 && (
-                    <div className='table-row'><div className='table-cell'>No data</div></div>
-                  )}
-                </div>
-              </div>
-
-              {/* View Timeline */}
-              <div className='card' style={{ marginBottom: 'var(--space-lg)' }}>
-                <h4 className='mt-0'>View Timeline</h4>
-                <TimelineBars points={timelineDayCounts} />
-              </div>
-
-              {/* Point Type Breakdown */}
-              <div className='card'>
-                <h4 className='mt-0'>Point Type Breakdown</h4>
-                <div className='table'>
-                  <div className='table-row table-header'>
-                    <div className='table-cell'>Label</div>
-                    <div className='table-cell'>Points</div>
-                    <div className='table-cell'>Views</div>
+                    ))}
+                    {gameAnalytics.pointTypeBreakdown.length === 0 && <div className='empty-block'>No data</div>}
                   </div>
-                  {gameAnalytics.pointTypeBreakdown.map((b, i) => (
-                    <div key={`${b.label}-${i}`} className='table-row'>
-                      <div className='table-cell'>{b.label}</div>
-                      <div className='table-cell'>{b.points}</div>
-                      <div className='table-cell'>{b.views}</div>
-                    </div>
-                  ))}
-                  {gameAnalytics.pointTypeBreakdown.length === 0 && (
-                    <div className='table-row'><div className='table-cell'>No data</div></div>
-                  )}
                 </div>
               </div>
             </div>
@@ -1186,159 +1472,200 @@ export const CoachAnalyticsPage: React.FC = () =>
       {/* Players Tab */}
       {selectedTab === 'players' && (
         <>
-          <div className='card' style={{ marginBottom: 'var(--space-lg)' }}>
-            <div className='stat-label'>
-              Track individual player engagement across all games & teams they're in: tagged points, viewing patterns, acknowledgment rates, and timing metrics.
-            </div>
-          </div>
-
-          {playersLoading && <div className='loading'>Loading players...</div>}
-          {playersError && <div className='alert alert-error'>{playersError}</div>}
-
-          {!playersLoading && !playersError && (
+          <div className='analytics-overview' style={{ marginBottom: 'var(--space-xl)' }}>
             <div className='card' style={{ marginBottom: 'var(--space-lg)' }}>
-              <div className='grid grid-2' style={{ alignItems: 'center', gap: 'var(--space-md)' }}>
-                <div>
-                  <div className='stat-label'>Player</div>
-                  <select
-                    className='input'
-                    value={selectedPlayerId}
-                    onChange={(e) => {
-                      const id = e.target.value;
-                      setSelectedPlayerId(id);
-                      if (id) fetchPlayerAnalytics(id);
-                    }}
-                  >
-                    <option value=''>Select a player</option>
-                    {coachPlayers.map(p => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} ({p.team_name})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <div className='stat-label'>&nbsp;</div>
-                  <button
-                    className='btn'
-                    onClick={() => { if (selectedPlayerId) fetchPlayerAnalytics(selectedPlayerId); }}
-                    disabled={!selectedPlayerId}
-                  >
-                    Refresh
-                  </button>
-                </div>
+              <div className='stat-label'>
+                Track individual player engagement across all games & teams they're in: tagged points, viewing patterns,
+                acknowledgment rates, and timing metrics.
               </div>
             </div>
-          )}
 
-          {playerAnalyticsLoading && <div className='loading'>Loading player analytics...</div>}
-          {playerAnalyticsError && <div className='alert alert-error'>{playerAnalyticsError}</div>}
+            {playersLoading && <div className='loading'>Loading players...</div>}
+            {playersError && <div className='alert alert-error'>{playersError}</div>}
 
-          {playerAnalytics && (
-            <div className='card' style={{ marginBottom: 'var(--space-xl)' }}>
-              <h3 className='mt-0 mb-md'>{playerAnalytics.player.name}</h3>
-
-              {/* Key Metrics */}
-              <div className='grid grid-3' style={{ marginBottom: 'var(--space-lg)' }}>
-                <div className='card card-compact'>
-                  <div className='stat'>
-                    <div className='stat-value'>{playerAnalytics.totalCoachingPointsTagged}</div>
-                    <div className='stat-label'>Total Coaching Points Tagged</div>
+            {!playersLoading && !playersError && (
+              <div className='subcard filters-bar' style={{ marginBottom: 'var(--space-xl)' }}>
+                <div className='filters-grid'>
+                  <div className='filter-item'>
+                    <label className='filter-label'>Team</label>
+                    <select
+                      value={selectedPlayerTeamId}
+                      onChange={(e) =>
+                      {
+                        const teamId = e.target.value;
+                        setSelectedPlayerTeamId(teamId);
+                        setSelectedPlayerId(''); // reset player selection when team changes
+                        setPlayerAnalytics(null);
+                      }}
+                    >
+                      <option value='all'>All Teams</option>
+                      {playerTeams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    </select>
                   </div>
-                </div>
-                <div className='card card-compact'>
-                  <div className='stat'>
-                    <div className='stat-value'>{playerAnalytics.percentViewed}%</div>
-                    <div className='stat-label'>% Viewed</div>
+                  <div className='filter-item'>
+                    <label className='filter-label'>Player</label>
+                    <select
+                      value={selectedPlayerId}
+                      onChange={(e) =>
+                      {
+                        const id = e.target.value;
+                        setSelectedPlayerId(id);
+                        if (id)
+                        {
+                          fetchPlayerAnalytics(id);
+                        }
+                      }}
+                      disabled={filteredPlayers.length === 0}
+                    >
+                      <option value=''>Select a player</option>
+                      {filteredPlayers.map(p => <option key={p.id} value={p.id}>{p.name} ({p.team_name})</option>)}
+                    </select>
                   </div>
-                </div>
-                <div className='card card-compact'>
-                  <div className='stat'>
-                    <div className='stat-value'>{playerAnalytics.percentAcknowledged}%</div>
-                    <div className='stat-label'>% Acknowledged</div>
-                  </div>
-                </div>
-                <div className='card card-compact'>
-                  <div className='stat'>
-                    <div className='stat-value'>{playerAnalytics.avgCompletionPercent}%</div>
-                    <div className='stat-label'>Avg Completion %</div>
-                  </div>
-                </div>
-                <div className='card card-compact'>
-                  <div className='stat'>
-                    <div className='stat-value'>
-                      {playerAnalytics.avgTimeToFirstViewHours !== null 
-                        ? `${Math.round(playerAnalytics.avgTimeToFirstViewHours)}h`
-                        : '—'}
-                    </div>
-                    <div className='stat-label'>Time to First View (avg)</div>
-                  </div>
-                </div>
-                <div className='card card-compact'>
-                  <div className='stat'>
-                    <div className='stat-value'>
-                      {playerAnalytics.avgTimeToAcknowledgeHours !== null 
-                        ? `${Math.round(playerAnalytics.avgTimeToAcknowledgeHours)}h`
-                        : '—'}
-                    </div>
-                    <div className='stat-label'>Time to Acknowledge (avg)</div>
+                  <div className='filter-actions'>
+                    <button
+                      className='btn btn-secondary'
+                      onClick={() =>
+                      {
+                        if (selectedPlayerId)
+                        {
+                          fetchPlayerAnalytics(selectedPlayerId);
+                        }
+                      }}
+                      disabled={!selectedPlayerId}
+                    >
+                      Refresh
+                    </button>
                   </div>
                 </div>
               </div>
+            )}
 
-              {/* Engagement Over Time */}
-              <div className='card' style={{ marginBottom: 'var(--space-lg)' }}>
-                <h4 className='mt-0'>Engagement Over Time</h4>
-                <div className='table'>
-                  <div className='table-row table-header'>
-                    <div className='table-cell'>Date</div>
-                    <div className='table-cell'>Views</div>
+            {playerAnalyticsLoading && <div className='loading'>Loading player analytics...</div>}
+            {playerAnalyticsError && <div className='alert alert-error'>{playerAnalyticsError}</div>}
+
+            {playerAnalytics && (
+              <div className='player-analytics'>
+                <div className='subcard' style={{ marginBottom: 'var(--space-xl)' }}>
+                  <div className='subcard-header'>
+                    <span>{playerAnalytics.player.name}</span>
                   </div>
-                  {playerAnalytics.engagementOverTime.map((d) => (
-                    <div key={d.date} className='table-row'>
-                      <div className='table-cell'>{d.date}</div>
-                      <div className='table-cell'>{d.views}</div>
+                  <div
+                    className='empty-block'
+                    style={{ marginTop: 'var(--space-sm)', marginBottom: 'var(--space-sm)' }}
+                  >
+                    {playerAnalytics.totalCoachingPointsTagged > 0 ?
+                      <span>{playerAnalytics.totalCoachingPointsTagged} coaching points tagged</span> :
+                      <span>No coaching points have been tagged for this player yet.</span>}
+                  </div>
+                  {playerAnalytics.totalCoachingPointsTagged > 0 && (
+                    <div className='kpi-grid'>
+                      <div className='kpi-card'>
+                        <div className='kpi-label'>Total Coaching Points Tagged</div>
+                        <div className='kpi-value'>{playerAnalytics.totalCoachingPointsTagged}</div>
+                      </div>
+                      <div className='kpi-card'>
+                        <div className='kpi-label'>% Viewed</div>
+                        <div className='kpi-value'>{formatPercent(playerAnalytics.percentViewed)}</div>
+                      </div>
+                      <div className='kpi-card'>
+                        <div className='kpi-label'>% Ack'd</div>
+                        <div className='kpi-value'>{formatPercent(playerAnalytics.percentAcknowledged)}</div>
+                      </div>
+                      <div className='kpi-card'>
+                        <div className='kpi-label'>Avg Completion</div>
+                        <div className='kpi-value'>{formatPercent(playerAnalytics.avgCompletionPercent)}</div>
+                      </div>
+                      <div className='kpi-card'>
+                        <div className='kpi-label'>Time to First View (avg)</div>
+                        <div className='kpi-value'>{formatHours(playerAnalytics.avgTimeToFirstViewHours)}</div>
+                      </div>
+                      <div className='kpi-card'>
+                        <div className='kpi-label'>Time to Acknowledge (avg)</div>
+                        <div className='kpi-value'>{formatHours(playerAnalytics.avgTimeToAcknowledgeHours)}</div>
+                      </div>
                     </div>
-                  ))}
-                  {playerAnalytics.engagementOverTime.length === 0 && (
-                    <div className='table-row'><div className='table-cell'>No data</div><div className='table-cell'></div></div>
                   )}
-                </div>
-              </div>
 
-              {/* Most/Least Viewed Tagged Points */}
-              <div className='grid grid-2' style={{ gap: 'var(--space-lg)' }}>
-                <div className='card'>
-                  <h4 className='mt-0'>Most Viewed Tagged Points</h4>
-                  <ul className='list'>
-                    {playerAnalytics.mostViewedTaggedPoints.map(tp => (
-                      <li key={tp.pointId} className='list-item'>
-                        <div className='list-item-title'>{tp.title}</div>
-                        <div className='list-item-subtitle'>
-                          {tp.game ? `${tp.game.opponent} (${new Date(tp.game.date).toLocaleDateString()})` : '—'} · {tp.views} views · {tp.avgCompletionPercent}% completion
-                        </div>
-                      </li>
-                    ))}
-                    {playerAnalytics.mostViewedTaggedPoints.length === 0 && <li className='list-item'>No data</li>}
-                  </ul>
+                  <div className='section-grid' style={{ marginTop: 'var(--space-xl)' }}>
+                    <div className='subcard'>
+                      <div className='subcard-header'>
+                        <span>Engagement Over Time</span>
+                      </div>
+                      {playerAnalytics.engagementOverTime.length > 0 ?
+                        <EngagementSpark data={playerAnalytics.engagementOverTime} /> :
+                        <div className='empty-block'>No data</div>}
+                    </div>
+                  </div>
                 </div>
-                <div className='card'>
-                  <h4 className='mt-0'>Least Viewed Tagged Points</h4>
-                  <ul className='list'>
-                    {playerAnalytics.leastViewedTaggedPoints.map(tp => (
-                      <li key={tp.pointId} className='list-item'>
-                        <div className='list-item-title'>{tp.title}</div>
-                        <div className='list-item-subtitle'>
-                          {tp.game ? `${tp.game.opponent} (${new Date(tp.game.date).toLocaleDateString()})` : '—'} · {tp.views} views · {tp.avgCompletionPercent}% completion
-                        </div>
-                      </li>
-                    ))}
-                    {playerAnalytics.leastViewedTaggedPoints.length === 0 && <li className='list-item'>No data</li>}
-                  </ul>
+
+                <div className='section-grid player-sections'>
+                  <div className='subcard'>
+                    <div className='subcard-header'>
+                      <span>Most Viewed Tagged Points</span>
+                    </div>
+                    {playerAnalytics.mostViewedTaggedPoints.length === 0 && <div className='empty-block'>No data</div>}
+                    <ul className='ranked-list scrollable'>
+                      {playerAnalytics.mostViewedTaggedPoints.map((tp, i) => (
+                        <li key={tp.pointId} className='ranked-item'>
+                          <div className='rank-index'>{i + 1}</div>
+                          <div className='rank-main'>
+                            <div className='rank-title clamp-1'>{tp.title}</div>
+                            <div className='rank-sub'>
+                              {tp.game ? `${tp.game.opponent} (${new Date(tp.game.date).toLocaleDateString()}) · ` : ''}
+                              {tp.views} views · {tp.avgCompletionPercent}% completion
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className='subcard'>
+                    <div className='subcard-header'>
+                      <span>Unacknowledged Points Tagged In</span>
+                    </div>
+                    {(!playerAnalytics.unacknowledgedTaggedPoints ||
+                      playerAnalytics.unacknowledgedTaggedPoints.length === 0) && (
+                      <div className='empty-block'>All tagged points acknowledged</div>
+                    )}
+                    <ul className='ranked-list scrollable'>
+                      {(playerAnalytics.unacknowledgedTaggedPoints || []).map((tp, i) => (
+                        <li key={tp.pointId} className='ranked-item'>
+                          <div className='rank-index'>{i + 1}</div>
+                          <div className='rank-main'>
+                            <div className='rank-title clamp-1'>{tp.title}</div>
+                            <div className='rank-sub'>
+                              {tp.game ? `${tp.game.opponent} (${new Date(tp.game.date).toLocaleDateString()})` : '—'}
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className='subcard'>
+                    <div className='subcard-header'>
+                      <span>Unviewed Points Tagged in</span>
+                    </div>
+                    {(!playerAnalytics.notViewedTaggedPoints || playerAnalytics.notViewedTaggedPoints.length === 0) && (
+                      <div className='empty-block'>All tagged points have at least one view</div>
+                    )}
+                    <ul className='ranked-list scrollable'>
+                      {(playerAnalytics.notViewedTaggedPoints || []).map((tp, i) => (
+                        <li key={tp.pointId} className='ranked-item'>
+                          <div className='rank-index'>{i + 1}</div>
+                          <div className='rank-main'>
+                            <div className='rank-title clamp-1'>{tp.title}</div>
+                            <div className='rank-sub'>
+                              {tp.game ? `${tp.game.opponent} (${new Date(tp.game.date).toLocaleDateString()})` : '—'}
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </>
       )}
 
@@ -1347,7 +1674,8 @@ export const CoachAnalyticsPage: React.FC = () =>
         <>
           <div className='card' style={{ marginBottom: 'var(--space-lg)' }}>
             <div className='stat-label'>
-              Deep dive into individual coaching point engagement: tagged players, view/acknowledgment status, completion distribution, view events timeline, and notes.
+              Deep dive into individual coaching point engagement: tagged players, view/acknowledgment status,
+              completion distribution, view events timeline, and notes.
             </div>
           </div>
 
@@ -1355,33 +1683,77 @@ export const CoachAnalyticsPage: React.FC = () =>
           {pointsError && <div className='alert alert-error'>{pointsError}</div>}
 
           {!pointsLoading && !pointsError && (
-            <div className='card' style={{ marginBottom: 'var(--space-lg)' }}>
-              <div className='grid grid-2' style={{ alignItems: 'center', gap: 'var(--space-md)' }}>
-                <div>
-                  <div className='stat-label'>Coaching Point</div>
+            <div className='subcard filters-bar points-filters' style={{ marginBottom: 'var(--space-xl)' }}>
+              <div className='filters-grid'>
+                <div className='filter-item'>
+                  <label className='filter-label'>Team</label>
                   <select
-                    className='input'
-                    value={selectedPointId}
-                    onChange={(e) => {
-                      const id = e.target.value;
-                      setSelectedPointId(id);
-                      if (id) fetchPointDetail(id);
+                    value={selectedPointTeamId}
+                    onChange={(e) =>
+                    {
+                      const val = e.target.value;
+                      setSelectedPointTeamId(val);
+                      setSelectedPointGameId('all');
+                      setSelectedPointId('');
                     }}
                   >
-                    <option value=''>Select a coaching point</option>
-                    {coachingPoints.map(cp => (
-                      <option key={cp.id} value={cp.id}>
-                        {cp.title} — {cp.team_name} vs {cp.game_opponent} ({new Date(cp.game_date).toLocaleDateString()})
+                    <option value='all'>All Teams</option>
+                    {pointTeams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </select>
+                </div>
+                <div className='filter-item'>
+                  <label className='filter-label'>Game</label>
+                  <select
+                    value={selectedPointGameId}
+                    onChange={(e) =>
+                    {
+                      const val = e.target.value;
+                      setSelectedPointGameId(val);
+                      setSelectedPointId('');
+                    }}
+                    disabled={pointGames.length === 0}
+                  >
+                    <option value=''>Select Game</option>
+                    {pointGames.map(g => (
+                      <option key={g.id} value={g.id}>
+                        {g.team_name} vs {g.opponent} - {new Date(g.date).toLocaleDateString()}
                       </option>
                     ))}
                   </select>
                 </div>
-                <div>
-                  <div className='stat-label'>&nbsp;</div>
+                <div className='filter-item'>
+                  <label className='filter-label'>Coaching Point</label>
+                  <select
+                    value={selectedPointId}
+                    onChange={(e) =>
+                    {
+                      const id = e.target.value;
+                      setSelectedPointId(id);
+                      if (id)
+                      {
+                        fetchPointDetail(id);
+                      }
+                    }}
+                    disabled={!selectedPointGameId || filteredCoachingPoints.length === 0}
+                  >
+                    <option value=''>Select Point</option>
+                    {filteredCoachingPoints.map(cp =>
+                    {
+                      return <option key={cp.id} value={cp.id}>[{formatHMS(cp.timestamp)}] - {cp.title}</option>;
+                    })}
+                  </select>
+                </div>
+                <div className='filter-actions'>
                   <button
-                    className='btn'
-                    onClick={() => { if (selectedPointId) fetchPointDetail(selectedPointId); }}
+                    className='btn btn-secondary'
                     disabled={!selectedPointId}
+                    onClick={() =>
+                    {
+                      if (selectedPointId)
+                      {
+                        fetchPointDetail(selectedPointId);
+                      }
+                    }}
                   >
                     Refresh
                   </button>
@@ -1394,191 +1766,135 @@ export const CoachAnalyticsPage: React.FC = () =>
           {pointDetailError && <div className='alert alert-error'>{pointDetailError}</div>}
 
           {pointDetail && (
-            <div className='card' style={{ marginBottom: 'var(--space-xl)' }}>
-              <h3 className='mt-0 mb-md'>{pointDetail.coachingPoint.title}</h3>
-              
-              {/* Coaching Point Info */}
-              <div className='card' style={{ marginBottom: 'var(--space-lg)' }}>
-                <div className='grid grid-2' style={{ gap: 'var(--space-lg)' }}>
+            <div className='analytics-point' style={{ marginBottom: 'var(--space-2xl)' }}>
+              <div className='subcard' style={{ marginBottom: 'var(--space-xl)' }}>
+                <div className='subcard-header'>
+                  <span>{pointDetail.coachingPoint.title}</span>
+                </div>
+                <div className='kpi-grid'>
+                  <div className='kpi-card'>
+                    <div className='kpi-label'>Total Views</div>
+                    <div className='kpi-value'>{pointDetail.totalViews}</div>
+                  </div>
+                  <div className='kpi-card'>
+                    <div className='kpi-label'>Unique Viewers</div>
+                    <div className='kpi-value'>{pointDetail.uniqueViewers}</div>
+                  </div>
+                  <div className='kpi-card'>
+                    <div className='kpi-label'>Tagged Players</div>
+                    <div className='kpi-value'>{pointDetail.taggedPlayers.length}</div>
+                  </div>
+                  <div className='kpi-card'>
+                    <div className='kpi-label'>% Ack'd</div>
+                    <div className='kpi-value'>{pointAckPercent}%</div>
+                  </div>
+                  <div className='kpi-card'>
+                    <div className='kpi-label'>Video Timestamp</div>
+                    <div className='kpi-value'>{formatHMS(pointDetail.coachingPoint.timestamp)}</div>
+                  </div>
+                  <div className='kpi-card'>
+                    <div className='kpi-label'>Duration (s)</div>
+                    <div className='kpi-value'>{Math.floor(pointDetail.coachingPoint.duration / 1000)}</div>
+                  </div>
+                </div>
+                <div className='point-meta-grid'>
                   <div>
-                    <div className='stat-label'>Game</div>
+                    <span className='mini-heading'>Game</span>
                     <div>{pointDetail.coachingPoint.game.team_name} vs {pointDetail.coachingPoint.game.opponent}</div>
-                    <div className='stat-label' style={{ marginTop: 8 }}>Date</div>
+                  </div>
+                  <div>
+                    <span className='mini-heading'>Date</span>
                     <div>{new Date(pointDetail.coachingPoint.game.date).toLocaleDateString()}</div>
-                    <div className='stat-label' style={{ marginTop: 8 }}>Author</div>
+                  </div>
+                  <div>
+                    <span className='mini-heading'>Author</span>
                     <div>{pointDetail.coachingPoint.author}</div>
                   </div>
                   <div>
-                    <div className='stat-label'>Video Timestamp</div>
-                    <div>{Math.floor(pointDetail.coachingPoint.timestamp / 60000)}:{String(Math.floor((pointDetail.coachingPoint.timestamp % 60000) / 1000)).padStart(2, '0')}</div>
-                    <div className='stat-label' style={{ marginTop: 8 }}>Duration</div>
-                    <div>{Math.floor(pointDetail.coachingPoint.duration / 1000)}s</div>
-                    <div className='stat-label' style={{ marginTop: 8 }}>Created</div>
+                    <span className='mini-heading'>Created</span>
                     <div>{new Date(pointDetail.coachingPoint.created_at).toLocaleString()}</div>
                   </div>
                 </div>
                 {pointDetail.coachingPoint.feedback && (
-                  <div style={{ marginTop: 'var(--space-md)' }}>
-                    <div className='stat-label'>Feedback</div>
-                    <div>{pointDetail.coachingPoint.feedback}</div>
+                  <div className='feedback-block'>
+                    <div className='mini-heading'>Feedback</div>
+                    <div className='feedback-text'>{pointDetail.coachingPoint.feedback}</div>
                   </div>
                 )}
               </div>
-
-              {/* Key Metrics */}
-              <div className='grid grid-4' style={{ marginBottom: 'var(--space-lg)' }}>
-                <div className='card card-compact'>
-                  <div className='stat'>
-                    <div className='stat-value'>{pointDetail.totalViews}</div>
-                    <div className='stat-label'>Total Views</div>
+              <div className='section-grid point-sections'>
+                <div className='subcard wide'>
+                  <div className='subcard-header'>
+                    <span>Tagged Players</span>
                   </div>
-                </div>
-                <div className='card card-compact'>
-                  <div className='stat'>
-                    <div className='stat-value'>{pointDetail.uniqueViewers}</div>
-                    <div className='stat-label'>Unique Viewers</div>
+                  <div className='tagged-table-head'>
+                    <span>Player</span>
+                    <span>Views</span>
+                    <span>Completion</span>
+                    <span>First</span>
+                    <span>Last</span>
+                    <span>Ack</span>
                   </div>
-                </div>
-                <div className='card card-compact'>
-                  <div className='stat'>
-                    <div className='stat-value'>{pointDetail.taggedPlayers.length}</div>
-                    <div className='stat-label'>Tagged Players</div>
-                  </div>
-                </div>
-                <div className='card card-compact'>
-                  <div className='stat'>
-                    <div className='stat-value'>
-                      {pointDetail.taggedPlayers.length > 0 
-                        ? Math.round((pointDetail.taggedPlayers.filter(tp => tp.acknowledged).length / pointDetail.taggedPlayers.length) * 100)
-                        : 0}%
-                    </div>
-                    <div className='stat-label'>% Acknowledged</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Tagged Players & their View/Ack Status */}
-              <div className='card' style={{ marginBottom: 'var(--space-lg)' }}>
-                <h4 className='mt-0'>Tagged Players & View/Acknowledgment Status</h4>
-                <div className='table'>
-                  <div className='table-row table-header'>
-                    <div className='table-cell'>Player</div>
-                    <div className='table-cell'>View Count</div>
-                    <div className='table-cell'>Latest Completion %</div>
-                    <div className='table-cell'>First Viewed</div>
-                    <div className='table-cell'>Last Viewed</div>
-                    <div className='table-cell'>Acknowledged</div>
-                    <div className='table-cell'>Ack Date</div>
-                  </div>
-                  {pointDetail.taggedPlayers.map(tp => (
-                    <div key={tp.player_id} className='table-row'>
-                      <div className='table-cell'>{tp.name}</div>
-                      <div className='table-cell'>{tp.view_count}</div>
-                      <div className='table-cell'>{tp.latest_completion_percent}%</div>
-                      <div className='table-cell'>
-                        {tp.first_viewed_at ? new Date(tp.first_viewed_at).toLocaleString() : '—'}
-                      </div>
-                      <div className='table-cell'>
-                        {tp.last_viewed_at ? new Date(tp.last_viewed_at).toLocaleString() : '—'}
-                      </div>
-                      <div className='table-cell'>
-                        <span style={{ 
-                          color: tp.acknowledged ? 'var(--success)' : 'var(--text-muted)',
-                          fontWeight: tp.acknowledged ? 'bold' : 'normal'
-                        }}>
-                          {tp.acknowledged ? '✓' : '—'}
-                        </span>
-                      </div>
-                      <div className='table-cell'>
-                        {tp.ack_at ? new Date(tp.ack_at).toLocaleString() : '—'}
-                      </div>
-                    </div>
-                  ))}
-                  {pointDetail.taggedPlayers.length === 0 && (
-                    <div className='table-row'><div className='table-cell'>No tagged players</div></div>
-                  )}
-                </div>
-              </div>
-
-              {/* View Completion Distribution */}
-              <div className='card' style={{ marginBottom: 'var(--space-lg)' }}>
-                <h4 className='mt-0'>View Completion Distribution</h4>
-                <div className='grid grid-4'>
-                  <div className='card card-compact'>
-                    <div className='stat'>
-                      <div className='stat-value'>{pointDetail.completionDistribution['0-25%']}</div>
-                      <div className='stat-label'>0-25% Viewed</div>
-                    </div>
-                  </div>
-                  <div className='card card-compact'>
-                    <div className='stat'>
-                      <div className='stat-value'>{pointDetail.completionDistribution['25-50%']}</div>
-                      <div className='stat-label'>25-50% Viewed</div>
-                    </div>
-                  </div>
-                  <div className='card card-compact'>
-                    <div className='stat'>
-                      <div className='stat-value'>{pointDetail.completionDistribution['50-75%']}</div>
-                      <div className='stat-label'>50-75% Viewed</div>
-                    </div>
-                  </div>
-                  <div className='card card-compact'>
-                    <div className='stat'>
-                      <div className='stat-value'>{pointDetail.completionDistribution['75-100%']}</div>
-                      <div className='stat-label'>75-100% Viewed</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* View Events Timeline */}
-              <div className='card' style={{ marginBottom: 'var(--space-lg)' }}>
-                <h4 className='mt-0'>View Events Timeline</h4>
-                <div className='table' style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                  <div className='table-row table-header'>
-                    <div className='table-cell'>Event Type</div>
-                    <div className='table-cell'>Timestamp (video)</div>
-                    <div className='table-cell'>Occurred At</div>
-                    <div className='table-cell'>Data</div>
-                  </div>
-                  {pointDetail.viewEventsTimeline.map((event, i) => (
-                    <div key={i} className='table-row'>
-                      <div className='table-cell'>{event.event_type}</div>
-                      <div className='table-cell'>
-                        {Math.floor(event.timestamp / 60000)}:{String(Math.floor((event.timestamp % 60000) / 1000)).padStart(2, '0')}
-                      </div>
-                      <div className='table-cell'>{new Date(event.created_at).toLocaleString()}</div>
-                      <div className='table-cell'>
-                        {event.event_data ? JSON.stringify(event.event_data).slice(0, 50) + (JSON.stringify(event.event_data).length > 50 ? '...' : '') : '—'}
-                      </div>
-                    </div>
-                  ))}
-                  {pointDetail.viewEventsTimeline.length === 0 && (
-                    <div className='table-row'><div className='table-cell'>No events recorded</div></div>
-                  )}
-                </div>
-              </div>
-
-              {/* Acknowledgment Notes */}
-              <div className='card'>
-                <h4 className='mt-0'>Acknowledgment Notes</h4>
-                {pointDetail.acknowledgmentNotes.length > 0 ? (
-                  <ul className='list'>
-                    {pointDetail.acknowledgmentNotes.map((note, i) => (
-                      <li key={i} className='list-item'>
-                        <div className='list-item-title'>{note.player_name}</div>
-                        <div className='list-item-subtitle'>
-                          {new Date(note.ack_at).toLocaleString()}
+                  <div className='tagged-table-body scrollable'>
+                    {pointDetail.taggedPlayers.length === 0 && <div className='empty-block'>No tagged players</div>}
+                    {pointDetail.taggedPlayers.map(tp => (
+                      <div key={tp.player_id} className='tagged-row'>
+                        <div className='tp-name clamp-1'>{tp.name}</div>
+                        <div>{tp.view_count}</div>
+                        <div className='tp-comp'>{tp.latest_completion_percent}%</div>
+                        <div className='tp-date'>
+                          {tp.first_viewed_at ? new Date(tp.first_viewed_at).toLocaleDateString() : '—'}
                         </div>
-                        <div style={{ marginTop: 8, fontStyle: 'italic' }}>
-                          "{note.notes}"
+                        <div className='tp-date'>
+                          {tp.last_viewed_at ? new Date(tp.last_viewed_at).toLocaleDateString() : '—'}
+                        </div>
+                        <div className='tp-ack'>{tp.acknowledged ? '✓' : '—'}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className='subcard'>
+                  <div className='subcard-header'>
+                    <span>Completion Distribution</span>
+                  </div>
+                  <ul className='dist-list'>
+                    <li>
+                      <span>0-25%</span>
+                      <strong>{pointDetail.completionDistribution['0-25%']}</strong>
+                    </li>
+                    <li>
+                      <span>25-50%</span>
+                      <strong>{pointDetail.completionDistribution['25-50%']}</strong>
+                    </li>
+                    <li>
+                      <span>50-75%</span>
+                      <strong>{pointDetail.completionDistribution['50-75%']}</strong>
+                    </li>
+                    <li>
+                      <span>75-100%</span>
+                      <strong>{pointDetail.completionDistribution['75-100%']}</strong>
+                    </li>
+                  </ul>
+                </div>
+                <div className='subcard'>
+                  <div className='subcard-header'>
+                    <span>Acknowledgment Notes</span>
+                  </div>
+                  {pointDetail.acknowledgmentNotes.length === 0 && (
+                    <div className='empty-block'>No acknowledgment notes</div>
+                  )}
+                  <ul className='ranked-list scrollable'>
+                    {pointDetail.acknowledgmentNotes.map((note, i) => (
+                      <li key={i} className='ranked-item'>
+                        <div className='rank-main'>
+                          <div className='rank-title'>{note.player_name}</div>
+                          <div className='rank-sub'>{new Date(note.ack_at).toLocaleString()}</div>
+                          <div className='note-text'>"{note.notes}"</div>
                         </div>
                       </li>
                     ))}
                   </ul>
-                ) : (
-                  <div className='stat-label'>No acknowledgment notes</div>
-                )}
+                </div>
               </div>
             </div>
           )}

@@ -7,6 +7,7 @@ import express, { Request, Response } from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import { errorHandler } from './middleware/errorHandler.js';
+import analyticsRoutes from './routes/analytics.js';
 import authRoutes from './routes/auth.js';
 import coachingPointEventRoutes from './routes/coachingPointEvents.js';
 import coachingPointLabelRoutes from './routes/coachingPointLabels.js';
@@ -16,7 +17,6 @@ import coachingPointViewRoutes from './routes/coachingPointViews.js';
 import gameRoutes from './routes/games.js';
 import playerRoutes from './routes/players.js';
 import teamRoutes from './routes/teams.js';
-import analyticsRoutes from './routes/analytics.js';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;

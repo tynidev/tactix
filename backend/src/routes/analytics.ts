@@ -4,13 +4,17 @@ import { supabase } from '../utils/supabase.js';
 
 const router = express.Router();
 
-function parseDateRange(query: any): { startISO: string; endISO: string; } {
+function parseDateRange(query: any): { startISO: string; endISO: string; }
+{
   const now = new Date();
   const end = query.end ? new Date(query.end) : now;
   let start: Date;
-  if (query.start) {
+  if (query.start)
+  {
     start = new Date(query.start);
-  } else {
+  }
+  else
+  {
     // default last 30 days
     start = new Date(end);
     start.setDate(start.getDate() - 30);
@@ -21,10 +25,13 @@ function parseDateRange(query: any): { startISO: string; endISO: string; } {
 // GET /api/analytics/coach-overview
 // Aggregates across all teams where the current user is coach (or admin)
 // Query params: ?start=&end= (ISO strings)
-router.get('/coach-overview', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
+router.get('/coach-overview', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> =>
+{
+  try
+  {
     const userId = req.user?.id;
-    if (!userId) {
+    if (!userId)
+    {
       res.status(401).json({ error: 'User not authenticated' });
       return;
     }
@@ -38,12 +45,14 @@ router.get('/coach-overview', authenticateUser, async (req: AuthenticatedRequest
       .eq('user_id', userId)
       .in('role', ['coach', 'admin']);
 
-    if (membershipError) {
+    if (membershipError)
+    {
       res.status(400).json({ error: membershipError.message });
       return;
     }
     const teamIds = (memberships || []).map(m => m.team_id);
-    if (teamIds.length === 0) {
+    if (teamIds.length === 0)
+    {
       res.json({
         totals: { totalPoints: 0, totalViews: 0, percentAcknowledged: 0, avgCompletionPercent: 0 },
         engagementOverTime: [],
@@ -61,7 +70,8 @@ router.get('/coach-overview', authenticateUser, async (req: AuthenticatedRequest
       .select('id, team_id, opponent, date')
       .in('team_id', teamIds);
 
-    if (gamesError) {
+    if (gamesError)
+    {
       res.status(400).json({ error: gamesError.message });
       return;
     }
@@ -77,7 +87,8 @@ router.get('/coach-overview', authenticateUser, async (req: AuthenticatedRequest
       .gte('created_at', startISO)
       .lte('created_at', endISO);
 
-    if (pointsError) {
+    if (pointsError)
+    {
       res.status(400).json({ error: pointsError.message });
       return;
     }
@@ -99,46 +110,61 @@ router.get('/coach-overview', authenticateUser, async (req: AuthenticatedRequest
       `)
       .in('team_id', teamIds);
 
-    if (teamPlayersError) {
+    if (teamPlayersError)
+    {
       res.status(400).json({ error: teamPlayersError.message });
       return;
     }
 
     const playerCountsByTeam = new Map<string, number>();
-    const playerProfileById = new Map<string, { id: string; name: string; user_id: string | null; teamIds: Set<string>; }>();
-    (teamPlayers || []).forEach(tp => {
+    const playerProfileById = new Map<
+      string,
+      { id: string; name: string; user_id: string | null; teamIds: Set<string>; }
+    >();
+    (teamPlayers || []).forEach(tp =>
+    {
       const tId = tp.team_id as string;
       playerCountsByTeam.set(tId, (playerCountsByTeam.get(tId) || 0) + 1);
       const prof = tp.player_profiles;
-      if (prof?.id) {
+      if (prof?.id)
+      {
         const existing = playerProfileById.get(prof.id);
-        if (existing) {
+        if (existing)
+        {
           existing.teamIds.add(tId);
-        } else {
-          playerProfileById.set(prof.id, { id: prof.id, name: prof.name, user_id: prof.user_id, teamIds: new Set([tId]) });
+        }
+        else
+        {
+          playerProfileById.set(prof.id, {
+            id: prof.id,
+            name: prof.name,
+            user_id: prof.user_id,
+            teamIds: new Set([tId]),
+          });
         }
       }
     });
 
     // Views within window
-    const { data: viewEvents, error: viewEventsError } = pointIds.length === 0
-      ? { data: [], error: null }
-      : await supabase
+    const { data: viewEvents, error: viewEventsError } = pointIds.length === 0 ?
+      { data: [], error: null } :
+      await supabase
         .from('coaching_point_view_events')
         .select('point_id, user_id, completion_percentage, created_at')
         .in('point_id', pointIds)
         .gte('created_at', startISO)
         .lte('created_at', endISO);
 
-    if (viewEventsError) {
+    if (viewEventsError)
+    {
       res.status(400).json({ error: viewEventsError.message });
       return;
     }
 
     // Acknowledgments within window
-    const { data: acks, error: acksError } = pointIds.length === 0
-      ? { data: [], error: null }
-      : await supabase
+    const { data: acks, error: acksError } = pointIds.length === 0 ?
+      { data: [], error: null } :
+      await supabase
         .from('coaching_point_acknowledgments')
         .select('id, point_id, player_id, ack_at, acknowledged')
         .in('point_id', pointIds)
@@ -146,7 +172,8 @@ router.get('/coach-overview', authenticateUser, async (req: AuthenticatedRequest
         .gte('ack_at', startISO)
         .lte('ack_at', endISO);
 
-    if (acksError) {
+    if (acksError)
+    {
       res.status(400).json({ error: acksError.message });
       return;
     }
@@ -157,20 +184,22 @@ router.get('/coach-overview', authenticateUser, async (req: AuthenticatedRequest
     // Aggregate: per (point,user) max completion
     type Key = string;
     const perUserPointMax = new Map<Key, number>();
-    (viewEvents || []).forEach(ev => {
+    (viewEvents || []).forEach(ev =>
+    {
       const key = `${ev.point_id}__${ev.user_id}`;
       const val = typeof ev.completion_percentage === 'number' ? ev.completion_percentage : 0;
       const prev = perUserPointMax.get(key);
       if (prev === undefined || val > prev) perUserPointMax.set(key, val);
     });
     const maxValues = Array.from(perUserPointMax.values());
-    const avgCompletionPercent = maxValues.length > 0
-      ? Math.round(maxValues.reduce((s, v) => s + (v || 0), 0) / maxValues.length)
-      : 0;
+    const avgCompletionPercent = maxValues.length > 0 ?
+      Math.round(maxValues.reduce((s, v) => s + (v || 0), 0) / maxValues.length) :
+      0;
 
     // Engagement over time (daily buckets)
     const engagementOverTimeMap = new Map<string, number>();
-    (viewEvents || []).forEach(ev => {
+    (viewEvents || []).forEach(ev =>
+    {
       const d = new Date(ev.created_at);
       const yyyy = d.getUTCFullYear();
       const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
@@ -185,25 +214,28 @@ router.get('/coach-overview', authenticateUser, async (req: AuthenticatedRequest
     // % Acknowledged = acknowledged_count / total_possible_acks
     // total_possible_acks = sum_over_teams(points_for_team * players_in_team)
     const pointsByTeam = new Map<string, number>();
-    (points || []).forEach(p => {
+    (points || []).forEach(p =>
+    {
       const game = gameById.get(p.game_id);
       if (!game) return;
       const tId = game.team_id as string;
       pointsByTeam.set(tId, (pointsByTeam.get(tId) || 0) + 1);
     });
     let totalPossibleAcks = 0;
-    pointsByTeam.forEach((pointsCount, tId) => {
+    pointsByTeam.forEach((pointsCount, tId) =>
+    {
       const playerCount = playerCountsByTeam.get(tId) || 0;
       totalPossibleAcks += pointsCount * playerCount;
     });
     const acknowledgedCount = (acks || []).length;
-    const percentAcknowledged = totalPossibleAcks > 0
-      ? Math.round((acknowledgedCount / totalPossibleAcks) * 100)
-      : 0;
+    const percentAcknowledged = totalPossibleAcks > 0 ?
+      Math.round((acknowledgedCount / totalPossibleAcks) * 100) :
+      0;
 
     // Top/Bottom points by views with avg completion (per-user max)
     const viewsByPoint = new Map<string, number>();
-    (viewEvents || []).forEach(ev => {
+    (viewEvents || []).forEach(ev =>
+    {
       const pid = ev.point_id as string;
       viewsByPoint.set(pid, (viewsByPoint.get(pid) || 0) + 1);
     });
@@ -212,17 +244,20 @@ router.get('/coach-overview', authenticateUser, async (req: AuthenticatedRequest
     const avgCompletionByPoint = new Map<string, number>();
     // Build per point array of values
     const perPointAgg: Record<string, { sum: number; count: number; }> = {};
-    perUserPointMax.forEach((v, key) => {
+    perUserPointMax.forEach((v, key) =>
+    {
       const [pid /*, uid*/] = key.split('__');
       if (!perPointAgg[pid]) perPointAgg[pid] = { sum: 0, count: 0 };
       perPointAgg[pid].sum += v || 0;
       perPointAgg[pid].count += 1;
     });
-    Object.entries(perPointAgg).forEach(([pid, agg]) => {
+    Object.entries(perPointAgg).forEach(([pid, agg]) =>
+    {
       if (agg.count > 0) avgCompletionByPoint.set(pid, Math.round(agg.sum / agg.count));
     });
 
-    const pointSummaries = (points || []).map(p => {
+    const pointSummaries = (points || []).map(p =>
+    {
       const game = gameById.get(p.game_id);
       const pid = p.id as string;
       return {
@@ -248,21 +283,23 @@ router.get('/coach-overview', authenticateUser, async (req: AuthenticatedRequest
 
     // Tagged points of those players within our points set
     const playerIds = playersWithUser.map(p => p.id);
-    const { data: tags, error: tagsError } = pointIds.length === 0 || playerIds.length === 0
-      ? { data: [], error: null }
-      : await supabase
+    const { data: tags, error: tagsError } = pointIds.length === 0 || playerIds.length === 0 ?
+      { data: [], error: null } :
+      await supabase
         .from('coaching_point_tagged_players')
         .select('point_id, player_id')
         .in('point_id', pointIds)
         .in('player_id', playerIds);
 
-    if (tagsError) {
+    if (tagsError)
+    {
       res.status(400).json({ error: tagsError.message });
       return;
     }
 
     const tagsByPlayer = new Map<string, string[]>(); // player_profile_id -> [point_id...]
-    (tags || []).forEach(t => {
+    (tags || []).forEach(t =>
+    {
       const arr = tagsByPlayer.get(t.player_id) || [];
       arr.push(t.point_id);
       tagsByPlayer.set(t.player_id, arr);
@@ -270,7 +307,8 @@ router.get('/coach-overview', authenticateUser, async (req: AuthenticatedRequest
 
     // Acks per player (already filtered to points in scope and acknowledged within window)
     const ackCountByPlayer = new Map<string, number>();
-    (acks || []).forEach(a => {
+    (acks || []).forEach(a =>
+    {
       const pid = a.player_id as string;
       ackCountByPlayer.set(pid, (ackCountByPlayer.get(pid) || 0) + 1);
     });
@@ -278,7 +316,8 @@ router.get('/coach-overview', authenticateUser, async (req: AuthenticatedRequest
     // Map for per-user-point max completion we already computed; need quick lookup by (point, user)
     const perUserPointMaxMap = perUserPointMax; // alias
 
-    interface PlayerScore {
+    interface PlayerScore
+    {
       player_profile_id: string;
       name: string;
       ackRate: number; // 0..1
@@ -286,7 +325,8 @@ router.get('/coach-overview', authenticateUser, async (req: AuthenticatedRequest
       score: number; // 0..1
     }
 
-    const playerScores: PlayerScore[] = playersWithUser.map(p => {
+    const playerScores: PlayerScore[] = playersWithUser.map(p =>
+    {
       const taggedPoints = tagsByPlayer.get(p.id) || [];
       const totalTagged = taggedPoints.length;
 
@@ -298,7 +338,8 @@ router.get('/coach-overview', authenticateUser, async (req: AuthenticatedRequest
       let compSum = 0;
       let compCount = 0;
       const userIdForPlayer = p.user_id!;
-      taggedPoints.forEach(ptId => {
+      taggedPoints.forEach(ptId =>
+      {
         const key = `${ptId}__${userIdForPlayer}`;
         const maxComp = perUserPointMaxMap.get(key);
         // If the player didn't view, count as 0 against denominator to reflect non-engagement
@@ -321,7 +362,8 @@ router.get('/coach-overview', authenticateUser, async (req: AuthenticatedRequest
     let topEngagedPlayer = null as null | any;
     let lowestEngagedPlayer = null as null | any;
 
-    if (filteredScores.length > 0) {
+    if (filteredScores.length > 0)
+    {
       filteredScores.sort((a, b) => b.score - a.score);
       const top = filteredScores[0];
       const low = filteredScores[filteredScores.length - 1];
@@ -355,7 +397,9 @@ router.get('/coach-overview', authenticateUser, async (req: AuthenticatedRequest
       lowestEngagedPlayer,
       // debug: { startISO, endISO }
     });
-  } catch (error) {
+  }
+  catch (error)
+  {
     console.error('Error in GET /analytics/coach-overview:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
@@ -436,7 +480,10 @@ router.get('/team/:teamId', authenticateUser, async (req: AuthenticatedRequest, 
       .eq('team_id', teamId);
 
     const userRoleMap = new Map<string, string>();
-    (teamMemberships || []).forEach(m => { if (m.user_id) userRoleMap.set(m.user_id, m.role); });
+    (teamMemberships || []).forEach(m =>
+    {
+      if (m.user_id) userRoleMap.set(m.user_id, m.role);
+    });
 
     // Games for this team
     const { data: games, error: gamesError } = await supabase
@@ -473,9 +520,9 @@ router.get('/team/:teamId', authenticateUser, async (req: AuthenticatedRequest, 
     (points || []).forEach(p => pointById.set(p.id, p));
 
     // View events in range (for points in scope)
-    const { data: viewEvents, error: viewEventsError } = pointIds.length === 0
-      ? { data: [], error: null }
-      : await supabase
+    const { data: viewEvents, error: viewEventsError } = pointIds.length === 0 ?
+      { data: [], error: null } :
+      await supabase
         .from('coaching_point_view_events')
         .select('point_id, user_id, completion_percentage, created_at')
         .in('point_id', pointIds)
@@ -489,9 +536,9 @@ router.get('/team/:teamId', authenticateUser, async (req: AuthenticatedRequest, 
     }
 
     // Acknowledgments in range (for points in scope)
-    const { data: acks, error: acksError } = pointIds.length === 0
-      ? { data: [], error: null }
-      : await supabase
+    const { data: acks, error: acksError } = pointIds.length === 0 ?
+      { data: [], error: null } :
+      await supabase
         .from('coaching_point_acknowledgments')
         .select('id, point_id, player_id, ack_at, acknowledged')
         .in('point_id', pointIds)
@@ -521,24 +568,24 @@ router.get('/team/:teamId', authenticateUser, async (req: AuthenticatedRequest, 
     });
 
     const maxValues = Array.from(perUserPointMax.values());
-    const avgCompletionPercent = maxValues.length > 0
-      ? Math.round(maxValues.reduce((s, v) => s + (v || 0), 0) / maxValues.length)
-      : 0;
+    const avgCompletionPercent = maxValues.length > 0 ?
+      Math.round(maxValues.reduce((s, v) => s + (v || 0), 0) / maxValues.length) :
+      0;
 
     // % Acknowledged: acknowledged_count / (total_points * total_players)
     const totalPossibleAcks = totalPoints * totalPlayers;
     const acknowledgedCount = (acks || []).length;
-    const percentAcknowledged = totalPossibleAcks > 0
-      ? Math.round((acknowledgedCount / totalPossibleAcks) * 100)
-      : 0;
+    const percentAcknowledged = totalPossibleAcks > 0 ?
+      Math.round((acknowledgedCount / totalPossibleAcks) * 100) :
+      0;
 
     // Engagement heatmap (UTC day-of-week/hour)
     const heatmapMap = new Map<string, number>(); // "dow-hour" -> views
     (viewEvents || []).forEach(ev =>
     {
       const d = new Date(ev.created_at);
-      const dow = d.getUTCDay();      // 0..6
-      const hour = d.getUTCHours();   // 0..23
+      const dow = d.getUTCDay(); // 0..6
+      const hour = d.getUTCHours(); // 0..23
       const key = `${dow}-${hour}`;
       heatmapMap.set(key, (heatmapMap.get(key) || 0) + 1);
     });
@@ -607,9 +654,9 @@ router.get('/team/:teamId', authenticateUser, async (req: AuthenticatedRequest, 
 
     // Tags (points in scope for players on this team)
     const playerIds = linkedPlayers.map(p => p.id);
-    const { data: tags, error: tagsError } = pointIds.length === 0 || playerIds.length === 0
-      ? { data: [], error: null }
-      : await supabase
+    const { data: tags, error: tagsError } = pointIds.length === 0 || playerIds.length === 0 ?
+      { data: [], error: null } :
+      await supabase
         .from('coaching_point_tagged_players')
         .select('point_id, player_id')
         .in('point_id', pointIds)
@@ -641,9 +688,9 @@ router.get('/team/:teamId', authenticateUser, async (req: AuthenticatedRequest, 
     {
       player_profile_id: string;
       name: string;
-      ackRate: number;         // 0..1
-      completionRate: number;  // 0..1
-      score: number;           // 0..1
+      ackRate: number; // 0..1
+      completionRate: number; // 0..1
+      score: number; // 0..1
     }
 
     const playerScores: PlayerScore[] = linkedPlayers.map(lp =>
@@ -770,9 +817,9 @@ router.get('/game/:gameId', authenticateUser, async (req: AuthenticatedRequest, 
     const pointIds = (points || []).map(p => p.id);
 
     // Tags for these points
-    const { data: tags, error: tagsErr } = pointIds.length === 0
-      ? { data: [], error: null }
-      : await supabase
+    const { data: tags, error: tagsErr } = pointIds.length === 0 ?
+      { data: [], error: null } :
+      await supabase
         .from('coaching_point_tagged_players')
         .select('point_id, player_id')
         .in('point_id', pointIds);
@@ -784,9 +831,9 @@ router.get('/game/:gameId', authenticateUser, async (req: AuthenticatedRequest, 
     }
 
     // Acknowledgments (true) for these points (in window)
-    const { data: acks, error: acksErr } = pointIds.length === 0
-      ? { data: [], error: null }
-      : await supabase
+    const { data: acks, error: acksErr } = pointIds.length === 0 ?
+      { data: [], error: null } :
+      await supabase
         .from('coaching_point_acknowledgments')
         .select('point_id, player_id, ack_at, acknowledged')
         .in('point_id', pointIds)
@@ -801,9 +848,9 @@ router.get('/game/:gameId', authenticateUser, async (req: AuthenticatedRequest, 
     }
 
     // View summary for unique viewers
-    const { data: viewSummaries, error: vsErr } = pointIds.length === 0
-      ? { data: [], error: null }
-      : await supabase
+    const { data: viewSummaries, error: vsErr } = pointIds.length === 0 ?
+      { data: [], error: null } :
+      await supabase
         .from('coaching_point_view_summary')
         .select('point_id, user_id, last_viewed_at')
         .in('point_id', pointIds);
@@ -815,9 +862,9 @@ router.get('/game/:gameId', authenticateUser, async (req: AuthenticatedRequest, 
     }
 
     // View events (for avg completion and timeline)
-    const { data: viewEvents, error: veErr } = pointIds.length === 0
-      ? { data: [], error: null }
-      : await supabase
+    const { data: viewEvents, error: veErr } = pointIds.length === 0 ?
+      { data: [], error: null } :
+      await supabase
         .from('coaching_point_view_events')
         .select('point_id, user_id, completion_percentage, created_at')
         .in('point_id', pointIds)
@@ -832,7 +879,10 @@ router.get('/game/:gameId', authenticateUser, async (req: AuthenticatedRequest, 
 
     // Unique viewers across the game
     const uniqUsers = new Set<string>();
-    (viewSummaries || []).forEach(vs => { if (vs.user_id) uniqUsers.add(vs.user_id); });
+    (viewSummaries || []).forEach(vs =>
+    {
+      if (vs.user_id) uniqUsers.add(vs.user_id);
+    });
     const uniqueViewers = uniqUsers.size;
 
     // Total views
@@ -867,9 +917,9 @@ router.get('/game/:gameId', authenticateUser, async (req: AuthenticatedRequest, 
 
     // Avg completion across all views (per-user max)
     const maxValues = Array.from(perUserPointMax.values());
-    const avgCompletionPercent = maxValues.length > 0
-      ? Math.round(maxValues.reduce((s, v) => s + (v || 0), 0) / maxValues.length)
-      : 0;
+    const avgCompletionPercent = maxValues.length > 0 ?
+      Math.round(maxValues.reduce((s, v) => s + (v || 0), 0) / maxValues.length) :
+      0;
 
     // Per-point engagement table
     const lastViewedByPoint = new Map<string, string | null>();
@@ -935,9 +985,9 @@ router.get('/game/:gameId', authenticateUser, async (req: AuthenticatedRequest, 
     });
 
     // Point type breakdown (labels)
-    const { data: pointLabels, error: labelsErr } = pointIds.length === 0
-      ? { data: [], error: null }
-      : await supabase
+    const { data: pointLabels, error: labelsErr } = pointIds.length === 0 ?
+      { data: [], error: null } :
+      await supabase
         .from('coaching_point_labels')
         .select('point_id, labels!inner(id, name)')
         .in('point_id', pointIds);
@@ -983,275 +1033,345 @@ router.get('/game/:gameId', authenticateUser, async (req: AuthenticatedRequest, 
  * GET /api/analytics/player/:playerProfileId
  * Player dashboard across all teams/games
  */
-router.get('/player/:playerProfileId', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> =>
-{
-  try
+router.get(
+  '/player/:playerProfileId',
+  authenticateUser,
+  async (req: AuthenticatedRequest, res: Response): Promise<void> =>
   {
-    const userId = req.user?.id;
-    const { playerProfileId } = req.params;
-    if (!userId)
+    try
     {
-      res.status(401).json({ error: 'User not authenticated' });
-      return;
-    }
+      const userId = req.user?.id;
+      const { playerProfileId } = req.params;
+      if (!userId)
+      {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
+      }
 
-    // Get teams this player is on
-    const { data: playerTeams, error: ptErr } = await supabase
-      .from('team_players')
-      .select('team_id')
-      .eq('player_id', playerProfileId);
-
-    if (ptErr)
-    {
-      res.status(400).json({ error: ptErr.message });
-      return;
-    }
-    const teamIds = (playerTeams || []).map(t => t.team_id);
-    if (teamIds.length === 0)
-    {
-      res.json({
-        totals: {
-          totalTaggedPoints: 0,
-          percentViewed: 0,
-          percentAcknowledged: 0,
-          avgCompletionPercent: 0,
-          avgTimeToFirstViewMs: null,
-          avgTimeToAcknowledgeMs: null,
-        },
-        engagementOverTime: [],
-        mostViewedTaggedPoints: [],
-        leastViewedTaggedPoints: [],
-      });
-      return;
-    }
-
-    // Verify requester is coach/admin on at least one of these teams
-    const { data: myMemberships, error: memErr } = await supabase
-      .from('team_memberships')
-      .select('team_id, role')
-      .eq('user_id', userId)
-      .in('team_id', teamIds);
-
-    if (memErr)
-    {
-      res.status(400).json({ error: memErr.message });
-      return;
-    }
-
-    const hasCoachAccess = (myMemberships || []).some(m => m.role === 'coach' || m.role === 'admin');
-    if (!hasCoachAccess)
-    {
-      res.status(403).json({ error: 'Only coaches/admins of this player’s teams can view player analytics' });
-      return;
-    }
-
-    // Load player profile (to get linked user)
-    const { data: playerProfile, error: ppErr } = await supabase
-      .from('player_profiles')
-      .select('id, name, user_id, created_at')
-      .eq('id', playerProfileId)
-      .single();
-
-    if (ppErr || !playerProfile)
-    {
-      res.status(404).json({ error: 'Player not found' });
-      return;
-    }
-
-    // All games for these teams
-    const { data: games, error: gamesErr } = await supabase
-      .from('games')
-      .select('id, team_id, date, opponent')
-      .in('team_id', teamIds);
-
-    if (gamesErr)
-    {
-      res.status(400).json({ error: gamesErr.message });
-      return;
-    }
-    const gameIds = (games || []).map(g => g.id);
-
-    // Points across those games
-    const { data: points, error: pointsErr } = gameIds.length === 0
-      ? { data: [], error: null }
-      : await supabase
-        .from('coaching_points')
-        .select('id, game_id, title, created_at')
-        .in('game_id', gameIds);
-
-    if (pointsErr)
-    {
-      res.status(400).json({ error: pointsErr.message });
-      return;
-    }
-    const pointIds = (points || []).map(p => p.id);
-
-    // Tags for this player
-    const { data: tags, error: tagsErr } = pointIds.length === 0
-      ? { data: [], error: null }
-      : await supabase
-        .from('coaching_point_tagged_players')
-        .select('point_id')
-        .in('point_id', pointIds)
+      // Get teams this player is on
+      const { data: playerTeams, error: ptErr } = await supabase
+        .from('team_players')
+        .select('team_id')
         .eq('player_id', playerProfileId);
 
-    if (tagsErr)
-    {
-      res.status(400).json({ error: tagsErr.message });
-      return;
-    }
-
-    const taggedPointSet = new Set<string>((tags || []).map(t => t.point_id));
-    const taggedPoints = (points || []).filter(p => taggedPointSet.has(p.id));
-    const totalTaggedPoints = taggedPoints.length;
-
-    // Acks for this player
-    const { data: acks, error: acksErr } = totalTaggedPoints === 0
-      ? { data: [], error: null }
-      : await supabase
-        .from('coaching_point_acknowledgments')
-        .select('point_id, ack_at, acknowledged')
-        .eq('player_id', playerProfileId)
-        .in('point_id', Array.from(taggedPointSet))
-        .eq('acknowledged', true);
-
-    if (acksErr)
-    {
-      res.status(400).json({ error: acksErr.message });
-      return;
-    }
-
-    // Player's own views (if linked)
-    let myViewSummaries: any[] = [];
-    let myViewEvents: any[] = [];
-if (playerProfile.user_id)
-    {
-      const userIdForPlayer = playerProfile.user_id as string;
-      const { data: vs, error: vsErr } = await supabase
-        .from('coaching_point_view_summary')
-        .select('point_id, first_viewed_at, last_viewed_at, user_id')
-        .in('point_id', Array.from(taggedPointSet))
-        .eq('user_id', userIdForPlayer);
-
-      if (vsErr)
+      if (ptErr)
       {
-        res.status(400).json({ error: vsErr.message });
+        res.status(400).json({ error: ptErr.message });
         return;
       }
-      myViewSummaries = vs || [];
-
-      const { data: ve, error: veErr } = await supabase
-        .from('coaching_point_view_events')
-        .select('point_id, user_id, completion_percentage, created_at')
-        .in('point_id', Array.from(taggedPointSet))
-        .eq('user_id', userIdForPlayer);
-
-      if (veErr)
+      const teamIds = (playerTeams || []).map(t => t.team_id);
+      if (teamIds.length === 0)
       {
-        res.status(400).json({ error: veErr.message });
+        res.json({
+          totals: {
+            totalTaggedPoints: 0,
+            percentViewed: 0,
+            percentAcknowledged: 0,
+            avgCompletionPercent: 0,
+            avgTimeToFirstViewMs: null,
+            avgTimeToAcknowledgeMs: null,
+          },
+          engagementOverTime: [],
+          mostViewedTaggedPoints: [],
+          leastViewedTaggedPoints: [],
+        });
         return;
       }
-      myViewEvents = ve || [];
+
+      // Verify requester is coach/admin on at least one of these teams
+      const { data: myMemberships, error: memErr } = await supabase
+        .from('team_memberships')
+        .select('team_id, role')
+        .eq('user_id', userId)
+        .in('team_id', teamIds);
+
+      if (memErr)
+      {
+        res.status(400).json({ error: memErr.message });
+        return;
+      }
+
+      const hasCoachAccess = (myMemberships || []).some(m => m.role === 'coach' || m.role === 'admin');
+      if (!hasCoachAccess)
+      {
+        res.status(403).json({ error: 'Only coaches/admins of this player’s teams can view player analytics' });
+        return;
+      }
+
+      // Load player profile (to get linked user)
+      const { data: playerProfile, error: ppErr } = await supabase
+        .from('player_profiles')
+        .select('id, name, user_id, created_at')
+        .eq('id', playerProfileId)
+        .single();
+
+      if (ppErr || !playerProfile)
+      {
+        res.status(404).json({ error: 'Player not found' });
+        return;
+      }
+
+      // All games for these teams
+      const { data: games, error: gamesErr } = await supabase
+        .from('games')
+        .select('id, team_id, date, opponent')
+        .in('team_id', teamIds);
+
+      if (gamesErr)
+      {
+        res.status(400).json({ error: gamesErr.message });
+        return;
+      }
+      const gameIds = (games || []).map(g => g.id);
+
+      // Points across those games
+      const { data: points, error: pointsErr } = gameIds.length === 0 ?
+        { data: [], error: null } :
+        await supabase
+          .from('coaching_points')
+          .select('id, game_id, title, created_at')
+          .in('game_id', gameIds);
+
+      if (pointsErr)
+      {
+        res.status(400).json({ error: pointsErr.message });
+        return;
+      }
+      const pointIds = (points || []).map(p => p.id);
+
+      // Tags for this player
+      const { data: tags, error: tagsErr } = pointIds.length === 0 ?
+        { data: [], error: null } :
+        await supabase
+          .from('coaching_point_tagged_players')
+          .select('point_id')
+          .in('point_id', pointIds)
+          .eq('player_id', playerProfileId);
+
+      if (tagsErr)
+      {
+        res.status(400).json({ error: tagsErr.message });
+        return;
+      }
+
+      const taggedPointSet = new Set<string>((tags || []).map(t => t.point_id));
+      const taggedPoints = (points || []).filter(p => taggedPointSet.has(p.id));
+      const totalTaggedPoints = taggedPoints.length;
+
+      // Acks for this player
+      const { data: acks, error: acksErr } = totalTaggedPoints === 0 ?
+        { data: [], error: null } :
+        await supabase
+          .from('coaching_point_acknowledgments')
+          .select('point_id, ack_at, acknowledged')
+          .eq('player_id', playerProfileId)
+          .in('point_id', Array.from(taggedPointSet))
+          .eq('acknowledged', true);
+
+      if (acksErr)
+      {
+        res.status(400).json({ error: acksErr.message });
+        return;
+      }
+
+      // Player's own views (if linked)
+      let myViewSummaries: any[] = [];
+      let myViewEvents: any[] = [];
+      if (playerProfile.user_id)
+      {
+        const userIdForPlayer = playerProfile.user_id as string;
+        const { data: vs, error: vsErr } = await supabase
+          .from('coaching_point_view_summary')
+          .select('point_id, first_viewed_at, last_viewed_at, user_id')
+          .in('point_id', Array.from(taggedPointSet))
+          .eq('user_id', userIdForPlayer);
+
+        if (vsErr)
+        {
+          res.status(400).json({ error: vsErr.message });
+          return;
+        }
+        myViewSummaries = vs || [];
+
+        const { data: ve, error: veErr } = await supabase
+          .from('coaching_point_view_events')
+          .select('point_id, user_id, completion_percentage, created_at')
+          .in('point_id', Array.from(taggedPointSet))
+          .eq('user_id', userIdForPlayer);
+
+        if (veErr)
+        {
+          res.status(400).json({ error: veErr.message });
+          return;
+        }
+        myViewEvents = ve || [];
+      }
+
+      // Percent viewed (among tagged points)
+      const viewedTagged = new Set<string>();
+      (myViewSummaries || []).forEach(vs =>
+      {
+        if (vs.point_id) viewedTagged.add(vs.point_id);
+      });
+      const percentViewed = totalTaggedPoints > 0 ? Math.round((viewedTagged.size / totalTaggedPoints) * 100) : 0;
+
+      // Percent acknowledged (among tagged points)
+      const ackedTagged = (acks || []).length;
+      const percentAcknowledged = totalTaggedPoints > 0 ? Math.round((ackedTagged / totalTaggedPoints) * 100) : 0;
+
+      // Avg completion across tagged points (using per-user max)
+      type Key = string;
+      const perPointMax = new Map<Key, number>();
+      (myViewEvents || []).forEach(ev =>
+      {
+        const key = `${ev.point_id}`;
+        const val = typeof ev.completion_percentage === 'number' ? ev.completion_percentage : 0;
+        const prev = perPointMax.get(key);
+        if (prev === undefined || val > prev) perPointMax.set(key, val);
+      });
+      const compVals = Array.from(perPointMax.values());
+      const avgCompletionPercent = compVals.length > 0 ?
+        Math.round(compVals.reduce((s, v) => s + v, 0) / compVals.length) :
+        0;
+
+      // Time to first view / acknowledge
+      const pointCreatedAt = new Map<string, string>();
+      (taggedPoints || []).forEach(p =>
+      {
+        pointCreatedAt.set(p.id, p.created_at || '');
+      });
+
+      const deltasFirstView: number[] = [];
+      (myViewSummaries || []).forEach(vs =>
+      {
+        const created = pointCreatedAt.get(vs.point_id);
+        if (!created || !vs.first_viewed_at) return;
+        const dt = new Date(vs.first_viewed_at).getTime() - new Date(created).getTime();
+        if (!Number.isNaN(dt)) deltasFirstView.push(dt);
+      });
+      const avgTimeToFirstViewMs = deltasFirstView.length > 0 ?
+        Math.round(deltasFirstView.reduce((s, v) => s + v, 0) / deltasFirstView.length) :
+        null;
+
+      const deltasAck: number[] = [];
+      (acks || []).forEach(a =>
+      {
+        const created = pointCreatedAt.get(a.point_id);
+        if (!created || !a.ack_at) return;
+        const dt = new Date(a.ack_at).getTime() - new Date(created).getTime();
+        if (!Number.isNaN(dt)) deltasAck.push(dt);
+      });
+      const avgTimeToAcknowledgeMs = deltasAck.length > 0 ?
+        Math.round(deltasAck.reduce((s, v) => s + v, 0) / deltasAck.length) :
+        null;
+
+      // Engagement over time (player's own views)
+      const dailyMap = new Map<string, number>();
+      (myViewEvents || []).forEach(ev =>
+      {
+        const d = new Date(ev.created_at);
+        const yyyy = d.getUTCFullYear();
+        const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+        const dd = String(d.getUTCDate()).padStart(2, '0');
+        const key = `${yyyy}-${mm}-${dd}`;
+        dailyMap.set(key, (dailyMap.get(key) || 0) + 1);
+      });
+      const engagementOverTime = Array.from(dailyMap.entries())
+        .map(([date, views]) => ({ date, views }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+
+      // Rank tagged points by player's own views
+      const myViewsByPoint = new Map<string, number>();
+      (myViewEvents || []).forEach(ev =>
+      {
+        myViewsByPoint.set(ev.point_id, (myViewsByPoint.get(ev.point_id) || 0) + 1);
+      });
+
+      const taggedPointSummaries = taggedPoints.map(p => ({
+        pointId: p.id,
+        title: p.title as string,
+        viewsByPlayer: myViewsByPoint.get(p.id) || 0,
+      }));
+
+      const mostViewedTaggedPoints = [...taggedPointSummaries].sort((a, b) => b.viewsByPlayer - a.viewsByPlayer).slice(
+        0,
+        5,
+      );
+      const leastViewedTaggedPoints = [...taggedPointSummaries].sort((a, b) => a.viewsByPlayer - b.viewsByPlayer).slice(
+        0,
+        5,
+      );
+      // Not viewed tagged points (zero views)
+      const gamesByIdForPlayer = new Map<string, any>();
+      (games || []).forEach(g => gamesByIdForPlayer.set(g.id, g));
+      const notViewedTaggedPoints = taggedPoints
+        .filter(p => (myViewsByPoint.get(p.id) || 0) === 0)
+        .map(p =>
+        {
+          const gm = gamesByIdForPlayer.get(p.game_id);
+          return {
+            pointId: p.id,
+            title: p.title as string,
+            game: gm ? { id: gm.id, opponent: gm.opponent, date: gm.date } : null,
+            created_at: p.created_at,
+          };
+        })
+        .sort((a, b) =>
+        {
+          const bt = b.created_at ? new Date(b.created_at).getTime() : 0;
+          const at = a.created_at ? new Date(a.created_at).getTime() : 0;
+          return bt - at;
+        })
+        .slice(0, 25);
+
+      // Unacknowledged tagged points list (those tagged but not acknowledged)
+      const ackedPointIds = new Set<string>((acks || []).map(a => a.point_id));
+      const gamesById = new Map<string, any>();
+      (games || []).forEach(g => gamesById.set(g.id, g));
+      const unacknowledgedTaggedPoints = taggedPoints
+        .filter(p => !ackedPointIds.has(p.id))
+        .map(p =>
+        {
+          const gm = gamesById.get(p.game_id);
+          return {
+            pointId: p.id,
+            title: p.title as string,
+            game: gm ? { id: gm.id, opponent: gm.opponent, date: gm.date } : null,
+            created_at: p.created_at,
+          };
+        })
+        .sort((a, b) =>
+        {
+          const bt = b.created_at ? new Date(b.created_at).getTime() : 0;
+          const at = a.created_at ? new Date(a.created_at).getTime() : 0;
+          return bt - at;
+        })
+        .slice(0, 10); // cap list to prevent overload
+
+      res.json({
+        player: { id: playerProfile.id, name: playerProfile.name, hasUser: !!playerProfile.user_id },
+        totals: {
+          totalTaggedPoints,
+          percentViewed,
+          percentAcknowledged,
+          avgCompletionPercent,
+          avgTimeToFirstViewMs,
+          avgTimeToAcknowledgeMs,
+        },
+        engagementOverTime,
+        mostViewedTaggedPoints,
+        leastViewedTaggedPoints,
+        notViewedTaggedPoints,
+        unacknowledgedTaggedPoints,
+      });
     }
-
-    // Percent viewed (among tagged points)
-    const viewedTagged = new Set<string>();
-    (myViewSummaries || []).forEach(vs => { if (vs.point_id) viewedTagged.add(vs.point_id); });
-    const percentViewed = totalTaggedPoints > 0 ? Math.round((viewedTagged.size / totalTaggedPoints) * 100) : 0;
-
-    // Percent acknowledged (among tagged points)
-    const ackedTagged = (acks || []).length;
-    const percentAcknowledged = totalTaggedPoints > 0 ? Math.round((ackedTagged / totalTaggedPoints) * 100) : 0;
-
-    // Avg completion across tagged points (using per-user max)
-    type Key = string;
-    const perPointMax = new Map<Key, number>();
-    (myViewEvents || []).forEach(ev =>
+    catch (error)
     {
-      const key = `${ev.point_id}`;
-      const val = typeof ev.completion_percentage === 'number' ? ev.completion_percentage : 0;
-      const prev = perPointMax.get(key);
-      if (prev === undefined || val > prev) perPointMax.set(key, val);
-    });
-    const compVals = Array.from(perPointMax.values());
-    const avgCompletionPercent = compVals.length > 0 ? Math.round(compVals.reduce((s, v) => s + v, 0) / compVals.length) : 0;
-
-    // Time to first view / acknowledge
-    const pointCreatedAt = new Map<string, string>();
-    (taggedPoints || []).forEach(p => { pointCreatedAt.set(p.id, p.created_at || ''); });
-
-    const deltasFirstView: number[] = [];
-    (myViewSummaries || []).forEach(vs =>
-    {
-      const created = pointCreatedAt.get(vs.point_id);
-      if (!created || !vs.first_viewed_at) return;
-      const dt = new Date(vs.first_viewed_at).getTime() - new Date(created).getTime();
-      if (!Number.isNaN(dt)) deltasFirstView.push(dt);
-    });
-    const avgTimeToFirstViewMs = deltasFirstView.length > 0 ? Math.round(deltasFirstView.reduce((s, v) => s + v, 0) / deltasFirstView.length) : null;
-
-    const deltasAck: number[] = [];
-    (acks || []).forEach(a =>
-    {
-      const created = pointCreatedAt.get(a.point_id);
-      if (!created || !a.ack_at) return;
-      const dt = new Date(a.ack_at).getTime() - new Date(created).getTime();
-      if (!Number.isNaN(dt)) deltasAck.push(dt);
-    });
-    const avgTimeToAcknowledgeMs = deltasAck.length > 0 ? Math.round(deltasAck.reduce((s, v) => s + v, 0) / deltasAck.length) : null;
-
-    // Engagement over time (player's own views)
-    const dailyMap = new Map<string, number>();
-    (myViewEvents || []).forEach(ev =>
-    {
-      const d = new Date(ev.created_at);
-      const yyyy = d.getUTCFullYear();
-      const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
-      const dd = String(d.getUTCDate()).padStart(2, '0');
-      const key = `${yyyy}-${mm}-${dd}`;
-      dailyMap.set(key, (dailyMap.get(key) || 0) + 1);
-    });
-    const engagementOverTime = Array.from(dailyMap.entries())
-      .map(([date, views]) => ({ date, views }))
-      .sort((a, b) => a.date.localeCompare(b.date));
-
-    // Rank tagged points by player's own views
-    const myViewsByPoint = new Map<string, number>();
-    (myViewEvents || []).forEach(ev =>
-    {
-      myViewsByPoint.set(ev.point_id, (myViewsByPoint.get(ev.point_id) || 0) + 1);
-    });
-
-    const taggedPointSummaries = taggedPoints.map(p => ({
-      pointId: p.id,
-      title: p.title as string,
-      viewsByPlayer: myViewsByPoint.get(p.id) || 0,
-    }));
-
-    const mostViewedTaggedPoints = [...taggedPointSummaries].sort((a, b) => b.viewsByPlayer - a.viewsByPlayer).slice(0, 5);
-    const leastViewedTaggedPoints = [...taggedPointSummaries].sort((a, b) => a.viewsByPlayer - b.viewsByPlayer).slice(0, 5);
-
-    res.json({
-      player: { id: playerProfile.id, name: playerProfile.name, hasUser: !!playerProfile.user_id },
-      totals: {
-        totalTaggedPoints,
-        percentViewed,
-        percentAcknowledged,
-        avgCompletionPercent,
-        avgTimeToFirstViewMs,
-        avgTimeToAcknowledgeMs,
-      },
-      engagementOverTime,
-      mostViewedTaggedPoints,
-      leastViewedTaggedPoints,
-    });
-  }
-  catch (error)
-  {
-    console.error('Error in GET /analytics/player/:playerProfileId:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+      console.error('Error in GET /analytics/player/:playerProfileId:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+);
 
 /**
  * GET /api/analytics/point/:pointId
@@ -1381,12 +1501,11 @@ router.get('/point/:pointId', authenticateUser, async (req: AuthenticatedRequest
     });
 
     // Map player_profile_id -> user_id to correlate with view summaries/events
-    const playerMap: { id: string; name: string; user_id: string | null; }[] =
-      (tags || []).map(t =>
-      {
-        const prof = Array.isArray(t.player_profiles) ? t.player_profiles[0] : t.player_profiles;
-        return { id: prof?.id, name: prof?.name, user_id: prof?.user_id || null } as any;
-      }).filter(p => p && p.id);
+    const playerMap: { id: string; name: string; user_id: string | null; }[] = (tags || []).map(t =>
+    {
+      const prof = Array.isArray(t.player_profiles) ? t.player_profiles[0] : t.player_profiles;
+      return { id: prof?.id, name: prof?.name, user_id: prof?.user_id || null } as any;
+    }).filter(p => p && p.id);
 
     // Per-user max completion for this point
     const perUserMax = new Map<string, number>();
@@ -1455,23 +1574,26 @@ router.get('/point/:pointId', authenticateUser, async (req: AuthenticatedRequest
 });
 
 // GET /api/analytics/coaching-point/:pointId - Get detailed coaching point analytics
-router.get('/coaching-point/:pointId', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> =>
-{
-  try
+router.get(
+  '/coaching-point/:pointId',
+  authenticateUser,
+  async (req: AuthenticatedRequest, res: Response): Promise<void> =>
   {
-    const userId = req.user?.id;
-    if (!userId)
+    try
     {
-      res.status(401).json({ error: 'User not authenticated' });
-      return;
-    }
+      const userId = req.user?.id;
+      if (!userId)
+      {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
+      }
 
-    const { pointId } = req.params;
+      const { pointId } = req.params;
 
-    // Verify user has access to this coaching point (coach/admin on the team)
-    const { data: accessCheck, error: accessError } = await supabase
-      .from('coaching_points')
-      .select(`
+      // Verify user has access to this coaching point (coach/admin on the team)
+      const { data: accessCheck, error: accessError } = await supabase
+        .from('coaching_points')
+        .select(`
         id,
         title,
         feedback,
@@ -1496,179 +1618,175 @@ router.get('/coaching-point/:pointId', authenticateUser, async (req: Authenticat
           name
         )
       `)
-      .eq('id', pointId)
-      .eq('games.teams.team_memberships.user_id', userId)
-      .in('games.teams.team_memberships.role', ['coach', 'admin'])
-      .single();
+        .eq('id', pointId)
+        .eq('games.teams.team_memberships.user_id', userId)
+        .in('games.teams.team_memberships.role', ['coach', 'admin'])
+        .single();
 
-    if (accessError || !accessCheck)
-    {
-      res.status(404).json({ error: 'Coaching point not found or access denied' });
-      return;
-    }
+      if (accessError || !accessCheck)
+      {
+        res.status(404).json({ error: 'Coaching point not found or access denied' });
+        return;
+      }
 
-    // Get tagged players with their view/acknowledgment status
-    const { data: taggedPlayersData, error: taggedError } = await supabase
-      .from('coaching_point_tagged_players')
-      .select(`
+      // Get tagged players with their view/acknowledgment status
+      const { data: taggedPlayersData, error: taggedError } = await supabase
+        .from('coaching_point_tagged_players')
+        .select(`
         player_profiles!inner(
           id,
           name
         )
       `)
-      .eq('point_id', pointId);
+        .eq('point_id', pointId);
 
-    if (taggedError)
-    {
-      res.status(500).json({ error: 'Failed to fetch tagged players' });
-      return;
-    }
+      if (taggedError)
+      {
+        res.status(500).json({ error: 'Failed to fetch tagged players' });
+        return;
+      }
 
-    // Get view/acknowledgment status for each tagged player
-    const taggedPlayers = await Promise.all((taggedPlayersData || []).map(async (tp) =>
-    {
-      const playerId = tp.player_profiles.id;
-      
-      // Get view status
-      const { data: viewSummary } = await supabase
-        .from('coaching_point_view_summary')
-        .select('view_count, first_viewed_at, last_viewed_at')
-        .eq('point_id', pointId)
-        .eq('user_id', playerId)
-        .single();
+      // Get view/acknowledgment status for each tagged player
+      const taggedPlayers = await Promise.all((taggedPlayersData || []).map(async (tp) =>
+      {
+        const playerId = tp.player_profiles.id;
 
-      // Get acknowledgment status
-      const { data: ackData } = await supabase
-        .from('coaching_point_acknowledgments')
-        .select('acknowledged, ack_at, notes')
-        .eq('point_id', pointId)
-        .eq('player_id', playerId)
-        .single();
+        // Get view status
+        const { data: viewSummary } = await supabase
+          .from('coaching_point_view_summary')
+          .select('view_count, first_viewed_at, last_viewed_at')
+          .eq('point_id', pointId)
+          .eq('user_id', playerId)
+          .single();
 
-      // Get latest completion percentage
-      const { data: latestView } = await supabase
+        // Get acknowledgment status
+        const { data: ackData } = await supabase
+          .from('coaching_point_acknowledgments')
+          .select('acknowledged, ack_at, notes')
+          .eq('point_id', pointId)
+          .eq('player_id', playerId)
+          .single();
+
+        // Get latest completion percentage
+        const { data: latestView } = await supabase
+          .from('coaching_point_view_events')
+          .select('completion_percentage')
+          .eq('point_id', pointId)
+          .eq('user_id', playerId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        return {
+          player_id: playerId,
+          name: tp.player_profiles.name,
+          view_count: viewSummary?.view_count || 0,
+          first_viewed_at: viewSummary?.first_viewed_at || null,
+          last_viewed_at: viewSummary?.last_viewed_at || null,
+          latest_completion_percent: latestView?.completion_percentage || 0,
+          acknowledged: ackData?.acknowledged || false,
+          ack_at: ackData?.ack_at || null,
+          ack_notes: ackData?.notes || null,
+        };
+      }));
+
+      // Get total views and unique viewers
+      const { data: viewStats, error: viewStatsError } = await supabase
         .from('coaching_point_view_events')
-        .select('completion_percentage')
-        .eq('point_id', pointId)
-        .eq('user_id', playerId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+        .select('user_id, completion_percentage')
+        .eq('point_id', pointId);
 
-      return {
-        player_id: playerId,
-        name: tp.player_profiles.name,
-        view_count: viewSummary?.view_count || 0,
-        first_viewed_at: viewSummary?.first_viewed_at || null,
-        last_viewed_at: viewSummary?.last_viewed_at || null,
-        latest_completion_percent: latestView?.completion_percentage || 0,
-        acknowledged: ackData?.acknowledged || false,
-        ack_at: ackData?.ack_at || null,
-        ack_notes: ackData?.notes || null,
+      if (viewStatsError)
+      {
+        res.status(500).json({ error: 'Failed to fetch view statistics' });
+        return;
+      }
+
+      const totalViews = viewStats?.length || 0;
+      const uniqueViewers = new Set(viewStats?.map(v => v.user_id) || []).size;
+
+      // Build completion distribution (histogram)
+      const completionBuckets = {
+        '0-25%': 0,
+        '25-50%': 0,
+        '50-75%': 0,
+        '75-100%': 0,
       };
-    }));
 
-    // Get total views and unique viewers
-    const { data: viewStats, error: viewStatsError } = await supabase
-      .from('coaching_point_view_events')
-      .select('user_id, completion_percentage')
-      .eq('point_id', pointId);
+      viewStats?.forEach(v =>
+      {
+        const completion = v.completion_percentage || 0;
+        if (completion < 25) completionBuckets['0-25%']++;
+        else if (completion < 50) completionBuckets['25-50%']++;
+        else if (completion < 75) completionBuckets['50-75%']++;
+        else completionBuckets['75-100%']++;
+      });
 
-    if (viewStatsError)
-    {
-      res.status(500).json({ error: 'Failed to fetch view statistics' });
-      return;
-    }
+      // Get view events timeline from coaching_point_events
+      const { data: viewEvents, error: eventsError } = await supabase
+        .from('coaching_point_events')
+        .select('event_type, timestamp, event_data, created_at')
+        .eq('point_id', pointId)
+        .order('timestamp', { ascending: true });
 
-    const totalViews = viewStats?.length || 0;
-    const uniqueViewers = new Set(viewStats?.map(v => v.user_id) || []).size;
+      if (eventsError)
+      {
+        res.status(500).json({ error: 'Failed to fetch view events' });
+        return;
+      }
 
-    // Build completion distribution (histogram)
-    const completionBuckets = {
-      '0-25%': 0,
-      '25-50%': 0,
-      '50-75%': 0,
-      '75-100%': 0,
-    };
+      // Get acknowledgment notes (avoid FK join which can fail due to RLS; map names from taggedPlayers instead)
+      const { data: ackNotes, error: notesError } = await supabase
+        .from('coaching_point_acknowledgments')
+        .select('player_id, notes, ack_at')
+        .eq('point_id', pointId)
+        .not('notes', 'is', null)
+        .order('ack_at', { ascending: false });
 
-    viewStats?.forEach(v =>
-    {
-      const completion = v.completion_percentage || 0;
-      if (completion < 25) completionBuckets['0-25%']++;
-      else if (completion < 50) completionBuckets['25-50%']++;
-      else if (completion < 75) completionBuckets['50-75%']++;
-      else completionBuckets['75-100%']++;
-    });
+      if (notesError)
+      {
+        console.error('Acknowledgment notes query failed:', notesError);
+        res.status(500).json({ error: 'Failed to fetch acknowledgment notes' });
+        return;
+      }
 
-    // Get view events timeline from coaching_point_events
-    const { data: viewEvents, error: eventsError } = await supabase
-      .from('coaching_point_events')
-      .select('event_type, timestamp, event_data, created_at')
-      .eq('point_id', pointId)
-      .order('timestamp', { ascending: true });
-
-    if (eventsError)
-    {
-      res.status(500).json({ error: 'Failed to fetch view events' });
-      return;
-    }
-
-    // Get acknowledgment notes
-    const { data: ackNotes, error: notesError } = await supabase
-      .from('coaching_point_acknowledgments')
-      .select(`
-        notes,
-        ack_at,
-        player_profiles!coaching_point_acknowledgments_player_id_fkey(
-          name
-        )
-      `)
-      .eq('point_id', pointId)
-      .not('notes', 'is', null)
-      .order('ack_at', { ascending: false });
-
-    if (notesError)
-    {
-      res.status(500).json({ error: 'Failed to fetch acknowledgment notes' });
-      return;
-    }
-
-    const result = {
-      coachingPoint: {
-        id: accessCheck.id,
-        title: accessCheck.title,
-        feedback: accessCheck.feedback,
-        timestamp: accessCheck.timestamp,
-        duration: accessCheck.duration,
-        created_at: accessCheck.created_at,
-        author: accessCheck.user_profiles?.name || 'Unknown',
-        game: {
-          id: accessCheck.games.id,
-          opponent: accessCheck.games.opponent,
-          date: accessCheck.games.date,
-          team_name: accessCheck.games.teams.name,
+      const result = {
+        coachingPoint: {
+          id: accessCheck.id,
+          title: accessCheck.title,
+          feedback: accessCheck.feedback,
+          timestamp: accessCheck.timestamp,
+          duration: accessCheck.duration,
+          created_at: accessCheck.created_at,
+          author: accessCheck.user_profiles?.name || 'Unknown',
+          game: {
+            id: accessCheck.games.id,
+            opponent: accessCheck.games.opponent,
+            date: accessCheck.games.date,
+            team_name: accessCheck.games.teams.name,
+          },
         },
-      },
-      taggedPlayers,
-      totalViews,
-      uniqueViewers,
-      completionDistribution: completionBuckets,
-      viewEventsTimeline: viewEvents || [],
-      acknowledgmentNotes: (ackNotes || []).map(note => ({
-        player_name: note.player_profiles?.name || 'Unknown',
-        notes: note.notes,
-        ack_at: note.ack_at,
-      })),
-    };
+        taggedPlayers,
+        totalViews,
+        uniqueViewers,
+        completionDistribution: completionBuckets,
+        viewEventsTimeline: viewEvents || [],
+        acknowledgmentNotes: (ackNotes || []).map(note => ({
+          player_name: taggedPlayers.find(tp => tp.player_id === (note as any).player_id)?.name || 'Unknown',
+          notes: (note as any).notes,
+          ack_at: (note as any).ack_at,
+        })),
+      };
 
-    res.json(result);
-  }
-  catch (error)
-  {
-    console.error('Error fetching coaching point details:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+      res.json(result);
+    }
+    catch (error)
+    {
+      console.error('Error fetching coaching point details:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+);
 
 // GET /api/analytics/coach-players - Get all players from teams where user is coach/admin
 router.get('/coach-players', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> =>
@@ -1735,19 +1853,17 @@ router.get('/coach-players', authenticateUser, async (req: AuthenticatedRequest,
       return;
     }
 
-    // Format response
+    // Format response including team_id so frontend can filter by team first.
+    // We intentionally do NOT de-duplicate across teams; the frontend will show
+    // only players for the selected team, so duplicates are not surfaced.
     const players = (teamPlayers || []).map(tp => ({
       id: tp.player_profiles.id,
       name: tp.player_profiles.name,
+      team_id: tp.team_id,
       team_name: teamNameMap.get(tp.team_id) || 'Unknown Team',
     }));
 
-    // Remove duplicates (players on multiple teams)
-    const uniquePlayers = players.filter((player, index, self) => 
-      index === self.findIndex(p => p.id === player.id)
-    );
-
-    res.json(uniquePlayers);
+    res.json(players);
   }
   catch (error)
   {
@@ -1820,11 +1936,11 @@ router.get('/coaching-points', authenticateUser, async (req: AuthenticatedReques
     (teams || []).forEach(t => teamNameMap.set(t.id, t.name));
 
     // Get coaching points for these games
-    const { data: coachingPoints, error: pointsError } = gameIds.length === 0
-      ? { data: [], error: null }
-      : await supabase
+    const { data: coachingPoints, error: pointsError } = gameIds.length === 0 ?
+      { data: [], error: null } :
+      await supabase
         .from('coaching_points')
-        .select('id, game_id, title, created_at')
+        .select('id, game_id, title, created_at, timestamp')
         .in('game_id', gameIds)
         .order('created_at', { ascending: false });
 
@@ -1834,15 +1950,19 @@ router.get('/coaching-points', authenticateUser, async (req: AuthenticatedReques
       return;
     }
 
-    // Format response
-    const points = (coachingPoints || []).map(cp => {
+    // Format response (include identifiers for filtering)
+    const points = (coachingPoints || []).map(cp =>
+    {
       const game = gameMap.get(cp.game_id);
       return {
         id: cp.id,
         title: cp.title,
+        game_id: cp.game_id,
         game_opponent: game?.opponent || 'Unknown',
         game_date: game?.date || '',
+        team_id: game?.team_id || null,
         team_name: teamNameMap.get(game?.team_id) || 'Unknown Team',
+        timestamp: cp.timestamp || 0,
       };
     });
 
