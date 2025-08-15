@@ -221,8 +221,6 @@ export const DashboardPage: React.FC = () =>
       {coachTeams.length > 0 ?
         (
           <div style={{ marginBottom: 'var(--space-2xl)' }}>
-            <h2 style={{ marginBottom: 'var(--space-lg)' }}>Coaching Analytics</h2>
-
             {analyticsLoading && <div className='loading'>Loading coaching analytics...</div>}
             {analyticsError && <div className='alert alert-error'>{analyticsError}</div>}
 
@@ -264,7 +262,8 @@ export const DashboardPage: React.FC = () =>
                   </div>
                 </div>
 
-                {coachTeams.map((t) =>
+                {
+                  /* {coachTeams.map((t) =>
                 {
                   const teamAnalytics = analyticsByTeam[t.teams.id] || [];
                   const teamTotals = computeTotals(teamAnalytics);
@@ -306,7 +305,8 @@ export const DashboardPage: React.FC = () =>
                       </div>
                     </div>
                   );
-                })}
+                })} */
+                }
               </>
             )}
           </div>

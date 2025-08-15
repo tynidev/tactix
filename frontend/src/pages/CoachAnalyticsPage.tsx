@@ -11,6 +11,7 @@ interface CoachOverview
     avgCompletionPercent: number;
   };
   engagementOverTime: { date: string; views: number; }[];
+  engagementHourlyOverTime?: { date: string; hour: number; views: number; }[]; // UTC hour buckets
   topPoints: {
     pointId: string;
     title: string;
@@ -218,7 +219,7 @@ function Heatmap({ data }: { data: { dow: number; hour: number; views: number; }
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   return (
     <div>
-      <div className='stat-label' style={{ marginBottom: 8 }}>Engagement Heatmap (Local Time)</div>
+      <div className='stat-label' style={{ marginBottom: 8 }}>Engagement Heatmap</div>
       <div style={{ display: 'grid', gridTemplateColumns: '40px repeat(24, 1fr)', gap: 2, alignItems: 'center' }}>
         {/* Header row */}
         <div></div>
@@ -312,7 +313,7 @@ function GameTimelineHeatmap({ data }: { data: { dow: number; hour: number; view
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   return (
     <div className='timeline-heatmap'>
-      <div className='stat-label' style={{ marginBottom: 8 }}>Hourly Views (first 7 days, Local Time)</div>
+      <div className='stat-label' style={{ marginBottom: 8 }}>Hourly Views irst 7 Days</div>
       <div className='timeline-hourly-grid'>
         <div></div>
         {Array.from({ length: 24 }, (_, h) =>
@@ -337,6 +338,165 @@ function GameTimelineHeatmap({ data }: { data: { dow: number; hour: number; view
             })}
           </React.Fragment>
         ))}
+      </div>
+    </div>
+  );
+}
+
+// 30-day engagement heatmap: columns = days, rows = 24 hours (using daily total placed at 12:00 if only daily granularity)
+function Overview30DayHourlyHeatmap(
+  { data, hourly }: {
+    data: { date: string; views: number; }[];
+    hourly?: { date: string; hour: number; views: number; }[];
+  },
+)
+{
+  const prepared = useMemo(() =>
+  {
+    // Build last 30 calendar days inclusive of today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dates: Date[] = [];
+    for (let i = 29; i >= 0; i--)
+    {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      dates.push(d);
+    }
+    // Map of date -> Map<hour,views> (local hours after conversion)
+    const map = new Map<string, Map<number, number>>();
+    dates.forEach(d => map.set(d.toISOString().slice(0, 10), new Map()));
+
+    const tzOffsetMinutes = new Date().getTimezoneOffset(); // minutes to add to UTC to get local? Actually date.getTimezoneOffset is minutes behind UTC, so local = UTC - offset. We'll shift from UTC hour buckets to local.
+
+    if (hourly && hourly.length)
+    {
+      hourly.forEach(h =>
+      {
+        // h.date is YYYY-MM-DD in UTC; create a UTC Date then shift to local
+        const utc = new Date(`${h.date}T${String(h.hour).padStart(2, '0')}:00:00Z`);
+        const localMs = utc.getTime() - tzOffsetMinutes * 60 * 1000;
+        const local = new Date(localMs);
+        const localDayKey = `${local.getFullYear()}-${String(local.getMonth() + 1).padStart(2, '0')}-${
+          String(local.getDate()).padStart(2, '0')
+        }`;
+        const hourLocal = local.getHours();
+        if (!map.has(localDayKey)) return; // outside 30-day window
+        const hoursMap = map.get(localDayKey)!;
+        hoursMap.set(hourLocal, (hoursMap.get(hourLocal) || 0) + h.views);
+      });
+    }
+    else
+    {
+      // Fallback: daily totals placed at noon
+      const daily = new Map<string, number>();
+      (data || []).forEach(d =>
+      {
+        const dt = new Date(d.date);
+        dt.setHours(0, 0, 0, 0);
+        daily.set(dt.toISOString().slice(0, 10), d.views || 0);
+      });
+      daily.forEach((v, key) =>
+      {
+        const hoursMap = map.get(key) || new Map<number, number>();
+        if (v) hoursMap.set(12, v);
+        map.set(key, hoursMap);
+      });
+    }
+
+    // Compute max per-hour value for reference (not currently used directly but could be for legend)
+    let max = 1;
+    map.forEach(m =>
+      m.forEach(v =>
+      {
+        if (v > max) max = v;
+      })
+    );
+    return { dates, map, max };
+  }, [data, hourly]);
+
+  if (!prepared.dates.length) return <div className='empty-block'>No data</div>;
+
+  // 4-hour buckets: [0-3],[4-7],[8-11],[12-15],[16-19],[20-23]
+  const buckets = [
+    { start: 0, end: 3, label: '12a-3a' },
+    { start: 4, end: 7, label: '4a-7a' },
+    { start: 8, end: 11, label: '8a-11a' },
+    { start: 12, end: 15, label: '12p-3p' },
+    { start: 16, end: 19, label: '4p-7p' },
+    { start: 20, end: 23, label: '8p-11p' },
+  ];
+
+  // Pre-aggregate bucket sums per day
+  const bucketSumsPerDay: Record<string, number[]> = {};
+  let bucketMax = 1;
+  prepared.dates.forEach(d =>
+  {
+    const dayKey = d.toISOString().slice(0, 10);
+    const hoursMap = prepared.map.get(dayKey) || new Map();
+    const sums: number[] = buckets.map(b =>
+    {
+      let sum = 0;
+      for (let h = b.start; h <= b.end; h++)
+      {
+        sum += hoursMap.get(h) || 0;
+      }
+      if (sum > bucketMax) bucketMax = sum;
+      return sum;
+    });
+    bucketSumsPerDay[dayKey] = sums;
+  });
+
+  return (
+    <div className='overview-hourly-30d'>
+      <div
+        className='daily-hourly-grid'
+        style={{
+          display: 'grid',
+          gridTemplateColumns: `50px repeat(${prepared.dates.length}, minmax(0, 1fr))`,
+          gridAutoRows: '24px',
+          gap: 2,
+          width: '100%',
+        }}
+      >
+        {/* Date headers */}
+        <div></div>
+        {prepared.dates.map(d => (
+          <div
+            key={d.toISOString()}
+            className='date-hdr'
+            style={{ textAlign: 'center', fontSize: 11, fontWeight: 500 }}
+          >
+            {d.toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' })}
+          </div>
+        ))}
+        {buckets.map((b, bIdx) => (
+          <React.Fragment key={b.label}>
+            <div className='hour-label' style={{ fontSize: 11, textAlign: 'right', paddingRight: 4 }}>{b.label}</div>
+            {prepared.dates.map(d =>
+            {
+              const key = d.toISOString().slice(0, 10);
+              const val = bucketSumsPerDay[key][bIdx];
+              const intensity = Math.min(1, val / bucketMax);
+              const bg = `rgba(30, 136, 229, ${0.08 + intensity * 0.4})`;
+              const border = `rgba(0,0,0,0.05)`;
+              return (
+                <div
+                  key={key + '-' + bIdx}
+                  title={`${val} views ${b.label} on ${d.toLocaleDateString()}`}
+                  style={{
+                    height: 16,
+                    border: `1px solid ${border}`,
+                    backgroundColor: val > 0 ? bg : 'transparent',
+                  }}
+                />
+              );
+            })}
+          </React.Fragment>
+        ))}
+      </div>
+      <div className='subtle-muted' style={{ marginTop: 8, fontSize: 12 }}>
+        Past 30 days {hourly && hourly.length ? '' : '(daily aggregate fallback)'}
       </div>
     </div>
   );
@@ -870,6 +1030,8 @@ export const CoachAnalyticsPage: React.FC = () =>
     });
   }, [gameAnalytics]);
 
+  // (Removed overviewHourly; using 30-day component instead)
+
   // Coaching point filter derivations
   const pointTeams = useMemo(() =>
   {
@@ -1095,15 +1257,16 @@ export const CoachAnalyticsPage: React.FC = () =>
                     ) :
                     <div className='empty-block'>No data</div>}
                 </div>
-                {/* Engagement timeline */}
-                <div className='subcard'>
+                {/* 30-Day Engagement Heatmap full width (days x hours) */}
+                <div className='subcard engagement-full'>
                   <div className='subcard-header with-help'>
-                    <span>Engagement Over Time</span>
-                    <span className='subtle-muted'>Daily views (last 30)</span>
+                    <span>30-Day Engagement Heatmap</span>
+                    <span className='subtle-muted'>Local Time</span>
                   </div>
-                  {coachOverview.engagementOverTime.length > 0 ?
-                    <EngagementSpark data={coachOverview.engagementOverTime} /> :
-                    <div className='empty-block'>No data</div>}
+                  <Overview30DayHourlyHeatmap
+                    data={coachOverview.engagementOverTime}
+                    hourly={coachOverview.engagementHourlyOverTime}
+                  />
                 </div>
               </div>
             </div>
@@ -1210,7 +1373,7 @@ export const CoachAnalyticsPage: React.FC = () =>
                   <div className='subcard'>
                     <div className='subcard-header with-help'>
                       <span>Engagement Heatmap</span>
-                      <span className='subtle-muted'>UTC</span>
+                      <span className='subtle-muted'>Local Time</span>
                     </div>
                     {a?.engagementHeatmap && a.engagementHeatmap.length > 0 ?
                       <Heatmap data={a.engagementHeatmap} /> :
@@ -1436,7 +1599,7 @@ export const CoachAnalyticsPage: React.FC = () =>
                 <div className='subcard timeline-heatmap-wide'>
                   <div className='subcard-header with-help'>
                     <span>View Timeline Heatmap</span>
-                    <span className='subtle-muted'>Views by day since game</span>
+                    <span className='subtle-muted'>Local Time</span>
                   </div>
                   <GameTimelineHeatmap data={timelineHourly} />
                 </div>

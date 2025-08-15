@@ -211,6 +211,23 @@ router.get('/coach-overview', authenticateUser, async (req: AuthenticatedRequest
       .map(([date, views]) => ({ date, views }))
       .sort((a, b) => a.date.localeCompare(b.date));
 
+    // Engagement hourly over time (UTC hours) – key YYYY-MM-DD-HH
+    const engagementHourlyOverTimeMap = new Map<string, number>();
+    (viewEvents || []).forEach(ev =>
+    {
+      if (!ev.created_at) return;
+      const d = new Date(ev.created_at);
+      const yyyy = d.getUTCFullYear();
+      const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+      const dd = String(d.getUTCDate()).padStart(2, '0');
+      const hh = String(d.getUTCHours()).padStart(2, '0');
+      const key = `${yyyy}-${mm}-${dd}-${hh}`;
+      engagementHourlyOverTimeMap.set(key, (engagementHourlyOverTimeMap.get(key) || 0) + 1);
+    });
+    const engagementHourlyOverTime = Array.from(engagementHourlyOverTimeMap.entries())
+      .map(([k, views]) => ({ date: k.slice(0, 10), hour: parseInt(k.slice(11, 13)), views }))
+      .sort((a, b) => a.date.localeCompare(b.date) || a.hour - b.hour);
+
     // % Acknowledged = acknowledged_count / total_possible_acks
     // total_possible_acks = sum_over_teams(points_for_team * players_in_team)
     const pointsByTeam = new Map<string, number>();
@@ -391,6 +408,7 @@ router.get('/coach-overview', authenticateUser, async (req: AuthenticatedRequest
         avgCompletionPercent,
       },
       engagementOverTime,
+      engagementHourlyOverTime,
       topPoints,
       bottomPoints,
       topEngagedPlayer,
