@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { getApiUrl } from '../../utils/api';
 import ThemeToggle from '../ThemeToggle/ThemeToggle';
 
 export const Navigation: React.FC = () =>
@@ -8,6 +9,7 @@ export const Navigation: React.FC = () =>
   const { user, signOut } = useAuth();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [hasCoachAccess, setHasCoachAccess] = useState(false);
 
   const isActive = (path: string) =>
   {
@@ -33,6 +35,44 @@ export const Navigation: React.FC = () =>
   {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
+
+  // Detect if user has coach/admin access on any team to show Analytics tab
+  useEffect(() =>
+  {
+    let cancelled = false;
+    (async () =>
+    {
+      try
+      {
+        const { supabase } = await import('../../lib/supabase');
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        if (!token) return;
+
+        const apiUrl = getApiUrl();
+        const resp = await fetch(`${apiUrl}/api/teams`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        if (!resp.ok) return;
+
+        const data = await resp.json();
+        const coach = Array.isArray(data) && data.some((m: any) => m.role === 'coach' || m.role === 'admin');
+        if (!cancelled) setHasCoachAccess(coach);
+      }
+      catch
+      {
+        // ignore
+      }
+    })();
+
+    return () =>
+    {
+      cancelled = true;
+    };
+  }, []);
 
   // Handle escape key to close menu
   useEffect(() =>
@@ -71,16 +111,14 @@ export const Navigation: React.FC = () =>
 
         {/* Desktop Navigation */}
         <ul className='nav-items'>
-          {
-            /* <li>
+          <li>
             <Link
               to='/dashboard'
               className={`nav-item ${isActive('/dashboard') ? 'active' : ''}`}
             >
               Dashboard
             </Link>
-          </li> */
-          }
+          </li>
           <li>
             <Link
               to='/teams'
@@ -97,6 +135,16 @@ export const Navigation: React.FC = () =>
               Games
             </Link>
           </li>
+          {hasCoachAccess && (
+            <li>
+              <Link
+                to='/analytics'
+                className={`nav-item ${isActive('/analytics') ? 'active' : ''}`}
+              >
+                Analytics
+              </Link>
+            </li>
+          )}
         </ul>
 
         {/* Desktop User Menu */}
@@ -135,6 +183,15 @@ export const Navigation: React.FC = () =>
             <ul className='mobile-nav-items'>
               <li>
                 <Link
+                  to='/dashboard'
+                  className={`mobile-nav-item ${isActive('/dashboard') ? 'active' : ''}`}
+                  onClick={closeMobileMenu}
+                >
+                  Dashboard
+                </Link>
+              </li>
+              <li>
+                <Link
                   to='/teams'
                   className={`mobile-nav-item ${isActive('/teams') ? 'active' : ''}`}
                   onClick={closeMobileMenu}
@@ -151,6 +208,17 @@ export const Navigation: React.FC = () =>
                   Games
                 </Link>
               </li>
+              {hasCoachAccess && (
+                <li>
+                  <Link
+                    to='/analytics'
+                    className={`mobile-nav-item ${isActive('/analytics') ? 'active' : ''}`}
+                    onClick={closeMobileMenu}
+                  >
+                    Analytics
+                  </Link>
+                </li>
+              )}
               <li>
                 <Link
                   to='/profile'

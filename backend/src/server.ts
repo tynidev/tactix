@@ -7,6 +7,7 @@ import express, { Request, Response } from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import { errorHandler } from './middleware/errorHandler.js';
+import analyticsRoutes from './routes/analytics.js';
 import authRoutes from './routes/auth.js';
 import coachingPointEventRoutes from './routes/coachingPointEvents.js';
 import coachingPointLabelRoutes from './routes/coachingPointLabels.js';
@@ -61,6 +62,7 @@ app.use('/api', coachingPointViewRoutes); // Mounted at /api since routes includ
 app.use('/api/games', gameRoutes);
 app.use('/api/players', playerRoutes);
 app.use('/api/teams', teamRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Error handling
 app.use(errorHandler);
