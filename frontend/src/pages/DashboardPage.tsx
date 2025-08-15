@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CreateTeamModal } from '../components/CreateTeamModal';
 import { TeamsGrid } from '../components/TeamsGrid';
-import { useAuth } from '../contexts/AuthContext';
 import { getApiUrl } from '../utils/api';
 
 interface Team
@@ -29,12 +28,14 @@ interface CoachingPointAnalytics
 export const DashboardPage: React.FC = () =>
 {
   const navigate = useNavigate();
-  const {} = useAuth();
+
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [teamToEdit, setTeamToEdit] = useState<{ id: string; name: string; } | null>(null);
+
+  // Team analytics (kept on Dashboard)
   const [analyticsByTeam, setAnalyticsByTeam] = useState<Record<string, CoachingPointAnalytics[]>>({});
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [analyticsError, setAnalyticsError] = useState<string | null>(null);
@@ -56,7 +57,8 @@ export const DashboardPage: React.FC = () =>
   {
     try
     {
-      const { data: { session } } = await (await import('../lib/supabase')).supabase.auth.getSession();
+      const { supabase } = await import('../lib/supabase');
+      const { data: { session } } = await supabase.auth.getSession();
       const accessToken = session?.access_token;
 
       if (!accessToken)
@@ -101,7 +103,8 @@ export const DashboardPage: React.FC = () =>
       setAnalyticsLoading(true);
       setAnalyticsError(null);
 
-      const { data: { session } } = await (await import('../lib/supabase')).supabase.auth.getSession();
+      const { supabase } = await import('../lib/supabase');
+      const { data: { session } } = await supabase.auth.getSession();
       const accessToken = session?.access_token;
 
       if (!accessToken)
@@ -166,6 +169,7 @@ export const DashboardPage: React.FC = () =>
     if (teams.length === 0) return;
     const coachTeams = teams.filter(t => t.role === 'coach');
     if (coachTeams.length === 0) return;
+    // Only fetch team analytics here; Coach Overview was moved to CoachAnalyticsPage
     fetchAnalyticsForCoachTeams();
   }, [teams]);
 
@@ -213,7 +217,7 @@ export const DashboardPage: React.FC = () =>
 
       {error && <div className='alert alert-error'>{error}</div>}
 
-      {/* Coach Analytics or Quick Stats */}
+      {/* Coach Team Analytics (Coach Overview moved to /analytics) */}
       {coachTeams.length > 0 ? (
         <div style={{ marginBottom: 'var(--space-2xl)' }}>
           <h2 style={{ marginBottom: 'var(--space-lg)' }}>Coaching Analytics</h2>

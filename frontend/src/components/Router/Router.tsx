@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import { DashboardPage, GamesPage, ReviewPage, TeamDetailPage, TeamsPage } from '../../pages';
+import { DashboardPage, GamesPage, ReviewPage, TeamDetailPage, TeamsPage, CoachAnalyticsPage } from '../../pages';
 import { Auth } from '../Auth/Auth';
 import { Navigation } from '../Navigation/Navigation';
 import { RootRedirect } from '../RootRedirect';
@@ -21,6 +21,7 @@ export const AppRouter: React.FC = () =>
         <Route path='/' element={<RootRedirect />} />
         <Route path='/auth' element={<Auth />} />
         <Route path='/dashboard' element={<DashboardPage />} />
+        <Route path='/analytics' element={<CoachAnalyticsPage />} />
         <Route path='/teams' element={<TeamsPage />} />
         <Route path='/team/:teamId' element={<TeamDetailPage />} />
         <Route path='/games' element={<GamesPage />} />

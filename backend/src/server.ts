@@ -16,6 +16,7 @@ import coachingPointViewRoutes from './routes/coachingPointViews.js';
 import gameRoutes from './routes/games.js';
 import playerRoutes from './routes/players.js';
 import teamRoutes from './routes/teams.js';
+import analyticsRoutes from './routes/analytics.js';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -61,6 +62,7 @@ app.use('/api', coachingPointViewRoutes); // Mounted at /api since routes includ
 app.use('/api/games', gameRoutes);
 app.use('/api/players', playerRoutes);
 app.use('/api/teams', teamRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Error handling
 app.use(errorHandler);
