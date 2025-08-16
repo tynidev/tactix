@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import PlayerEngagementSummaryCard from '../components/PlayerEngagementSummaryCard';
 import { getApiUrl } from '../utils/api';
 import '../styles/coach-analytics.css';
 
@@ -1208,7 +1209,7 @@ export const CoachAnalyticsPage: React.FC = () =>
                 {/* Top Points */}
                 <div className='subcard'>
                   <div className='subcard-header'>Top 5 Most Viewed Points</div>
-                  <ul className='simple-list scrollable'>
+                  <ul className='simple-list scrollable' style={{ maxHeight: '280px' }}>
                     {coachOverview.topPoints.map(tp => (
                       <li key={tp.pointId}>
                         <span className='list-primary clamp-1'>{tp.title}</span>
@@ -1225,7 +1226,7 @@ export const CoachAnalyticsPage: React.FC = () =>
                 {/* Bottom Points */}
                 <div className='subcard'>
                   <div className='subcard-header'>Bottom 5 Least Viewed Points</div>
-                  <ul className='simple-list scrollable'>
+                  <ul className='simple-list scrollable' style={{ maxHeight: '280px' }}>
                     {coachOverview.bottomPoints.map(tp => (
                       <li key={tp.pointId}>
                         <span className='list-primary clamp-1'>{tp.title}</span>
@@ -1244,46 +1245,29 @@ export const CoachAnalyticsPage: React.FC = () =>
                   <div className='subcard-header'>Top Engaged Player</div>
                   {coachOverview.topEngagedPlayer ?
                     (
-                      <div className='player-engagement-card'>
-                        <div className='player-name'>{coachOverview.topEngagedPlayer.name}</div>
-                        <div className='player-metrics'>
-                          Overall: Score {coachOverview.topEngagedPlayer.scorePercent}%
-                        </div>
-                        <div className='player-metrics'>
-                          All Points: Ack {coachOverview.topEngagedPlayer.ackRatePercent}% · Completion{' '}
-                          {coachOverview.topEngagedPlayer.completionPercent}%
-                        </div>
-                        {(coachOverview.topEngagedPlayer.taggedAckRatePercent !== undefined ||
-                          coachOverview.topEngagedPlayer.taggedCompletionPercent !== undefined) && (
-                          <div className='player-metrics'>
-                            Tagged: Ack {coachOverview.topEngagedPlayer.taggedAckRatePercent || 0}% · Completion{' '}
-                            {coachOverview.topEngagedPlayer.taggedCompletionPercent || 0}%
-                          </div>
-                        )}
-                      </div>
+                      <PlayerEngagementSummaryCard
+                        name={coachOverview.topEngagedPlayer.name}
+                        scorePercent={coachOverview.topEngagedPlayer.scorePercent}
+                        ackRatePercent={coachOverview.topEngagedPlayer.ackRatePercent}
+                        completionPercent={coachOverview.topEngagedPlayer.completionPercent}
+                        taggedAckRatePercent={coachOverview.topEngagedPlayer.taggedAckRatePercent}
+                        taggedCompletionPercent={coachOverview.topEngagedPlayer.taggedCompletionPercent}
+                      />
                     ) :
                     <div className='empty-block'>No data</div>}
                   <div className='divider' />
                   <div className='subcard-header'>Lowest Engaged Player</div>
                   {coachOverview.lowestEngagedPlayer ?
                     (
-                      <div className='player-engagement-card low'>
-                        <div className='player-name'>{coachOverview.lowestEngagedPlayer.name}</div>
-                        <div className='player-metrics'>
-                          Overall: Score {coachOverview.lowestEngagedPlayer.scorePercent}%
-                        </div>
-                        <div className='player-metrics'>
-                          All Points: Ack {coachOverview.lowestEngagedPlayer.ackRatePercent}% · Completion{' '}
-                          {coachOverview.lowestEngagedPlayer.completionPercent}%
-                        </div>
-                        {(coachOverview.lowestEngagedPlayer.taggedAckRatePercent !== undefined ||
-                          coachOverview.lowestEngagedPlayer.taggedCompletionPercent !== undefined) && (
-                          <div className='player-metrics'>
-                            Tagged: Ack {coachOverview.lowestEngagedPlayer.taggedAckRatePercent || 0}% · Completion{' '}
-                            {coachOverview.lowestEngagedPlayer.taggedCompletionPercent || 0}%
-                          </div>
-                        )}
-                      </div>
+                      <PlayerEngagementSummaryCard
+                        variant='low'
+                        name={coachOverview.lowestEngagedPlayer.name}
+                        scorePercent={coachOverview.lowestEngagedPlayer.scorePercent}
+                        ackRatePercent={coachOverview.lowestEngagedPlayer.ackRatePercent}
+                        completionPercent={coachOverview.lowestEngagedPlayer.completionPercent}
+                        taggedAckRatePercent={coachOverview.lowestEngagedPlayer.taggedAckRatePercent}
+                        taggedCompletionPercent={coachOverview.lowestEngagedPlayer.taggedCompletionPercent}
+                      />
                     ) :
                     <div className='empty-block'>No data</div>}
                 </div>
@@ -1420,9 +1404,12 @@ export const CoachAnalyticsPage: React.FC = () =>
                         <li key={p.player_profile_id} className='ranked-item'>
                           <div className='rank-index'>{idx + 1}</div>
                           <div className='rank-main'>
-                            <div className='rank-title'>{p.name}</div>
-                            <div className='rank-sub'>
-                              Overall: Score {p.scorePercent}%
+                            <div
+                              className='rank-title'
+                              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}
+                            >
+                              <span>{p.name}</span>
+                              <span className='player-score'>Score {p.scorePercent}%</span>
                             </div>
                             <div className='rank-sub'>
                               All Points: Ack {p.ackRatePercent}% · Completion {p.completionPercent}%
