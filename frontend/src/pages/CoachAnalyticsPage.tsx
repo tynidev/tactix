@@ -5,9 +5,9 @@ import '../styles/coach-analytics.css';
 interface CoachOverview
 {
   totals: {
-    totalPoints: number;          // Total coaching points across all games
-    totalViews: number;           // Total views across all games
-    percentAcknowledged: number;  // Percentage of points acknowledged
+    totalPoints: number; // Total coaching points across all games
+    totalViews: number; // Total views across all games
+    percentAcknowledged: number; // Percentage of points acknowledged
     avgCompletionPercent: number; // Average completion percentage across all points and players
   };
   engagementOverTime: { date: string; views: number; }[];
@@ -1253,7 +1253,7 @@ export const CoachAnalyticsPage: React.FC = () =>
                           All Points: Ack {coachOverview.topEngagedPlayer.ackRatePercent}% · Completion{' '}
                           {coachOverview.topEngagedPlayer.completionPercent}%
                         </div>
-                        {(coachOverview.topEngagedPlayer.taggedAckRatePercent !== undefined || 
+                        {(coachOverview.topEngagedPlayer.taggedAckRatePercent !== undefined ||
                           coachOverview.topEngagedPlayer.taggedCompletionPercent !== undefined) && (
                           <div className='player-metrics'>
                             Tagged: Ack {coachOverview.topEngagedPlayer.taggedAckRatePercent || 0}% · Completion{' '}
@@ -1273,11 +1273,10 @@ export const CoachAnalyticsPage: React.FC = () =>
                           Overall: Score {coachOverview.lowestEngagedPlayer.scorePercent}%
                         </div>
                         <div className='player-metrics'>
-                          All Points: Ack{' '}
-                          {coachOverview.lowestEngagedPlayer.ackRatePercent}% · Completion{' '}
+                          All Points: Ack {coachOverview.lowestEngagedPlayer.ackRatePercent}% · Completion{' '}
                           {coachOverview.lowestEngagedPlayer.completionPercent}%
                         </div>
-                        {(coachOverview.lowestEngagedPlayer.taggedAckRatePercent !== undefined || 
+                        {(coachOverview.lowestEngagedPlayer.taggedAckRatePercent !== undefined ||
                           coachOverview.lowestEngagedPlayer.taggedCompletionPercent !== undefined) && (
                           <div className='player-metrics'>
                             Tagged: Ack {coachOverview.lowestEngagedPlayer.taggedAckRatePercent || 0}% · Completion{' '}
@@ -1430,7 +1429,8 @@ export const CoachAnalyticsPage: React.FC = () =>
                             </div>
                             {(p.taggedAckRatePercent !== undefined || p.taggedCompletionPercent !== undefined) && (
                               <div className='rank-sub'>
-                                Tagged: Ack {p.taggedAckRatePercent || 0}% · Completion {p.taggedCompletionPercent || 0}%
+                                Tagged: Ack {p.taggedAckRatePercent || 0}% · Completion{' '}
+                                {p.taggedCompletionPercent || 0}%
                               </div>
                             )}
                           </div>

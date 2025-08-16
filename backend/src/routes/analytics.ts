@@ -9,14 +9,17 @@ const router = express.Router();
  * This tracks the highest completion percentage achieved by each user for each coaching point.
  */
 function buildPerUserPointMaxMap(
-  viewEvents: Array<{ point_id: string; user_id: string; completion_percentage: number | null; }>
-): Map<string, number> {
+  viewEvents: Array<{ point_id: string; user_id: string; completion_percentage: number | null; }>,
+): Map<string, number>
+{
   const perUserPointMax = new Map<string, number>();
-  (viewEvents || []).forEach(ev => {
+  (viewEvents || []).forEach(ev =>
+  {
     const key = `${ev.point_id}__${ev.user_id}`;
     const val = typeof ev.completion_percentage === 'number' ? ev.completion_percentage : 0;
     const prev = perUserPointMax.get(key);
-    if (prev === undefined || val > prev) {
+    if (prev === undefined || val > prev)
+    {
       perUserPointMax.set(key, val);
     }
   });
@@ -31,43 +34,52 @@ function buildPerUserPointMaxMap(
  */
 function calculateEngagementOverTime(
   viewEvents: Array<{ created_at: string; }>,
-  granularity: 'daily' | 'hourly' = 'daily'
-): Array<{ date: string; views: number; hour?: number; }> {
+  granularity: 'daily' | 'hourly' = 'daily',
+): Array<{ date: string; views: number; hour?: number; }>
+{
   const timeMap = new Map<string, number>();
-  
-  (viewEvents || []).forEach(ev => {
+
+  (viewEvents || []).forEach(ev =>
+  {
     if (!ev.created_at) return;
     const d = new Date(ev.created_at);
     const yyyy = d.getUTCFullYear();
     const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
     const dd = String(d.getUTCDate()).padStart(2, '0');
-    
+
     let key: string;
-    if (granularity === 'hourly') {
+    if (granularity === 'hourly')
+    {
       const hh = String(d.getUTCHours()).padStart(2, '0');
       key = `${yyyy}-${mm}-${dd}-${hh}`;
-    } else {
+    }
+    else
+    {
       key = `${yyyy}-${mm}-${dd}`;
     }
-    
+
     timeMap.set(key, (timeMap.get(key) || 0) + 1);
   });
 
   return Array.from(timeMap.entries())
-    .map(([k, views]) => {
-      if (granularity === 'hourly') {
+    .map(([k, views]) =>
+    {
+      if (granularity === 'hourly')
+      {
         return {
           date: k.slice(0, 10),
           hour: parseInt(k.slice(11, 13)),
-          views
+          views,
         };
       }
       return { date: k, views };
     })
-    .sort((a, b) => {
+    .sort((a, b) =>
+    {
       const dateCompare = a.date.localeCompare(b.date);
       if (dateCompare !== 0) return dateCompare;
-      if ('hour' in a && 'hour' in b && a.hour !== undefined && b.hour !== undefined) {
+      if ('hour' in a && 'hour' in b && a.hour !== undefined && b.hour !== undefined)
+      {
         return a.hour - b.hour;
       }
       return 0;
@@ -77,10 +89,12 @@ function calculateEngagementOverTime(
 /**
  * Calculate per-point aggregates (sum, count, average) from per-user-point max map.
  */
-function calculatePerPointAggregates(perUserPointMax: Map<string, number>): Map<string, number> {
+function calculatePerPointAggregates(perUserPointMax: Map<string, number>): Map<string, number>
+{
   const perPointAgg: Record<string, { sum: number; count: number; }> = {};
-  
-  perUserPointMax.forEach((v, key) => {
+
+  perUserPointMax.forEach((v, key) =>
+  {
     const [pid] = key.split('__');
     if (!perPointAgg[pid]) perPointAgg[pid] = { sum: 0, count: 0 };
     perPointAgg[pid].sum += v || 0;
@@ -88,10 +102,11 @@ function calculatePerPointAggregates(perUserPointMax: Map<string, number>): Map<
   });
 
   const avgCompletionByPoint = new Map<string, number>();
-  Object.entries(perPointAgg).forEach(([pid, agg]) => {
+  Object.entries(perPointAgg).forEach(([pid, agg]) =>
+  {
     if (agg.count > 0) avgCompletionByPoint.set(pid, Math.round(agg.sum / agg.count));
   });
-  
+
   return avgCompletionByPoint;
 }
 
@@ -100,12 +115,15 @@ function calculatePerPointAggregates(perUserPointMax: Map<string, number>): Map<
  */
 function calculateViewsByEntity<T extends { point_id?: string; game_id?: string; }>(
   viewEvents: Array<T>,
-  entityKey: keyof T
-): Map<string, number> {
+  entityKey: keyof T,
+): Map<string, number>
+{
   const viewsByEntity = new Map<string, number>();
-  (viewEvents || []).forEach(ev => {
+  (viewEvents || []).forEach(ev =>
+  {
     const entityId = ev[entityKey] as string;
-    if (entityId) {
+    if (entityId)
+    {
       viewsByEntity.set(entityId, (viewsByEntity.get(entityId) || 0) + 1);
     }
   });
@@ -116,7 +134,8 @@ function calculateViewsByEntity<T extends { point_id?: string; game_id?: string;
  * Calculate player engagement scores based on acknowledgment rate and completion rate.
  * Uses a weighted formula: 60% ack rate + 40% completion rate.
  */
-function calculatePlayerScore(ackRate: number, completionRate: number): number {
+function calculatePlayerScore(ackRate: number, completionRate: number): number
+{
   return 0.6 * ackRate + 0.4 * completionRate;
 }
 
@@ -128,21 +147,23 @@ function calculatePlayerEngagementScores(
   players: Array<{ id: string; name: string; user_id: string; }>,
   pointIds: string[],
   tagsByPlayer: Map<string, string[]>,
-  ackCountByPlayer: Map<string, number>, 
-  perUserPointMax: Map<string, number>
+  ackCountByPlayer: Map<string, number>,
+  perUserPointMax: Map<string, number>,
 ): Array<{
   player_profile_id: string;
   name: string;
   // Overall engagement (ALL points)
-  ackRate: number;           // 0..1
-  completionRate: number;    // 0..1
-  score: number;             // 0..1
-  // Tagged-specific engagement  
-  taggedAckRate: number;     // 0..1
+  ackRate: number; // 0..1
+  completionRate: number; // 0..1
+  score: number; // 0..1
+  // Tagged-specific engagement
+  taggedAckRate: number; // 0..1
   taggedCompletionRate: number; // 0..1
-  taggedScore: number;       // 0..1
-}> {
-  return players.map(player => {
+  taggedScore: number; // 0..1
+}>
+{
+  return players.map(player =>
+  {
     const taggedPoints = tagsByPlayer.get(player.id) || [];
     const totalTagged = taggedPoints.length;
     const totalPoints = pointIds.length;
@@ -150,22 +171,24 @@ function calculatePlayerEngagementScores(
 
     // === OVERALL ENGAGEMENT (ALL POINTS) ===
     const ackRate = totalPoints > 0 ? (ackedCount / totalPoints) : 0;
-    
+
     // Completion across ALL points
     let allPointsCompSum = 0;
-    pointIds.forEach(pointId => {
+    pointIds.forEach(pointId =>
+    {
       const key = `${pointId}__${player.user_id}`;
       const maxComp = perUserPointMax.get(key);
       allPointsCompSum += typeof maxComp === 'number' ? maxComp : 0;
     });
     const completionRate = totalPoints > 0 ? (allPointsCompSum / totalPoints) / 100 : 0;
-    
+
     // === TAGGED-SPECIFIC ENGAGEMENT ===
     const taggedAckRate = totalTagged > 0 ? (ackedCount / totalTagged) : 0;
-    
+
     // Completion across TAGGED points only
     let taggedCompSum = 0;
-    taggedPoints.forEach(pointId => {
+    taggedPoints.forEach(pointId =>
+    {
       const key = `${pointId}__${player.user_id}`;
       const maxComp = perUserPointMax.get(key);
       taggedCompSum += typeof maxComp === 'number' ? maxComp : 0;
@@ -173,14 +196,14 @@ function calculatePlayerEngagementScores(
     const taggedCompletionRate = totalTagged > 0 ? (taggedCompSum / totalTagged) / 100 : 0;
 
     // === SCORING ===
-    const score = calculatePlayerScore(ackRate, completionRate);           // Overall score
+    const score = calculatePlayerScore(ackRate, completionRate); // Overall score
     const taggedScore = calculatePlayerScore(taggedAckRate, taggedCompletionRate); // Tagged score
 
     return {
       player_profile_id: player.id,
       name: player.name || 'Player',
       ackRate,
-      completionRate, 
+      completionRate,
       score,
       taggedAckRate,
       taggedCompletionRate,
@@ -197,23 +220,26 @@ function calculatePlayerEngagementScores(
 function calculateAvgCompletionPercent(
   viewEvents: Array<{ point_id: string; user_id: string; completion_percentage: number | null; }>,
   pointIds: string[],
-  playersWithUserIds: Array<{ user_id: string; }>
-): number {
+  playersWithUserIds: Array<{ user_id: string; }>,
+): number
+{
   const perUserPointMax = buildPerUserPointMaxMap(viewEvents);
 
   // Create complete matrix: for each point × player combination, get max completion or 0
   const allPlayerPointMaxValues: number[] = [];
-  pointIds.forEach(pointId => {
-    playersWithUserIds.forEach(player => {
+  pointIds.forEach(pointId =>
+  {
+    playersWithUserIds.forEach(player =>
+    {
       const key = `${pointId}__${player.user_id}`;
       const maxCompletion = perUserPointMax.get(key) || 0; // Default to 0 if no views
       allPlayerPointMaxValues.push(maxCompletion);
     });
   });
 
-  return allPlayerPointMaxValues.length > 0 
-    ? Math.round(allPlayerPointMaxValues.reduce((s, v) => s + v, 0) / allPlayerPointMaxValues.length * 10) / 10
-    : 0;
+  return allPlayerPointMaxValues.length > 0 ?
+    Math.round(allPlayerPointMaxValues.reduce((s, v) => s + v, 0) / allPlayerPointMaxValues.length * 10) / 10 :
+    0;
 }
 
 function parseDateRange(query: any): { startISO: string; endISO: string; }
@@ -495,13 +521,13 @@ router.get('/coach-overview', authenticateUser, async (req: AuthenticatedRequest
     const playersForScoring = playersWithUser
       .filter(p => !!p.user_id)
       .map(p => ({ id: p.id, name: p.name, user_id: p.user_id! }));
-    
+
     const playerScores = calculatePlayerEngagementScores(
       playersForScoring,
       pointIds,
       tagsByPlayer,
       ackCountByPlayer,
-      perUserPointMax
+      perUserPointMax,
     );
 
     const filteredScores = playerScores.filter(ps => (tagsByPlayer.get(ps.player_profile_id)?.length || 0) > 0);
@@ -839,7 +865,7 @@ router.get('/team/:teamId', authenticateUser, async (req: AuthenticatedRequest, 
       pointIds,
       tagsByPlayer,
       ackCountByPlayer,
-      perUserPointMax
+      perUserPointMax,
     ).filter(ps => (tagsByPlayer.get(ps.player_profile_id)?.length || 0) > 0);
 
     const topPlayers = playerScores
