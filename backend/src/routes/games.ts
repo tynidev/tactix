@@ -1,6 +1,6 @@
+import { extractYouTubeId, TeamRole } from '@tactix/shared';
 import { Response, Router } from 'express';
 import { AuthenticatedRequest, authenticateUser } from '../middleware/auth.js';
-import { TeamRole } from '../types/database.js';
 import { requireTeamRole } from '../utils/roleAuth.js';
 import { supabase } from '../utils/supabase.js';
 import { validateYouTubeVideo } from '../utils/youtubeValidator.js';
@@ -157,15 +157,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
     }
 
     // Extract YouTube video ID from URL if full URL is provided
-    let processedVideoId = video_id;
-    if (video_id && (video_id.includes('youtube.com') || video_id.includes('youtu.be')))
-    {
-      const urlMatch = video_id.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-      if (urlMatch)
-      {
-        processedVideoId = urlMatch[1];
-      }
-    }
+    const processedVideoId = extractYouTubeId(video_id) || video_id;
 
     // Validate YouTube video exists and is accessible
     const validationResult = await validateYouTubeVideo(processedVideoId);
@@ -431,15 +423,7 @@ router.put('/:gameId', async (req: AuthenticatedRequest, res: Response): Promise
     }
 
     // Extract YouTube video ID from URL if full URL is provided
-    let processedVideoId = video_id;
-    if (video_id && (video_id.includes('youtube.com') || video_id.includes('youtu.be')))
-    {
-      const urlMatch = video_id.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-      if (urlMatch)
-      {
-        processedVideoId = urlMatch[1];
-      }
-    }
+    const processedVideoId = extractYouTubeId(video_id) || video_id;
 
     // Validate YouTube video exists and is accessible
     const validationResult = await validateYouTubeVideo(processedVideoId);

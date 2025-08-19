@@ -3,6 +3,8 @@
  * Uses YouTube oEmbed API to check if a video exists and is accessible
  */
 
+import { isYouTubeUrl } from '@tactix/shared';
+
 interface YouTubeValidationResult
 {
   isValid: boolean;
@@ -24,9 +26,8 @@ export async function validateYouTubeVideo(videoId: string): Promise<YouTubeVali
     };
   }
 
-  // Basic format validation for YouTube video ID (11 characters, alphanumeric + - and _)
-  const videoIdPattern = /^[a-zA-Z0-9_-]{11}$/;
-  if (!videoIdPattern.test(videoId.trim()))
+  // Use shared utility to validate YouTube video ID format
+  if (!isYouTubeUrl(videoId.trim()))
   {
     return {
       isValid: false,

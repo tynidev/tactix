@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.38.0",
+    "@tactix/shared": "file:../shared",
     "jwt-decode": "^4.0.0",
     "react": "^18.2.0",
     "react-datepicker": "^8.4.0",

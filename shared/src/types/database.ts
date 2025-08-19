@@ -361,6 +361,7 @@ export type Database = {
           team_id: string;
           team_score: number | null;
           video_id: string | null;
+          video_url: string | null;
         };
         Insert: {
           created_at?: string | null;
@@ -375,6 +376,7 @@ export type Database = {
           team_id: string;
           team_score?: number | null;
           video_id?: string | null;
+          video_url?: string | null;
         };
         Update: {
           created_at?: string | null;
@@ -389,6 +391,7 @@ export type Database = {
           team_id?: string;
           team_score?: number | null;
           video_id?: string | null;
+          video_url?: string | null;
         };
         Relationships: [
           {

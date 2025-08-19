@@ -1,3 +1,4 @@
+import { extractYouTubeId } from '@tactix/shared';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Modal } from '../Modal';
 import './GameForm.css';
@@ -74,32 +75,6 @@ export const GameForm: React.FC<GameFormProps> = ({
     setFormData(initialFormData);
   }, [initialFormData]);
 
-  // Helper function to extract YouTube video ID from URL
-  const extractYouTubeId = (url: string): string =>
-  {
-    if (!url) return '';
-
-    // If it's already just an ID (11 characters), return as is
-    if (url.length === 11 && !url.includes('/') && !url.includes('='))
-    {
-      return url;
-    }
-
-    // Extract ID from various YouTube URL formats
-    const patterns = [
-      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/)([^&\n?#]+)/,
-      /youtube\.com\/watch\?.*v=([^&\n?#]+)/,
-    ];
-
-    for (const pattern of patterns)
-    {
-      const match = url.match(pattern);
-      if (match) return match[1];
-    }
-
-    return url; // Return original if no pattern matches
-  };
-
   const handleSubmit = async (e: React.FormEvent) =>
   {
     e.preventDefault();
@@ -120,9 +95,9 @@ export const GameForm: React.FC<GameFormProps> = ({
 
     // Validate that we can extract a valid YouTube ID
     const extractedId = extractYouTubeId(formData.video_id.trim());
-    if (!extractedId || extractedId === formData.video_id.trim())
+    if (!extractedId)
     {
-      // If extractedId equals the original input, it means no patterns matched
+      // If extractedId is null, it means no patterns matched
       setValidationMessage('Please provide a valid YouTube video URL');
       return;
     }
