@@ -3,7 +3,7 @@
  * Uses YouTube oEmbed API to check if a video exists and is accessible
  */
 
-import { isYouTubeUrl } from '../utils/videoUtils.js'
+import { isYouTubeUrl } from '../utils/videoUtils.js';
 
 interface YouTubeValidationResult
 {

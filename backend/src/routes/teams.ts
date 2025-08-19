@@ -1,6 +1,6 @@
-import { TeamRole } from '../types/database.js';
 import { Request, Response, Router } from 'express';
 import { AuthenticatedRequest, authenticateUser } from '../middleware/auth.js';
+import { TeamRole } from '../types/database.js';
 import { requireTeamRole } from '../utils/roleAuth.js';
 import { supabase } from '../utils/supabase.js';
 

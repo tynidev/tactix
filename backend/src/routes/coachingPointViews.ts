@@ -1,6 +1,6 @@
-import { Database } from '../types/database.js'
 import { Response, Router } from 'express';
 import { AuthenticatedRequest, authenticateUser } from '../middleware/auth.js';
+import { Database } from '../types/database.js';
 import { supabase } from '../utils/supabase.js';
 
 const router = Router();
