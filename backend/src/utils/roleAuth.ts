@@ -1,4 +1,4 @@
-import { TeamRole } from '@tactix/shared';
+import { TeamRole } from '../types/database.js';
 import { supabase } from './supabase.js';
 
 export interface UserTeamRole

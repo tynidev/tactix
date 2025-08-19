@@ -1,4 +1,5 @@
-import { extractYouTubeId, TeamRole } from '@tactix/shared';
+import { TeamRole } from '../types/database.js';
+import { extractYouTubeId } from '../utils/videoUtils.js';
 import { Response, Router } from 'express';
 import { AuthenticatedRequest, authenticateUser } from '../middleware/auth.js';
 import { requireTeamRole } from '../utils/roleAuth.js';

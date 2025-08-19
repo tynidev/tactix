@@ -1,4 +1,4 @@
-import { TeamRole } from '@tactix/shared';
+import { TeamRole } from '../types/database.js';
 import { Request, Response, Router } from 'express';
 import { AuthenticatedRequest, authenticateUser } from '../middleware/auth.js';
 import { requireTeamRole } from '../utils/roleAuth.js';

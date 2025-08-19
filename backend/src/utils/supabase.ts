@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '@tactix/shared';
+import type { Database } from '../types/database.js';
 
 let _supabase: SupabaseClient<Database> | null = null;
 let _supabaseAuth: SupabaseClient<Database> | null = null;

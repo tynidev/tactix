@@ -1,4 +1,4 @@
-import { extractYouTubeId } from '@tactix/shared';
+import { extractYouTubeId } from '../../utils/videoUtils'
 import React, { useEffect, useMemo, useState } from 'react';
 import { Modal } from '../Modal';
 import './GameForm.css';
