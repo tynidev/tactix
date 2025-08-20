@@ -479,7 +479,6 @@ router.get('/confirm', async (req: Request, res: Response): Promise<void> =>
 
     if (error)
     {
-      console.error('Email confirmation error:', error);
       // Redirect to frontend with error
       res.redirect(`${process.env.FRONTEND_URL}/auth?error=confirmation_failed`);
       return;
@@ -487,12 +486,9 @@ router.get('/confirm', async (req: Request, res: Response): Promise<void> =>
 
     if (!data.user)
     {
-      console.error('Email confirmation succeeded but no user data returned');
       res.redirect(`${process.env.FRONTEND_URL}/auth?error=confirmation_failed`);
       return;
     }
-
-    console.log('Email verification successful for user:', data.user.email);
 
     // Build redirect URL - go directly to games page
     let redirectUrl = `${process.env.FRONTEND_URL}/games`;
@@ -512,7 +508,6 @@ router.get('/confirm', async (req: Request, res: Response): Promise<void> =>
   }
   catch (error)
   {
-    console.error('Email confirmation error:', error);
     res.redirect(`${process.env.FRONTEND_URL}/auth?error=confirmation_failed`);
   }
 });

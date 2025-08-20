@@ -155,7 +155,6 @@ export const GamesList = memo(forwardRef<GamesListRef, GamesListProps>(({
   useEffect(() =>
   {
     const teamCode = searchParams.get('teamCode');
-    console.log('Team code found in URL:', teamCode);
     if (teamCode)
     {
       setInitialJoinCode(teamCode);

@@ -51,7 +51,6 @@ export const Auth: React.FC = () =>
     try
     {
       const apiUrl = getApiUrl();
-      console.log('Validating team code:', code, 'API URL:', apiUrl);
 
       const response = await fetch(`${apiUrl}/api/teams/join-codes/${code}/validate`, {
         method: 'GET',
@@ -60,18 +59,13 @@ export const Auth: React.FC = () =>
         },
       });
 
-      console.log('Validation response status:', response.status);
-      console.log('Validation response ok:', response.ok);
-
       if (!response.ok)
       {
         const errorData = await response.json().catch(() => ({}));
-        console.error('Validation error response:', errorData);
         throw new Error(errorData.error || 'Invalid or expired team code');
       }
 
       const data = await response.json();
-      console.log('Validation success data:', data);
 
       return {
         name: data.team_name,
@@ -80,7 +74,6 @@ export const Auth: React.FC = () =>
     }
     catch (error)
     {
-      console.error('Team code validation error:', error);
       return null;
     }
   };
@@ -99,25 +92,20 @@ export const Auth: React.FC = () =>
 
     if (code)
     {
-      console.log('Team code found in URL:', code);
       setTeamCode(code);
       validateTeamCode(code).then(info =>
       {
-        console.log('Team validation result:', info);
         if (info)
         {
-          console.log('Setting team info:', info);
           setTeamInfo(info);
         }
         else
         {
-          console.log('Team validation failed, setting error');
           setError('Invalid or expired team invitation code');
         }
       }).catch(error =>
       {
-        console.error('Team validation promise error:', error);
-        setError('Failed to validate team invitation code');
+        setError('Failed to validate team invitation code: ' + error);
       });
 
       // Clear the team code from URL

@@ -273,6 +273,36 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
   }, [progress, cleanupPlayback]);
 
   /**
+   * Detects actual audio duration using Web Audio API when HTML Audio reports Infinity
+   */
+  const detectAudioDuration = useCallback(async (audioUrl: string): Promise<number | null> =>
+  {
+    try
+    {
+      // Create AudioContext for duration detection
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+
+      // Fetch audio data
+      const response = await fetch(audioUrl);
+      const arrayBuffer = await response.arrayBuffer();
+
+      // Decode audio data to get duration
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+      const detectedDuration = audioBuffer.duration;
+
+      // Clean up AudioContext
+      await audioContext.close();
+
+      return detectedDuration;
+    }
+    catch (error)
+    {
+      console.warn('Failed to detect audio duration via Web Audio API:', error);
+      return null;
+    }
+  }, []);
+
+  /**
    * Starts playback of a coaching point with its events
    */
   const startPlayback = useCallback((
@@ -295,6 +325,10 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
 
     // Store event handlers
     handlersRef.current = handlers;
+
+    // Immediately set duration from database as fallback (will be overridden if audio provides valid duration)
+    const fallbackDuration = coachingPoint.duration / 1000; // Convert ms to seconds
+    setDuration(fallbackDuration);
 
     // Sort and store events by timestamp
     const events = (coachingPoint.coaching_point_events || []).sort(
@@ -327,17 +361,58 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
     const audio = new Audio(coachingPoint.audio_url);
     audioRef.current = audio;
 
-    audio.addEventListener('loadedmetadata', () =>
+    audio.addEventListener('loadedmetadata', async () =>
     {
       // Handle Infinity duration by using database duration as fallback
       let actualDuration = audio.duration;
+
       if (!isFinite(audio.duration) || audio.duration === 0)
       {
-        actualDuration = coachingPoint.duration / 1000; // Convert ms to seconds
+        // Try to detect duration using Web Audio API
+        const detectedDuration = await detectAudioDuration(coachingPoint.audio_url);
+        if (detectedDuration && isFinite(detectedDuration))
+        {
+          actualDuration = detectedDuration;
+        }
+        else
+        {
+          // Fall back to database duration
+          actualDuration = coachingPoint.duration / 1000; // Convert ms to seconds
+        }
       }
 
       setDuration(actualDuration);
       setIsLoading(false);
+    });
+
+    // Add additional fallback for duration setting
+    audio.addEventListener('canplaythrough', async () =>
+    {
+      // Secondary check for duration if it wasn't set in loadedmetadata
+      if (durationRef.current === 0)
+      {
+        let actualDuration = audio.duration;
+
+        if (!isFinite(audio.duration) || audio.duration === 0)
+        {
+          // Try Web Audio API detection
+          const detectedDuration = await detectAudioDuration(coachingPoint.audio_url);
+          if (detectedDuration && isFinite(detectedDuration))
+          {
+            actualDuration = detectedDuration;
+          }
+          else
+          {
+            // Fall back to database duration
+            actualDuration = coachingPoint.duration / 1000; // Convert ms to seconds
+          }
+        }
+
+        if (actualDuration > 0)
+        {
+          setDuration(actualDuration);
+        }
+      }
     });
 
     audio.addEventListener('play', () =>
@@ -422,7 +497,7 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
       setError('Failed to start playback. Please try again.');
       setIsLoading(false);
     });
-  }, [animationLoop, cleanupPlayback]);
+  }, [animationLoop, cleanupPlayback, detectAudioDuration]);
 
   /**
    * Pauses playback

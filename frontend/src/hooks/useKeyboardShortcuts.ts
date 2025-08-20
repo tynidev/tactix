@@ -1,12 +1,12 @@
 import { useCallback, useEffect } from 'react';
 import { CONFIG, type DrawingMode } from '../types/config';
-import type { Player } from '../types/youtube';
+import { VideoPlayer } from '../types/videoPlayer';
 
 interface UseKeyboardShortcutsProps
 {
-  player: Player | null;
-  togglePlayPause: () => void;
-  seekVideo: (seconds: number) => void;
+  videoPlayer: VideoPlayer;
+  togglePlayPause: () => void; // Use wrapped function instead of videoPlayer.togglePlayPause
+  seekVideo: (seconds: number) => void; // Use wrapped function instead of videoPlayer.seekVideo
   setPlaybackRate: (rate: number) => void;
   changeColor: (color: string) => void;
   changeMode: (mode: DrawingMode) => void;
@@ -16,7 +16,7 @@ interface UseKeyboardShortcutsProps
 }
 
 export const useKeyboardShortcuts = ({
-  player,
+  videoPlayer,
   togglePlayPause,
   seekVideo,
   setPlaybackRate,
@@ -83,48 +83,78 @@ export const useKeyboardShortcuts = ({
         break;
       case 'w':
       case 'arrowup':
-        // Speed up
-        if (player)
+      {
+        // Speed up: cycle through 0.25x -> 0.5x -> 1x -> 2x
+        let rate = CONFIG.video.playbackRates.fast;
+        try
         {
-          let rate = CONFIG.video.playbackRates.fast;
-          try
+          if (typeof videoPlayer.getPlaybackRate === 'function')
           {
-            if (typeof player.getPlaybackRate === 'function' && player.getPlaybackRate() < 1)
+            const currentRate = videoPlayer.getPlaybackRate();
+            if (currentRate === CONFIG.video.playbackRates.verySlow)
+            {
+              rate = CONFIG.video.playbackRates.slow;
+            }
+            else if (currentRate === CONFIG.video.playbackRates.slow)
             {
               rate = CONFIG.video.playbackRates.normal;
             }
+            else if (currentRate === CONFIG.video.playbackRates.normal)
+            {
+              rate = CONFIG.video.playbackRates.fast;
+            }
+            else
+            {
+              rate = CONFIG.video.playbackRates.fast; // Already at max, stay there
+            }
           }
-          catch (error)
-          {
-            console.warn('Failed to get playback rate for speed up, using fallback:', error);
-          }
-          setPlaybackRate(rate);
         }
+        catch (error)
+        {
+          console.warn('Failed to get playback rate for speed up, using fallback:', error);
+        }
+        setPlaybackRate(rate);
         break;
+      }
       case 's':
       case 'arrowdown':
-        // Speed down
-        if (player)
+      {
+        // Speed down: cycle through 2x -> 1x -> 0.5x -> 0.25x
+        let rate = CONFIG.video.playbackRates.verySlow;
+        try
         {
-          let rate = CONFIG.video.playbackRates.slow;
-          try
+          if (typeof videoPlayer.getPlaybackRate === 'function')
           {
-            if (typeof player.getPlaybackRate === 'function' && player.getPlaybackRate() > 1)
+            const currentRate = videoPlayer.getPlaybackRate();
+            if (currentRate === CONFIG.video.playbackRates.fast)
             {
               rate = CONFIG.video.playbackRates.normal;
             }
+            else if (currentRate === CONFIG.video.playbackRates.normal)
+            {
+              rate = CONFIG.video.playbackRates.slow;
+            }
+            else if (currentRate === CONFIG.video.playbackRates.slow)
+            {
+              rate = CONFIG.video.playbackRates.verySlow;
+            }
+            else
+            {
+              rate = CONFIG.video.playbackRates.verySlow; // Already at min, stay there
+            }
           }
-          catch (error)
-          {
-            console.warn('Failed to get playback rate for speed down, using fallback:', error);
-          }
-          setPlaybackRate(rate);
         }
+        catch (error)
+        {
+          console.warn('Failed to get playback rate for speed down, using fallback:', error);
+        }
+        setPlaybackRate(rate);
         break;
+      }
     }
   }, [
     disabled,
-    player,
+    videoPlayer,
     togglePlayPause,
     seekVideo,
     setPlaybackRate,

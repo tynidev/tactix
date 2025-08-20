@@ -164,7 +164,6 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
     const validationResult = await validateYouTubeVideo(processedVideoId);
     if (!validationResult.isValid)
     {
-      console.log('YouTube video validation failed:', validationResult.error);
       res.status(400).json({ error: (validationResult.error || 'Invalid YouTube video') });
       return;
     }

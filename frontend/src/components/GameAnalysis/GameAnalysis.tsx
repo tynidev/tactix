@@ -4,7 +4,6 @@ import { useCoachingPointPlayback } from '../../hooks/useCoachingPointPlayback';
 import { useDrawingCanvas } from '../../hooks/useDrawingCanvas';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { useRecordingSession } from '../../hooks/useRecordingSession';
-import { useYouTubePlayer } from '../../hooks/useYouTubePlayer';
 import type { Drawing, RecordingStartEventData } from '../../types/drawing';
 import {
   getCoachingPointAcknowledgment,
@@ -13,6 +12,7 @@ import {
   updateCoachingPointAcknowledgment,
   updateViewCompletion,
 } from '../../utils/api';
+import { createVideoPlayer } from '../../utils/videoPlayerFactory';
 import { CoachingPointModal } from '../CoachingPointModal/CoachingPointModal';
 import { CoachingPointsFlyout } from '../CoachingPointsFlyout/CoachingPointsFlyout';
 import DrawingCanvas from '../DrawingCanvas/DrawingCanvas';
@@ -216,20 +216,8 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
     };
   }, []);
 
-  // YouTube player functionality - initialize with the game's video ID
-  const {
-    player,
-    isPlaying,
-    isReady,
-    currentTime: playerCurrentTime,
-    duration,
-    videoDimensions,
-    togglePlayPause: originalTogglePlayPause,
-    seekVideo: originalSeekVideo,
-    seekToTime: originalSeekToTime,
-    setPlaybackRate,
-    updateVideoDimensions,
-  } = useYouTubePlayer(game.video_id || undefined);
+  // Video player functionality - initialize with the game's video ID using factory
+  const videoPlayer = createVideoPlayer(game);
 
   // Drawing canvas functionality
   const {
@@ -271,41 +259,48 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
     // Dismiss coaching point if one is active
     dismissCoachingPoint();
 
-    if (isRecording && player)
+    if (isRecording)
     {
-      const currentVideoTime = player.getCurrentTime();
-      const action = isPlaying ? 'pause' : 'play';
+      const currentVideoTime = videoPlayer.getCurrentTime();
+      const action = videoPlayer.isPlaying ? 'pause' : 'play';
       recordingSession.recordPlayPauseEvent(action, currentVideoTime);
     }
-    originalTogglePlayPause();
-  }, [isRecording, player, isPlaying, recordingSession, originalTogglePlayPause, dismissCoachingPoint]);
+    videoPlayer.togglePlayPause();
+  }, [
+    isRecording,
+    videoPlayer,
+    videoPlayer.isPlaying,
+    recordingSession,
+    videoPlayer.togglePlayPause,
+    dismissCoachingPoint,
+  ]);
 
   const seekVideo = useCallback((seconds: number) =>
   {
     // Dismiss coaching point if one is active
     dismissCoachingPoint();
 
-    if (isRecording && player)
+    if (isRecording)
     {
-      const fromTime = player.getCurrentTime();
+      const fromTime = videoPlayer.getCurrentTime();
       const toTime = fromTime + seconds;
       recordingSession.recordSeekEvent(fromTime, toTime);
     }
-    originalSeekVideo(seconds);
-  }, [isRecording, player, recordingSession, originalSeekVideo, dismissCoachingPoint]);
+    videoPlayer.seekVideo(seconds);
+  }, [isRecording, videoPlayer, recordingSession, dismissCoachingPoint]);
 
   const seekToTime = useCallback((time: number) =>
   {
     // Dismiss coaching point if one is active
     dismissCoachingPoint();
 
-    if (isRecording && player)
+    if (isRecording)
     {
-      const fromTime = player.getCurrentTime();
+      const fromTime = videoPlayer.getCurrentTime();
       recordingSession.recordSeekEvent(fromTime, time);
     }
-    originalSeekToTime(time);
-  }, [isRecording, player, recordingSession, originalSeekToTime, dismissCoachingPoint]);
+    videoPlayer.seekToTime(time);
+  }, [isRecording, videoPlayer, recordingSession, dismissCoachingPoint]);
 
   // Load the game video when component mounts or video_id changes
   useEffect(() =>
@@ -329,22 +324,22 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
     // Dismiss coaching point if one is active
     dismissCoachingPoint();
 
-    setPlaybackRate(rate);
+    videoPlayer.setPlaybackRate(rate);
 
     // Record speed change event if recording
     if (isRecording)
     {
       recordingSession.recordChangeSpeedEvent(rate);
     }
-  }, [setPlaybackRate, isRecording, recordingSession, dismissCoachingPoint]);
+  }, [videoPlayer.setPlaybackRate, isRecording, recordingSession, dismissCoachingPoint]);
 
   // Handle creating a coaching point
   const handleCreateCoachingPoint = useCallback(() =>
   {
-    if (!player) return;
+    if (!videoPlayer) return;
 
     // Only allow creating coaching points when video is paused
-    if (isPlaying)
+    if (videoPlayer.isPlaying)
     {
       alert('Please pause the video to add a coaching point.');
       return;
@@ -354,7 +349,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
     setRecordingData(null);
     setRecordingStartTimestamp(null); // Reset recording start timestamp for manual points
     setShowCoachingPointModal(true);
-  }, [player, isPlaying]);
+  }, [videoPlayer, videoPlayer.isPlaying]);
 
   // Handle when a coaching point is created successfully
   const handleCoachingPointCreated = useCallback(() =>
@@ -371,12 +366,12 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
       // Start recording
 
       // Capture the current video timestamp before pausing
-      const recordingStartTime = player ? player.getCurrentTime() : playerCurrentTime;
+      const recordingStartTime = videoPlayer.getCurrentTime();
 
       // Pause video if playing
-      if (isPlaying && player)
+      if (videoPlayer.isPlaying)
       {
-        player.pauseVideo();
+        videoPlayer.pauseVideo();
       }
 
       // Store the recording start timestamp
@@ -395,10 +390,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
       let playbackSpeed = 1.0;
       try
       {
-        if (player && typeof player.getPlaybackRate === 'function')
-        {
-          playbackSpeed = player.getPlaybackRate();
-        }
+        playbackSpeed = videoPlayer.getPlaybackRate();
       }
       catch (error)
       {
@@ -437,18 +429,24 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
       setRecordingData(recordingData);
       setShowCoachingPointModal(true);
     }
-  }, [isRecording, isPlaying, player, playerCurrentTime, audioRecording, recordingSession, getDrawingData]);
+  }, [
+    isRecording,
+    videoPlayer.isPlaying,
+    videoPlayer,
+    videoPlayer.currentTime,
+    audioRecording,
+    recordingSession,
+    getDrawingData,
+  ]);
 
   // Handle seeking to a coaching point timestamp
   const handleSeekToPoint = useCallback((timestampMs: string) =>
   {
-    if (!player) return;
-
     const timestamp = parseInt(timestampMs, 10) / 1000;
 
     // Use seekTo with allowSeekAhead set to true
-    player.seekTo(timestamp, true);
-  }, [player]);
+    videoPlayer.seekTo(timestamp, true);
+  }, [videoPlayer.seekTo]);
 
   // Handle showing drawings from a coaching point
   const handleShowDrawings = useCallback((drawings: Drawing[]) =>
@@ -459,10 +457,10 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
   // Handle pausing the video
   const handlePauseVideo = useCallback(() =>
   {
-    if (!player || !isPlaying) return;
+    if (!videoPlayer.isPlaying) return;
 
-    player.pauseVideo();
-  }, [player, isPlaying]);
+    videoPlayer.pauseVideo();
+  }, [videoPlayer.isPlaying, videoPlayer.pauseVideo]);
 
   // Handle selecting a coaching point
   const handleSelectCoachingPoint = useCallback(async (point: CoachingPoint | null) =>
@@ -473,13 +471,19 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
       playback.stopPlayback();
     }
 
+    // Clear canvas when closing the coaching point sidebar (point is null)
+    if (!point && selectedCoachingPoint)
+    {
+      clearCanvas();
+    }
+
     if (point && !point.audio_url)
     {
       await recordCoachingPointView(point.id, 100);
     }
 
     setSelectedCoachingPoint(point);
-  }, [playback]);
+  }, [playback, selectedCoachingPoint, clearCanvas]);
 
   // Load guardian players for non-player roles (coach, admin, guardian)
   useEffect(() =>
@@ -644,50 +648,54 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
   // Reset transport controls to default state
   const resetTransportControls = useCallback(() =>
   {
-    if (!player || !selectedCoachingPoint) return;
+    if (!selectedCoachingPoint) return;
 
     // 1. Pause video if playing
-    if (player.getPlayerState() === 1)
+    if (videoPlayer.getPlayerState() === 1)
     { // Playing
-      player.pauseVideo();
+      videoPlayer.pauseVideo();
     }
 
     // 2. Set video to the beginning of the coaching point timestamp
     const coachingPointTimestamp = parseInt(selectedCoachingPoint.timestamp) / 1000; // Convert ms to seconds
-    player.seekTo(coachingPointTimestamp, true);
+    videoPlayer.seekTo(coachingPointTimestamp, true);
 
     // 3. Clear the canvas
     clearCanvas();
 
     // 4. Set playback to 1x speed
-    player.setPlaybackRate(1);
+    videoPlayer.setPlaybackRate(1);
 
     // 5. Clear video playing state tracking
     wasVideoPlayingBeforePauseRef.current = false;
-  }, [player, selectedCoachingPoint, clearCanvas]);
+  }, [
+    selectedCoachingPoint,
+    clearCanvas,
+    videoPlayer.getPlayerState,
+    videoPlayer.pauseVideo,
+    videoPlayer.seekTo,
+    videoPlayer.setPlaybackRate,
+  ]);
 
   // Playback event handlers for coaching_point_events during coaching point playback
   const playbackEventHandlers = useCallback((capturedViewEventId?: string) => ({
     onPlayEvent: () =>
     {
-      if (player && player.getPlayerState() !== 1)
+      if (videoPlayer.getPlayerState() !== 1)
       { // Not playing
-        player.playVideo();
+        videoPlayer.playVideo();
       }
     },
     onPauseEvent: () =>
     {
-      if (player && player.getPlayerState() === 1)
+      if (videoPlayer.getPlayerState() === 1)
       { // Playing
-        player.pauseVideo();
+        videoPlayer.pauseVideo();
       }
     },
     onSeekEvent: (time: number) =>
     {
-      if (player)
-      {
-        player.seekTo(time, true);
-      }
+      videoPlayer.seekTo(time, true);
     },
     onDrawEvent: (drawings: Drawing[]) =>
     {
@@ -695,24 +703,24 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
     },
     onSpeedEvent: (speed: number) =>
     {
-      if (player)
-      {
-        player.setPlaybackRate(speed);
-      }
+      videoPlayer.setPlaybackRate(speed);
     },
     onRecordingStartEvent: (initialState: RecordingStartEventData) =>
     {
+      // Pause video
+      videoPlayer.pauseVideo();
+
       // Set playback speed
-      if (player && initialState.playbackSpeed)
+      if (initialState.playbackSpeed)
       {
-        player.setPlaybackRate(initialState.playbackSpeed);
+        videoPlayer.setPlaybackRate(initialState.playbackSpeed);
       }
 
       // Set video timestamp (convert milliseconds to seconds)
-      if (player && initialState.videoTimestamp !== undefined)
+      if (initialState.videoTimestamp !== undefined)
       {
         const timestampInSeconds = initialState.videoTimestamp / 1000;
-        player.seekTo(timestampInSeconds, true);
+        videoPlayer.seekTo(timestampInSeconds, true);
       }
 
       // Set existing drawings
@@ -744,11 +752,25 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
       // Reset transport controls when playback finishes
       resetTransportControls();
     },
-  }), [player, setDrawingData, resetTransportControls, currentViewEventId]);
+  }), [
+    videoPlayer.getPlayerState,
+    videoPlayer.playVideo,
+    videoPlayer.pauseVideo,
+    videoPlayer.seekTo,
+    videoPlayer.setPlaybackRate,
+    setDrawingData,
+    resetTransportControls,
+    currentViewEventId,
+  ]);
 
   // Handle auto-starting coaching point playback when clicked in flyout
   const handleStartCoachingPointPlayback = useCallback(async (point: CoachingPoint) =>
   {
+    if (!point) return;
+
+    // Pause video
+    videoPlayer.pauseVideo();
+
     // Ensure the point is selected first (this should already be done by handleSelectCoachingPoint)
     setSelectedCoachingPoint(point);
 
@@ -781,6 +803,9 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
   const handleStartPlayback = useCallback(async () =>
   {
     if (!selectedCoachingPoint) return;
+
+    // Pause video
+    videoPlayer.pauseVideo();
 
     // Always record a new view when starting fresh playback
     let capturedViewEventId: string | undefined;
@@ -852,15 +877,21 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
     // Mark this as sidebar-initiated playback
     setPlaybackStartedFromFlyout(false);
 
-    if (playback.currentTime > 0 && playback.currentTime < playback.duration && !playback.isPlaying)
+    // Allow resume if:
+    // 1. Standard case: currentTime > 0 AND currentTime < duration AND not playing
+    // 2. Duration unknown case: currentTime > 0 AND duration is 0 AND not playing (audio element should have the actual position)
+    if (
+      playback.currentTime > 0 && !playback.isPlaying &&
+      (playback.duration === 0 || playback.currentTime < playback.duration)
+    )
     {
       // Resume if paused (but not if at the end)
       playback.resumePlayback();
 
       // Resume video if it was playing before we paused
-      if (wasVideoPlayingBeforePauseRef.current && player && player.getPlayerState() !== 1)
+      if (wasVideoPlayingBeforePauseRef.current && videoPlayer.getPlayerState() !== 1)
       {
-        player.playVideo();
+        videoPlayer.playVideo();
       }
     }
     else
@@ -868,16 +899,16 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
       // Start fresh playback (or restart if at the end)
       handleStartPlayback();
     }
-  }, [playback, handleStartPlayback, player]);
+  }, [playback, handleStartPlayback, videoPlayer]);
 
   // Handle pause playback
   const handlePausePlayback = useCallback(() =>
   {
     // Remember if the video was playing before we pause
-    if (player && player.getPlayerState() === 1)
+    if (videoPlayer.getPlayerState() === 1)
     { // Video is playing
       wasVideoPlayingBeforePauseRef.current = true;
-      player.pauseVideo();
+      videoPlayer.pauseVideo();
     }
     else
     {
@@ -886,7 +917,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
 
     // Pause the coaching point audio
     playback.pausePlayback();
-  }, [playback, player]);
+  }, [playback, videoPlayer.getPlayerState, videoPlayer.pauseVideo]);
 
   // Handle stopping playback
   const handleStopPlayback = useCallback(() =>
@@ -1029,16 +1060,16 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
   // Update video dimensions when sidebar state changes
   useEffect(() =>
   {
-    if (isReady && updateVideoDimensions)
+    if (videoPlayer.isReady && videoPlayer.updateVideoDimensions)
     {
       // Use a small delay to ensure CSS layout changes have been applied
       const timer = setTimeout(() =>
       {
-        updateVideoDimensions();
+        videoPlayer.updateVideoDimensions();
       }, 10);
       return () => clearTimeout(timer);
     }
-  }, [selectedCoachingPoint, isReady, updateVideoDimensions]);
+  }, [selectedCoachingPoint, videoPlayer.isReady, videoPlayer.updateVideoDimensions]);
 
   // Capture drawing changes during recording
   useEffect(() =>
@@ -1048,15 +1079,15 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
     const interval = setInterval(() =>
     {
       const currentDrawings = getDrawingData();
-      if (videoDimensions)
+      if (videoPlayer.videoDimensions)
       {
         // Record if drawings have changed (including when cleared to empty array)
         const drawingsChanged = JSON.stringify(currentDrawings) !== JSON.stringify(lastDrawingsRef.current);
         if (drawingsChanged)
         {
           recordingSession.recordDrawEvent(currentDrawings, {
-            width: videoDimensions.width,
-            height: videoDimensions.height,
+            width: videoPlayer.videoDimensions.width,
+            height: videoPlayer.videoDimensions.height,
           });
           lastDrawingsRef.current = [...currentDrawings];
         }
@@ -1064,7 +1095,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
     }, 4); // Capture every 4ms
 
     return () => clearInterval(interval);
-  }, [isRecording, getDrawingData, videoDimensions, recordingSession]);
+  }, [isRecording, getDrawingData, videoPlayer.videoDimensions, recordingSession]);
 
   // Unified auto-hide system effects
 
@@ -1157,7 +1188,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
-    player,
+    videoPlayer,
     togglePlayPause,
     seekVideo,
     setPlaybackRate: handlePlaybackRateChange,
@@ -1204,13 +1235,13 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
             !isFlyoutExpanded ? 'flyout-collapsed' : ''
           }`}
         >
-          <YouTubePlayer className={isReady ? '' : 'loading'} />
+          <YouTubePlayer className={videoPlayer.isReady ? '' : 'loading'} />
           <DrawingCanvas
             canvasRef={canvasRef}
             startDrawing={startDrawing}
             draw={draw}
             stopDrawing={stopDrawing}
-            videoDimensions={videoDimensions}
+            videoDimensions={videoPlayer.videoDimensions}
           />
 
           <DrawingToolbar
@@ -1512,7 +1543,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
           setRecordingStartTimestamp(null); // Reset recording start timestamp
         }}
         gameId={game.id}
-        timestamp={recordingStartTimestamp !== null ? recordingStartTimestamp : playerCurrentTime}
+        timestamp={recordingStartTimestamp !== null ? recordingStartTimestamp : videoPlayer.currentTime}
         drawingData={getDrawingData()}
         onCoachingPointCreated={handleCoachingPointCreated}
         recordingData={recordingData}
@@ -1530,14 +1561,14 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
         refreshTrigger={coachingPointsRefresh}
         onExpandedChange={setIsFlyoutExpanded}
         isVisible={areBothUIElementsVisible}
-        isPlaying={isPlaying}
-        currentTime={playerCurrentTime}
-        duration={duration}
+        isPlaying={videoPlayer.isPlaying}
+        currentTime={videoPlayer.currentTime}
+        duration={videoPlayer.duration}
         currentPlaybackRate={(() =>
         {
           try
           {
-            return (player && typeof player.getPlaybackRate === 'function') ? player.getPlaybackRate() : 1;
+            return videoPlayer.getPlaybackRate();
           }
           catch (error)
           {
@@ -1556,7 +1587,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
         onCreateCoachingPoint={handleCreateCoachingPoint}
         onToggleRecording={handleToggleRecording}
         isRecording={isRecording}
-        isReady={isReady}
+        isReady={videoPlayer.isReady}
         audioRecording={audioRecording}
       />
     </div>

@@ -232,6 +232,9 @@ const TransportControl: React.FC<TransportControlProps> = ({
   const handleRewind = useCallback(() => onSeek(-CONFIG.video.seekAmount), [onSeek]);
   const handleForward = useCallback(() => onSeek(CONFIG.video.seekAmount), [onSeek]);
 
+  const handleVerySlowSpeed = useCallback(() => onPlaybackRateChange(CONFIG.video.playbackRates.verySlow), [
+    onPlaybackRateChange,
+  ]);
   const handleSlowSpeed = useCallback(() => onPlaybackRateChange(CONFIG.video.playbackRates.slow), [
     onPlaybackRateChange,
   ]);
@@ -325,28 +328,36 @@ const TransportControl: React.FC<TransportControlProps> = ({
         {/* Speed Controls - Right */}
         <div className='speed-controls'>
           <button
+            className={`speed-btn ${currentPlaybackRate === CONFIG.video.playbackRates.verySlow ? 'active' : ''}`}
+            onClick={handleVerySlowSpeed}
+            disabled={disabled}
+            title={disabled ? 'Transport controls disabled during coaching point playback' : '0.25x Speed - Very Slow'}
+          >
+            ¼
+          </button>
+          <button
             className={`speed-btn ${currentPlaybackRate === CONFIG.video.playbackRates.slow ? 'active' : ''}`}
             onClick={handleSlowSpeed}
             disabled={disabled}
-            title={disabled ? 'Transport controls disabled during coaching point playback' : '0.5x Speed'}
+            title={disabled ? 'Transport controls disabled during coaching point playback' : '0.5x Speed - Slow'}
           >
-            0.5x
+            ½
           </button>
           <button
             className={`speed-btn ${currentPlaybackRate === CONFIG.video.playbackRates.normal ? 'active' : ''}`}
             onClick={handleNormalSpeed}
             disabled={disabled}
-            title={disabled ? 'Transport controls disabled during coaching point playback' : 'Normal Speed'}
+            title={disabled ? 'Transport controls disabled during coaching point playback' : '1x Speed - Normal'}
           >
-            1x
+            1×
           </button>
           <button
             className={`speed-btn ${currentPlaybackRate === CONFIG.video.playbackRates.fast ? 'active' : ''}`}
             onClick={handleFastSpeed}
             disabled={disabled}
-            title={disabled ? 'Transport controls disabled during coaching point playback' : '2x Speed'}
+            title={disabled ? 'Transport controls disabled during coaching point playback' : '2x Speed - Fast'}
           >
-            2x
+            2×
           </button>
           {onToggleFullscreen && (
             <button

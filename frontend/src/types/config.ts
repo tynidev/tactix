@@ -20,6 +20,7 @@ export interface Config
     defaultVideoId: string;
     seekAmount: number;
     playbackRates: {
+      verySlow: number;
       slow: number;
       normal: number;
       fast: number;
@@ -58,6 +59,7 @@ export const CONFIG: Config = {
     defaultVideoId: 'CoFBQyle37A',
     seekAmount: 10,
     playbackRates: {
+      verySlow: 0.25,
       slow: 0.5,
       normal: 1,
       fast: 2,

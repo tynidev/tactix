@@ -350,6 +350,13 @@ export const createCoachingPointWithRecording = async (
     {
       const eventsData = recordingEvents.map(event =>
       {
+        const eventData = {
+          point_id: coachingPoint.id,
+          event_type: event.type,
+          timestamp: event.timestamp,
+          event_data: event.data,
+        };
+
         // Compress drawing data if present
         if (event.type === 'draw' && event.data?.drawings)
         {
@@ -365,12 +372,7 @@ export const createCoachingPointWithRecording = async (
           };
         }
 
-        return {
-          point_id: coachingPoint.id,
-          event_type: event.type,
-          timestamp: event.timestamp,
-          event_data: event.data,
-        };
+        return eventData;
       });
 
       const batchResponse = await apiRequest('/api/coaching-point-events/batch', {

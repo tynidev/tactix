@@ -348,6 +348,127 @@ export const useYouTubePlayer = (videoId?: string) =>
     }
   }, []);
 
+  /**
+   * Gets the current playback time in seconds
+   * Wrapper around the YouTube Player API getCurrentTime method
+   *
+   * @returns Current time in seconds
+   */
+  const getCurrentTime = useCallback(() =>
+  {
+    if (!playerRef.current) return 0;
+
+    try
+    {
+      return playerRef.current.getCurrentTime();
+    }
+    catch (error)
+    {
+      console.error('Error getting current time:', error);
+      return 0;
+    }
+  }, []);
+
+  /**
+   * Gets the current player state
+   * Returns YouTube Player state constants:
+   * -1 (unstarted), 0 (ended), 1 (playing), 2 (paused), 3 (buffering), 5 (video cued)
+   *
+   * @returns Player state number
+   */
+  const getPlayerState = useCallback(() =>
+  {
+    if (!playerRef.current) return -1;
+
+    try
+    {
+      return playerRef.current.getPlayerState();
+    }
+    catch (error)
+    {
+      console.error('Error getting player state:', error);
+      return -1;
+    }
+  }, []);
+
+  /**
+   * Gets the current playback rate
+   * Wrapper around the YouTube Player API getPlaybackRate method
+   *
+   * @returns Current playback rate (1 = normal speed)
+   */
+  const getPlaybackRate = useCallback(() =>
+  {
+    if (!playerRef.current || !isReady) return 1;
+
+    try
+    {
+      return playerRef.current.getPlaybackRate();
+    }
+    catch (error)
+    {
+      console.error('Error getting playback rate:', error);
+      return 1;
+    }
+  }, [isReady]);
+
+  /**
+   * Pauses the video playback
+   * Wrapper around the YouTube Player API pauseVideo method
+   */
+  const pauseVideo = useCallback(() =>
+  {
+    if (!playerRef.current) return;
+
+    try
+    {
+      playerRef.current.pauseVideo();
+    }
+    catch (error)
+    {
+      console.error(`[YouTubePlayer] Error pausing video:`, error);
+    }
+  }, []);
+
+  /**
+   * Starts or resumes video playback
+   * Wrapper around the YouTube Player API playVideo method
+   */
+  const playVideo = useCallback(() =>
+  {
+    if (!playerRef.current) return;
+
+    try
+    {
+      playerRef.current.playVideo();
+    }
+    catch (error)
+    {
+      console.error(`[YouTubePlayer] Error playing video:`, error);
+    }
+  }, []);
+
+  /**
+   * Seeks to a specific time position in the video
+   * Wrapper around the YouTube Player API seekTo method
+   *
+   * @param time - Time in seconds to seek to
+   * @param allowSeekAhead - Whether to allow seeking ahead of buffered content
+   */
+  const seekTo = useCallback((time: number, allowSeekAhead: boolean = true) =>
+  {
+    if (!playerRef.current) return;
+
+    try
+    {
+      playerRef.current.seekTo(time, allowSeekAhead);
+    }
+    catch (error)
+    {
+      console.error(`[YouTubePlayer] Error seeking to time:`, error);
+    }
+  }, []);
+
   useEffect(() =>
   {
     return () =>
@@ -369,7 +490,6 @@ export const useYouTubePlayer = (videoId?: string) =>
   }, []);
 
   return {
-    player: playerRef.current,
     isPlaying,
     isReady,
     currentTime,
@@ -380,5 +500,11 @@ export const useYouTubePlayer = (videoId?: string) =>
     seekToTime,
     setPlaybackRate,
     updateVideoDimensions,
+    getCurrentTime,
+    getPlayerState,
+    getPlaybackRate,
+    pauseVideo,
+    playVideo,
+    seekTo,
   };
 };
