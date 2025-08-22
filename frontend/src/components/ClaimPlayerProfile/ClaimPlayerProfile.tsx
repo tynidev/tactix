@@ -10,6 +10,11 @@ interface Player
   team_name?: string;
   user_id?: string;
   is_claimed?: boolean;
+  has_guardians?: boolean;
+  guardian_count?: number;
+  guardians?: Array<{ guardian_id: string; guardian_name: string; }>;
+  current_user_is_guardian?: boolean;
+  can_claim_as_guardian?: boolean;
 }
 
 interface UserProfile
@@ -261,26 +266,50 @@ export const ClaimPlayerProfile: React.FC<ClaimPlayerProfileProps> = ({
             <div className='search-results'>
               <h4>Found Players</h4>
               <div className='player-list'>
-                {searchResults.map((player) => (
-                  <div
-                    key={player.id}
-                    className={`player-item ${player.is_claimed ? 'player-claimed' : ''}`}
-                    onClick={() => !player.is_claimed && handlePlayerSelect(player)}
-                  >
-                    <div className='player-info'>
-                      <div className='player-name'>
-                        {player.name}
-                        {player.jerseyNumber && <span className='player-jersey'>#{player.jerseyNumber}</span>}
+                {searchResults.map((player) =>
+                {
+                  // For players: only allow selection if not claimed
+                  // For guardians: allow selection if they can claim as guardian or if no current restriction
+                  const canSelect = isPlayer ? !player.is_claimed : (player.can_claim_as_guardian !== false);
+
+                  return (
+                    <div
+                      key={player.id}
+                      className={`player-item ${!canSelect ? 'player-disabled' : ''} ${
+                        player.current_user_is_guardian ? 'player-current-guardian' : ''
+                      }`}
+                      onClick={() => canSelect && handlePlayerSelect(player)}
+                    >
+                      <div className='player-info'>
+                        <div className='player-name'>
+                          {player.name}
+                          {player.jerseyNumber && <span className='player-jersey'>#{player.jerseyNumber}</span>}
+                        </div>
+                        {player.team_name && <div className='player-team'>{player.team_name}</div>}
+                        {!isPlayer && player.has_guardians && (
+                          <div className='player-guardians'>
+                            {player.guardian_count === 1 ? '1 Guardian' : `${player.guardian_count} Guardians`}
+                          </div>
+                        )}
                       </div>
-                      {player.team_name && <div className='player-team'>{player.team_name}</div>}
+                      <div className='player-status'>
+                        {isPlayer ?
+                          (
+                            player.is_claimed ?
+                              <span className='status-claimed'>Already Claimed</span> :
+                              <span className='status-available'>Available</span>
+                          ) :
+                          (
+                            player.current_user_is_guardian ?
+                              <span className='status-current-guardian'>You are a Guardian</span> :
+                              player.can_claim_as_guardian ?
+                              <span className='status-available'>Can Add as Guardian</span> :
+                              <span className='status-disabled'>Cannot Add</span>
+                          )}
+                      </div>
                     </div>
-                    <div className='player-status'>
-                      {player.is_claimed ?
-                        <span className='status-claimed'>Already Claimed</span> :
-                        <span className='status-available'>Available</span>}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

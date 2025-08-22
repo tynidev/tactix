@@ -27,6 +27,11 @@ interface Player
   team_name?: string;
   user_id?: string;
   is_claimed?: boolean;
+  has_guardians?: boolean;
+  guardian_count?: number;
+  guardians?: Array<{ guardian_id: string; guardian_name: string; }>;
+  current_user_is_guardian?: boolean;
+  can_claim_as_guardian?: boolean;
 }
 
 export const JoinTeamModal: React.FC<JoinTeamModalProps> = ({ isOpen, onClose, onSuccess, initialJoinCode }) =>

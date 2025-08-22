@@ -75,6 +75,22 @@
   background: var(--color-bg-input);
 }
 
+.player-item.player-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--color-bg-input);
+}
+
+.player-item.player-current-guardian {
+  border-color: var(--color-success);
+  background: rgba(34, 197, 94, 0.05);
+}
+
+.player-item.player-disabled:hover {
+  border-color: var(--border-color);
+  background: var(--color-bg-input);
+}
+
 .player-info {
   flex: 1;
 }
@@ -119,6 +135,25 @@
   color: var(--color-text-muted);
   font-size: 0.8rem;
   font-weight: 600;
+}
+
+.status-current-guardian {
+  color: var(--color-success);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.status-disabled {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.player-guardians {
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  margin-top: var(--space-xs);
+  font-style: italic;
 }
 
 /* No Results */

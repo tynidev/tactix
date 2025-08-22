@@ -103,6 +103,57 @@ router.get('/search', async (req: AuthenticatedRequest, res: Response): Promise<
       return;
     }
 
+    // Get guardian relationships for all players found
+    const playerIds = teamPlayers?.map(tp => tp.player_profiles?.id).filter(Boolean) || [];
+    let guardianRelationships: Record<string, any[]> = {};
+
+    if (playerIds.length > 0)
+    {
+      const { data: guardianRels, error: guardianError } = await supabase
+        .from('guardian_player_relationships')
+        .select(`
+          player_profile_id,
+          guardian_id,
+          user_profiles!guardian_player_relationships_guardian_id_fkey (
+            name
+          )
+        `)
+        .in('player_profile_id', playerIds);
+
+      if (!guardianError && guardianRels)
+      {
+        guardianRelationships = guardianRels.reduce((acc, rel) =>
+        {
+          const playerId = rel.player_profile_id;
+          if (!acc[playerId]) acc[playerId] = [];
+          const guardianProfile = Array.isArray(rel.user_profiles) ? rel.user_profiles[0] : rel.user_profiles;
+          acc[playerId].push({
+            guardian_id: rel.guardian_id,
+            guardian_name: guardianProfile?.name || 'Unknown Guardian',
+          });
+          return acc;
+        }, {} as Record<string, any[]>);
+      }
+    }
+
+    // Get current user's role to determine if they're joining as guardian
+    let userRole = null;
+    if (userMembership)
+    {
+      userRole = userMembership.role;
+    }
+    else if (joinCode && typeof joinCode === 'string')
+    {
+      // Get role from join code
+      const { data: joinCodeData } = await supabase
+        .from('team_join_codes')
+        .select('team_role')
+        .eq('code', joinCode)
+        .single();
+
+      if (joinCodeData) userRole = joinCodeData.team_role;
+    }
+
     // Format the results
     const players = teamPlayers?.map(tp =>
     {
@@ -111,13 +162,23 @@ router.get('/search', async (req: AuthenticatedRequest, res: Response): Promise<
 
       if (!playerProfile || !team) return null;
 
+      const playerId = playerProfile.id;
+      const guardians = guardianRelationships[playerId] || [];
+      const hasGuardians = guardians.length > 0;
+      const currentUserIsGuardian = guardians.some(g => g.guardian_id === userId);
+
       return {
         id: playerProfile.id,
         name: playerProfile.name,
         jersey_number: tp.jersey_number,
         team_name: team.name,
         user_id: playerProfile.user_id,
-        is_claimed: !!playerProfile.user_id, // Player is claimed if they have a user_id
+        is_claimed: !!playerProfile.user_id, // Player is claimed if they have a user_id (for players only)
+        has_guardians: hasGuardians,
+        guardian_count: guardians.length,
+        guardians: guardians,
+        current_user_is_guardian: currentUserIsGuardian,
+        can_claim_as_guardian: userRole === 'guardian' && !currentUserIsGuardian,
         created_at: playerProfile.created_at,
       };
     }).filter(Boolean) || [];
