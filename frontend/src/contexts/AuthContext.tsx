@@ -93,7 +93,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; }> = ({ childre
       {
         // Get the current session from Supabase to check for automatic refresh
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
-        
+
         if (error)
         {
           console.warn('Error checking session:', error.message);
@@ -112,10 +112,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; }> = ({ childre
         if (!isSessionValid(currentSession))
         {
           console.log('Session has expired, attempting refresh...');
-          
+
           // Try to refresh the session
           const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
-          
+
           if (refreshError || !refreshedSession)
           {
             console.log('Failed to refresh session, clearing auth state');
@@ -245,7 +245,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; }> = ({ childre
   const isSessionValid = (sessionToCheck?: Session | null): boolean =>
   {
     const sessionObj = sessionToCheck || session;
-    
+
     if (!sessionObj || !sessionObj.expires_at)
     {
       return false;
