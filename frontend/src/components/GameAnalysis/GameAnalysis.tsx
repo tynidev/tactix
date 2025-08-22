@@ -19,7 +19,7 @@ import DrawingCanvas from '../DrawingCanvas/DrawingCanvas';
 import DrawingToolbar from '../DrawingToolbar/DrawingToolbar';
 import YouTubePlayer from '../YouTubePlayer/YouTubePlayer';
 import './GameAnalysis.css';
-import { FaArrowLeft, FaCheck, FaPause, FaPlay, FaSpinner, FaStop } from 'react-icons/fa';
+import { FaArrowLeft, FaCheck, FaEdit, FaPause, FaPlay, FaSpinner, FaStop } from 'react-icons/fa';
 
 interface Game
 {
@@ -357,6 +357,17 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
     // Trigger a refresh of the coaching points flyout
     setCoachingPointsRefresh(prev => prev + 1);
   }, []);
+
+  // Handle editing a coaching point
+  const handleEditCoachingPoint = useCallback(() =>
+  {
+    if (!selectedCoachingPoint) return;
+
+    // Don't pass recording data for edit mode
+    setRecordingData(null);
+    setRecordingStartTimestamp(null);
+    setShowCoachingPointModal(true);
+  }, [selectedCoachingPoint]);
 
   // Handle starting/stopping recording
   const handleToggleRecording = useCallback(async () =>
@@ -1258,14 +1269,26 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
           <div className={`coaching-point-sidebar ${playback.isPlaying ? 'playback-active' : ''}`}>
             <div className='sidebar-header'>
               <h3>Coaching Point Details</h3>
-              <button
-                onClick={() =>
-                  handleSelectCoachingPoint(null)}
-                className='btn btn-secondary btn-sm'
-                title='Close details'
-              >
-                ✕
-              </button>
+              <div className='sidebar-actions'>
+                {game.user_role === 'coach' && (
+                  <button
+                    onClick={handleEditCoachingPoint}
+                    className='btn btn-primary btn-md'
+                    title='Edit coaching point'
+                    style={{ height: '37px', marginRight: '4px' }}
+                  >
+                    <FaEdit />
+                  </button>
+                )}
+                <button
+                  onClick={() =>
+                    handleSelectCoachingPoint(null)}
+                  className='btn btn-secondary btn-md'
+                  title='Close details'
+                >
+                  ✕
+                </button>
+              </div>
             </div>
             <div className='sidebar-content'>
               <div className='coaching-point-details'>
@@ -1547,6 +1570,8 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
         drawingData={getDrawingData()}
         onCoachingPointCreated={handleCoachingPointCreated}
         recordingData={recordingData}
+        editMode={!!selectedCoachingPoint && !recordingData}
+        existingCoachingPoint={selectedCoachingPoint && !recordingData ? selectedCoachingPoint : undefined}
       />
 
       {/* Coaching Points Flyout */}

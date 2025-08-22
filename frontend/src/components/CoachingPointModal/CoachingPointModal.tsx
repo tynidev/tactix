@@ -1,9 +1,30 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import type { Drawing } from '../../types/drawing';
-import { createCoachingPointWithRecording, getApiUrl } from '../../utils/api';
+import { createCoachingPointWithRecording, getApiUrl, updateCoachingPoint } from '../../utils/api';
 import { Modal } from '../Modal';
 import './CoachingPointModal.css';
+
+interface CoachingPoint
+{
+  id: string;
+  title: string;
+  feedback: string;
+  coaching_point_tagged_players?: {
+    id: string;
+    player_profiles: {
+      id: string;
+      name: string;
+    };
+  }[];
+  coaching_point_labels?: {
+    id: string;
+    labels: {
+      id: string;
+      name: string;
+    };
+  }[];
+}
 
 interface CoachingPointModalProps
 {
@@ -18,6 +39,9 @@ interface CoachingPointModalProps
     recordingEvents: any[];
     recordingDuration: number;
   } | null;
+  // Edit mode props
+  editMode?: boolean;
+  existingCoachingPoint?: CoachingPoint;
 }
 
 interface Player
@@ -41,6 +65,8 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
   drawingData,
   onCoachingPointCreated,
   recordingData,
+  editMode = false,
+  existingCoachingPoint,
 }) =>
 {
   const { user } = useAuth();
@@ -62,14 +88,39 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
   const labelInputRef = useRef<HTMLDivElement>(null);
   const playerInputRef = useRef<HTMLDivElement>(null);
 
-  // Reset form when modal opens/closes
+  // Reset form when modal opens/closes or populate for edit mode
   useEffect(() =>
   {
     if (isOpen)
     {
-      setFormData({ title: '', feedback: '' });
-      setSelectedPlayers([]);
-      setSelectedLabels([]);
+      if (editMode && existingCoachingPoint)
+      {
+        // Populate form with existing data
+        setFormData({
+          title: existingCoachingPoint.title,
+          feedback: existingCoachingPoint.feedback,
+        });
+        
+        // Populate selected players
+        const playerIds = existingCoachingPoint.coaching_point_tagged_players?.map(
+          tp => tp.player_profiles.id
+        ) || [];
+        setSelectedPlayers(playerIds);
+        
+        // Populate selected labels
+        const labelIds = existingCoachingPoint.coaching_point_labels?.map(
+          tl => tl.labels.id
+        ) || [];
+        setSelectedLabels(labelIds);
+      }
+      else
+      {
+        // Clear form for create mode
+        setFormData({ title: '', feedback: '' });
+        setSelectedPlayers([]);
+        setSelectedLabels([]);
+      }
+      
       setLabelInput('');
       setPlayerInput('');
       setShowLabelSuggestions(false);
@@ -77,7 +128,7 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
       setError('');
       loadPlayersAndLabels();
     }
-  }, [isOpen, gameId]);
+  }, [isOpen, gameId, editMode, existingCoachingPoint]);
 
   // Handle click outside to close suggestions
   useEffect(() =>
@@ -321,8 +372,18 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
 
     try
     {
-      // Use the new API function that handles recording data
-      if (recordingData)
+      if (editMode && existingCoachingPoint)
+      {
+        // Update existing coaching point
+        await updateCoachingPoint(
+          existingCoachingPoint.id,
+          formData.title.trim(),
+          formData.feedback.trim(),
+          selectedPlayers,
+          selectedLabels,
+        );
+      }
+      else if (recordingData)
       {
         // Create coaching point with recording data
         await createCoachingPointWithRecording(
@@ -474,7 +535,8 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
     }
     catch (err)
     {
-      setError(err instanceof Error ? err.message : 'Failed to create coaching point');
+      const action = editMode ? 'update' : 'create';
+      setError(err instanceof Error ? err.message : `Failed to ${action} coaching point`);
     }
     finally
     {
@@ -495,32 +557,34 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title='Add Coaching Point'
+      title={editMode ? 'Edit Coaching Point' : 'Add Coaching Point'}
       size='lg'
       className='coaching-point-modal'
     >
       <form onSubmit={handleSubmit} className='form'>
-        <div className='coaching-point-info'>
-          <p>
-            <strong>Timestamp:</strong> {formatTime(timestamp)}
-          </p>
-          <p>
-            <strong>Drawings:</strong> {drawingData.length} drawing elements
-          </p>
-          {recordingData && (
-            <>
-              <p>
-                <strong>Recording:</strong> {Math.floor(recordingData.recordingDuration / 1000)}s with{' '}
-                {recordingData.recordingEvents.length} events
-              </p>
-              {recordingData.audioBlob && (
+        {!editMode && (
+          <div className='coaching-point-info'>
+            <p>
+              <strong>Timestamp:</strong> {formatTime(timestamp)}
+            </p>
+            <p>
+              <strong>Drawings:</strong> {drawingData.length} drawing elements
+            </p>
+            {recordingData && (
+              <>
                 <p>
-                  <strong>Audio:</strong> {(recordingData.audioBlob.size / 1024).toFixed(1)} KB
+                  <strong>Recording:</strong> {Math.floor(recordingData.recordingDuration / 1000)}s with{' '}
+                  {recordingData.recordingEvents.length} events
                 </p>
-              )}
-            </>
-          )}
-        </div>
+                {recordingData.audioBlob && (
+                  <p>
+                    <strong>Audio:</strong> {(recordingData.audioBlob.size / 1024).toFixed(1)} KB
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        )}
 
         {error && <div className='alert alert-error'>{error}</div>}
 
@@ -686,7 +750,10 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
             className='btn btn-primary'
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Creating...' : 'Create Coaching Point'}
+            {isSubmitting ? 
+              (editMode ? 'Updating...' : 'Creating...') : 
+              (editMode ? 'Update Coaching Point' : 'Create Coaching Point')
+            }
           </button>
         </div>
       </form>

@@ -261,6 +261,190 @@ router.get('/game/:gameId', authenticateUser, async (req: AuthenticatedRequest, 
   }
 });
 
+// PUT /api/coaching-points/:id - Update a coaching point
+router.put('/:id', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> =>
+{
+  try
+  {
+    const userId = req.user?.id;
+    if (!userId)
+    {
+      res.status(401).json({ message: 'User ID not found' });
+      return;
+    }
+
+    const { id } = req.params;
+    const { title, feedback, tagged_players, labels } = req.body;
+
+    // Validate required fields
+    if (!title)
+    {
+      res.status(400).json({ message: 'Title is required' });
+      return;
+    }
+
+    // Get the coaching point and verify permissions
+    const { data: coachingPoint, error: fetchError } = await supabase
+      .from('coaching_points')
+      .select(`
+        *,
+        games!inner(
+          teams!inner(
+            id,
+            team_memberships!inner(
+              user_id,
+              role
+            )
+          )
+        )
+      `)
+      .eq('id', id)
+      .eq('games.teams.team_memberships.user_id', userId)
+      .single();
+
+    if (fetchError || !coachingPoint)
+    {
+      res.status(404).json({ message: 'Coaching point not found or access denied' });
+      return;
+    }
+
+    // Check if user has coach privileges
+    const userRole = coachingPoint.games.teams.team_memberships[0]?.role;
+    if (!['coach'].includes(userRole))
+    {
+      res.status(403).json({
+        message: 'Only coaches can edit coaching points',
+      });
+      return;
+    }
+
+    const teamId = coachingPoint.games.teams.id;
+
+    // Update the main coaching point
+    const { error: updateError } = await supabase
+      .from('coaching_points')
+      .update({
+        title: title.trim(),
+        feedback: feedback?.trim() || '',
+      })
+      .eq('id', id);
+
+    if (updateError)
+    {
+      console.error('Error updating coaching point:', updateError);
+      res.status(500).json({ message: 'Failed to update coaching point' });
+      return;
+    }
+
+    // Update tagged players
+    if (Array.isArray(tagged_players))
+    {
+      // Delete existing tagged players
+      await supabase
+        .from('coaching_point_tagged_players')
+        .delete()
+        .eq('point_id', id);
+
+      // Add new tagged players
+      if (tagged_players.length > 0)
+      {
+        const taggedPlayerInserts = tagged_players.map(playerId => ({
+          point_id: id,
+          player_id: playerId,
+        }));
+
+        const { error: tagError } = await supabase
+          .from('coaching_point_tagged_players')
+          .insert(taggedPlayerInserts);
+
+        if (tagError)
+        {
+          console.error('Error updating tagged players:', tagError);
+          // Don't fail the entire request for this
+        }
+      }
+    }
+
+    // Update labels
+    if (Array.isArray(labels))
+    {
+      // Delete existing labels
+      await supabase
+        .from('coaching_point_labels')
+        .delete()
+        .eq('point_id', id);
+
+      // Add new labels
+      if (labels.length > 0)
+      {
+        const labelInserts = labels.map(labelId => ({
+          point_id: id,
+          label_id: labelId,
+        }));
+
+        const { error: labelError } = await supabase
+          .from('coaching_point_labels')
+          .insert(labelInserts);
+
+        if (labelError)
+        {
+          console.error('Error updating labels:', labelError);
+          // Don't fail the entire request for this
+        }
+      }
+    }
+
+    // Fetch and return the updated coaching point with all relations
+    const { data: updatedCoachingPoint, error: fetchUpdatedError } = await supabase
+      .from('coaching_points')
+      .select(`
+        *,
+        author:user_profiles!author_id(
+          id,
+          name,
+          email
+        ),
+        coaching_point_tagged_players(
+          id,
+          player_profiles(
+            id,
+            name
+          )
+        ),
+        coaching_point_labels(
+          id,
+          labels(
+            id,
+            name
+          )
+        ),
+        coaching_point_events(
+          id,
+          event_type,
+          timestamp,
+          event_data,
+          created_at
+        )
+      `)
+      .eq('id', id)
+      .single();
+
+    if (fetchUpdatedError)
+    {
+      console.error('Error fetching updated coaching point:', fetchUpdatedError);
+      res.status(500).json({ message: 'Coaching point updated but failed to fetch updated data' });
+      return;
+    }
+
+    res.json(updatedCoachingPoint);
+  }
+  catch (error)
+  {
+    console.error('Error in PUT /coaching-points/:id:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 // DELETE /api/coaching-points/:id - Delete a coaching point
 router.delete('/:id', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> =>
 {
