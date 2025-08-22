@@ -4,7 +4,12 @@ import { useAuth } from '../../contexts/AuthContext';
 import { getApiUrl } from '../../utils/api';
 import ThemeToggle from '../ThemeToggle/ThemeToggle';
 
-export const Auth: React.FC = () =>
+interface AuthProps
+{
+  redirectUrl?: string;
+}
+
+export const Auth: React.FC<AuthProps> = ({ redirectUrl }) =>
 {
   const { signIn, signUp, user, session, loading: authLoading } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
@@ -37,12 +42,19 @@ export const Auth: React.FC = () =>
     );
   }
 
-  // If user is authenticated, redirect to root with query params
+  // If user is authenticated, redirect to intended destination or root
   // We trust Supabase to handle token refresh automatically
   if (user && session)
   {
-    const currentSearch = window.location.search;
-    navigate(`/${currentSearch}`);
+    if (redirectUrl)
+    {
+      navigate(redirectUrl);
+    }
+    else
+    {
+      const currentSearch = window.location.search;
+      navigate(`/${currentSearch}`);
+    }
     return null;
   }
 
@@ -150,9 +162,14 @@ export const Auth: React.FC = () =>
             // Navigate to games with join code
             navigate(`/games?teamCode=${teamCode}`);
           }
+          else if (redirectUrl)
+          {
+            // Redirect to the intended destination
+            navigate(redirectUrl);
+          }
           else
           {
-            // Normal login without team code - navigate to games
+            // Default: navigate to games
             navigate('/games');
           }
         }
