@@ -472,31 +472,7 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
     };
 
     // Get unique players and labels for filter options
-    const getUniqueFilterOptions = useCallback(() =>
-    {
-      const players = new Set<string>();
-      const labels = new Set<string>();
-
-      coachingPoints.forEach((point) =>
-      {
-        point.coaching_point_tagged_players?.forEach((tp) =>
-        {
-          players.add(tp.player_profiles.name);
-        });
-        point.coaching_point_labels?.forEach((label) =>
-        {
-          labels.add(label.labels.name);
-        });
-      });
-
-      return {
-        players: Array.from(players).sort(),
-        labels: Array.from(labels).sort(),
-      };
-    }, [coachingPoints]);
-
-    // Memoize filter options
-    useMemo(() =>
+    const filterOptions = useMemo(() =>
     {
       const players = new Set<string>();
       const labels = new Set<string>();
@@ -717,7 +693,7 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
                       className='filter-select'
                     >
                       <option value=''>All Players</option>
-                      {getUniqueFilterOptions().players.map((player) => (
+                      {filterOptions.players.map((player) => (
                         <option key={player} value={player}>
                           {player}
                         </option>
@@ -734,7 +710,7 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
                       className='filter-select'
                     >
                       <option value=''>All Labels</option>
-                      {getUniqueFilterOptions().labels.map((label) => (
+                      {filterOptions.labels.map((label) => (
                         <option key={label} value={label}>
                           {label}
                         </option>
