@@ -593,3 +593,54 @@ export const getGuardianPlayers = async (
     throw error;
   }
 };
+
+/**
+ * Update a coaching point's metadata (title, feedback, tagged players, labels)
+ * @param coachingPointId - ID of the coaching point to update
+ * @param title - Updated title/name of the coaching point
+ * @param feedback - Updated detailed feedback text
+ * @param selectedPlayers - Array of player IDs to tag with this coaching point
+ * @param selectedLabels - Array of label IDs to associate with this coaching point
+ * @returns Promise resolving to the updated coaching point object with all relations
+ */
+export const updateCoachingPoint = async (
+  coachingPointId: string,
+  title: string,
+  feedback: string,
+  selectedPlayers: string[],
+  selectedLabels: string[],
+): Promise<any> =>
+{
+  try
+  {
+    const updateData = {
+      title,
+      feedback,
+      tagged_players: selectedPlayers,
+      labels: selectedLabels,
+    };
+
+    const response = await apiRequest(`/api/coaching-points/${coachingPointId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updateData),
+    });
+
+    if (!response.ok)
+    {
+      const errorText = await response.text();
+      console.error('❌ Failed to update coaching point:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText,
+      });
+      throw new Error('Failed to update coaching point');
+    }
+
+    return await response.json();
+  }
+  catch (error)
+  {
+    console.error('❌ Error updating coaching point:', error);
+    throw error;
+  }
+};
