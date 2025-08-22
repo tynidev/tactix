@@ -358,6 +358,15 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
     setCoachingPointsRefresh(prev => prev + 1);
   }, []);
 
+  // Handle when a coaching point is updated successfully
+  const handleCoachingPointUpdated = useCallback((updatedCoachingPoint: CoachingPoint) =>
+  {
+    // Update the selected coaching point with the new data
+    setSelectedCoachingPoint(updatedCoachingPoint);
+    // Trigger a refresh of the coaching points flyout
+    setCoachingPointsRefresh(prev => prev + 1);
+  }, []);
+
   // Handle editing a coaching point
   const handleEditCoachingPoint = useCallback(() =>
   {
@@ -1569,6 +1578,7 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
         timestamp={recordingStartTimestamp !== null ? recordingStartTimestamp : videoPlayer.currentTime}
         drawingData={getDrawingData()}
         onCoachingPointCreated={handleCoachingPointCreated}
+        onCoachingPointUpdated={handleCoachingPointUpdated}
         recordingData={recordingData}
         editMode={!!selectedCoachingPoint && !recordingData}
         existingCoachingPoint={selectedCoachingPoint && !recordingData ? selectedCoachingPoint : undefined}

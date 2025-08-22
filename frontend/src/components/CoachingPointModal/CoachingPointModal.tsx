@@ -8,8 +8,19 @@ import './CoachingPointModal.css';
 interface CoachingPoint
 {
   id: string;
+  game_id: string;
+  author_id: string;
   title: string;
   feedback: string;
+  timestamp: string;
+  audio_url: string;
+  duration: number;
+  created_at: string;
+  author?: {
+    id: string;
+    name: string;
+    email: string;
+  };
   coaching_point_tagged_players?: {
     id: string;
     player_profiles: {
@@ -34,6 +45,7 @@ interface CoachingPointModalProps
   timestamp: number; // Video timestamp in seconds
   drawingData: Drawing[]; // Current drawing data from canvas
   onCoachingPointCreated?: () => void; // Callback to refresh coaching points list
+  onCoachingPointUpdated?: (updatedCoachingPoint: CoachingPoint) => void; // Callback for coaching point updates
   recordingData?: {
     audioBlob: Blob | null;
     recordingEvents: any[];
@@ -64,6 +76,7 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
   timestamp,
   drawingData,
   onCoachingPointCreated,
+  onCoachingPointUpdated,
   recordingData,
   editMode = false,
   existingCoachingPoint,
@@ -100,16 +113,16 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
           title: existingCoachingPoint.title,
           feedback: existingCoachingPoint.feedback,
         });
-        
+
         // Populate selected players
         const playerIds = existingCoachingPoint.coaching_point_tagged_players?.map(
-          tp => tp.player_profiles.id
+          tp => tp.player_profiles.id,
         ) || [];
         setSelectedPlayers(playerIds);
-        
+
         // Populate selected labels
         const labelIds = existingCoachingPoint.coaching_point_labels?.map(
-          tl => tl.labels.id
+          tl => tl.labels.id,
         ) || [];
         setSelectedLabels(labelIds);
       }
@@ -120,7 +133,7 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
         setSelectedPlayers([]);
         setSelectedLabels([]);
       }
-      
+
       setLabelInput('');
       setPlayerInput('');
       setShowLabelSuggestions(false);
@@ -375,13 +388,19 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
       if (editMode && existingCoachingPoint)
       {
         // Update existing coaching point
-        await updateCoachingPoint(
+        const updatedCoachingPoint = await updateCoachingPoint(
           existingCoachingPoint.id,
           formData.title.trim(),
           formData.feedback.trim(),
           selectedPlayers,
           selectedLabels,
         );
+
+        // Notify parent component with the updated coaching point data
+        if (onCoachingPointUpdated)
+        {
+          onCoachingPointUpdated(updatedCoachingPoint);
+        }
       }
       else if (recordingData)
       {
@@ -750,10 +769,9 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
             className='btn btn-primary'
             disabled={isSubmitting}
           >
-            {isSubmitting ? 
-              (editMode ? 'Updating...' : 'Creating...') : 
-              (editMode ? 'Update Coaching Point' : 'Create Coaching Point')
-            }
+            {isSubmitting ?
+              (editMode ? 'Updating...' : 'Creating...') :
+              (editMode ? 'Update Coaching Point' : 'Create Coaching Point')}
           </button>
         </div>
       </form>
