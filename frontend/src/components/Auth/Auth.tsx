@@ -6,7 +6,7 @@ import ThemeToggle from '../ThemeToggle/ThemeToggle';
 
 export const Auth: React.FC = () =>
 {
-  const { signIn, signUp, user, session, loading: authLoading, isSessionValid } = useAuth();
+  const { signIn, signUp, user, session, loading: authLoading } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

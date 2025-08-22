@@ -52,7 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; }> = ({ childre
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) =>
     {
-      console.log('Auth state change:', event, session?.user?.email || 'no user');
+      console.log(`[${new Date().toISOString()}] Auth state change:`, event, session?.user?.email || 'no user');
 
       // Handle different auth events
       if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED')
