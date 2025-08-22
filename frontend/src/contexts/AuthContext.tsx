@@ -86,16 +86,61 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; }> = ({ childre
   {
     if (!session) return;
 
-    // Periodic session validation check (every 5 minutes)
-    const sessionCheckInterval = setInterval(() =>
+    // Periodic session validation check (every 10 minutes)
+    const sessionCheckInterval = setInterval(async () =>
     {
-      if (!isSessionValid())
+      try
       {
-        console.log('Session expired, clearing auth state');
-        setSession(null);
-        setUser(null);
+        // Get the current session from Supabase to check for automatic refresh
+        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+        
+        if (error)
+        {
+          console.warn('Error checking session:', error.message);
+          return;
+        }
+
+        if (!currentSession)
+        {
+          console.log('No session found, clearing auth state');
+          setSession(null);
+          setUser(null);
+          return;
+        }
+
+        // Check if session has actually expired (not just approaching expiration)
+        if (!isSessionValid(currentSession))
+        {
+          console.log('Session has expired, attempting refresh...');
+          
+          // Try to refresh the session
+          const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+          
+          if (refreshError || !refreshedSession)
+          {
+            console.log('Failed to refresh session, clearing auth state');
+            setSession(null);
+            setUser(null);
+          }
+          else
+          {
+            console.log('Session refreshed successfully');
+            setSession(refreshedSession);
+            setUser(refreshedSession.user);
+          }
+        }
+        else if (currentSession !== session)
+        {
+          // Update session if it has been refreshed by Supabase
+          setSession(currentSession);
+          setUser(currentSession.user);
+        }
       }
-    }, 5 * 60 * 1000); // Check every 5 minutes
+      catch (error)
+      {
+        console.error('Error during session validation:', error);
+      }
+    }, 10 * 60 * 1000); // Check every 10 minutes
 
     return () => clearInterval(sessionCheckInterval);
   }, [session]);
@@ -197,19 +242,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; }> = ({ childre
     }
   };
 
-  const isSessionValid = (): boolean =>
+  const isSessionValid = (sessionToCheck?: Session | null): boolean =>
   {
-    if (!session || !session.expires_at)
+    const sessionObj = sessionToCheck || session;
+    
+    if (!sessionObj || !sessionObj.expires_at)
     {
       return false;
     }
 
-    // Check if token expires within the next 5 minutes (300 seconds)
-    const expiresAt = session.expires_at * 1000; // Convert to milliseconds
+    // Check if token has actually expired (not just approaching expiration)
+    const expiresAt = sessionObj.expires_at * 1000; // Convert to milliseconds
     const now = Date.now();
-    const fiveMinutesFromNow = now + (5 * 60 * 1000);
 
-    return expiresAt > fiveMinutesFromNow;
+    // Add a small buffer (30 seconds) to account for network delays
+    const bufferTime = 30 * 1000;
+
+    return expiresAt > (now + bufferTime);
   };
 
   return (
