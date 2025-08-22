@@ -1,0 +1,22 @@
+# Auto-format code files when they are edited
+# This rule runs "npm run fmt" whenever code files are modified
+
+[rules.auto_format]
+description = "Auto-format code files using npm run fmt"
+trigger = "file_edit"
+file_patterns = [
+  "*.ts",
+  "*.tsx", 
+  "*.js",
+  "*.jsx",
+  "*.json",
+  "*.css",
+  "*.scss",
+  "*.html",
+  "*.md",
+  "*.yml",
+  "*.yaml"
+]
+command = "npm run fmt"
+working_directory = "."
+run_in_background = false
