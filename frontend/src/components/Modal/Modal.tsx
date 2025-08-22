@@ -61,7 +61,7 @@ export const Modal: React.FC<ModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleBackdropClick = (e: React.MouseEvent) =>
+  const handleBackdropMouseDown = (e: React.MouseEvent) =>
   {
     if (e.target === e.currentTarget)
     {
@@ -70,7 +70,7 @@ export const Modal: React.FC<ModalProps> = ({
   };
 
   return (
-    <div className='modal-overlay' onClick={handleBackdropClick}>
+    <div className='modal-overlay' onMouseDown={handleBackdropMouseDown}>
       <div
         ref={modalRef}
         className={`modal-content modal-${size} ${className}`}
