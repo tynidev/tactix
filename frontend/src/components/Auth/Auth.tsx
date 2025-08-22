@@ -6,7 +6,7 @@ import ThemeToggle from '../ThemeToggle/ThemeToggle';
 
 export const Auth: React.FC = () =>
 {
-  const { signIn, signUp, user, loading: authLoading, isSessionValid } = useAuth();
+  const { signIn, signUp, user, session, loading: authLoading } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -37,8 +37,9 @@ export const Auth: React.FC = () =>
     );
   }
 
-  // If user is authenticated and session is valid, redirect to root with query params
-  if (user && isSessionValid())
+  // If user is authenticated, redirect to root with query params
+  // We trust Supabase to handle token refresh automatically
+  if (user && session)
   {
     const currentSearch = window.location.search;
     navigate(`/${currentSearch}`);
