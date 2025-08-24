@@ -98,6 +98,8 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
   const [showLabelSuggestions, setShowLabelSuggestions] = useState(false);
   const [showPlayerSuggestions, setShowPlayerSuggestions] = useState(false);
   const [teamId, setTeamId] = useState<string | null>(null);
+  const [tagAllExcept, setTagAllExcept] = useState<boolean>(false); // Default to "Only tag selected"
+  const [excludedPlayers, setExcludedPlayers] = useState<string[]>([]);
   const labelInputRef = useRef<HTMLDivElement>(null);
   const playerInputRef = useRef<HTMLDivElement>(null);
 
@@ -120,6 +122,10 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
         ) || [];
         setSelectedPlayers(playerIds);
 
+        // Reset exclusion mode state for edit mode
+        setTagAllExcept(false);
+        setExcludedPlayers([]);
+
         // Populate selected labels
         const labelIds = existingCoachingPoint.coaching_point_labels?.map(
           tl => tl.labels.id,
@@ -132,6 +138,8 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
         setFormData({ title: '', feedback: '' });
         setSelectedPlayers([]);
         setSelectedLabels([]);
+        setTagAllExcept(false); // Default to "Only tag selected"
+        setExcludedPlayers([]);
       }
 
       setLabelInput('');
@@ -242,7 +250,7 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
     );
   };
 
-  // Filter players based on input
+  // Filter players based on input and current mode
   const getFilteredPlayers = () =>
   {
     if (!playerInput.trim()) return [];
@@ -250,8 +258,60 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
     {
       const matchesName = player.name.toLowerCase().includes(playerInput.toLowerCase());
       const matchesJersey = player.jersey_number?.toLowerCase().includes(playerInput.toLowerCase());
-      return (matchesName || matchesJersey) && !selectedPlayers.includes(player.id);
+
+      if (tagAllExcept)
+      {
+        // In "tag all except" mode, filter out already excluded players
+        return (matchesName || matchesJersey) && !excludedPlayers.includes(player.id);
+      }
+      else
+      {
+        // In "only tag selected" mode, filter out already selected players
+        return (matchesName || matchesJersey) && !selectedPlayers.includes(player.id);
+      }
     });
+  };
+
+  // Calculate final list of player IDs to tag
+  const getFinalPlayerIds = () =>
+  {
+    if (tagAllExcept)
+    {
+      // Tag all players except excluded ones
+      return players.filter(p => !excludedPlayers.includes(p.id)).map(p => p.id);
+    }
+    else
+    {
+      // Tag only selected players
+      return selectedPlayers;
+    }
+  };
+
+  // Get summary text for current tagging mode
+  const getPlayerSummaryText = () =>
+  {
+    if (tagAllExcept)
+    {
+      const excludedCount = excludedPlayers.length;
+      const totalCount = players.length;
+      const taggedCount = totalCount - excludedCount;
+
+      if (excludedCount === 0)
+      {
+        return `All players (${totalCount} players will be tagged)`;
+      }
+      else
+      {
+        return `All players except ${excludedCount} excluded (${taggedCount} players will be tagged)`;
+      }
+    }
+    else
+    {
+      const selectedCount = selectedPlayers.length;
+  // Suppress the warning text entirely when none selected to save space.
+  if (selectedCount === 0) return '';
+  return `${selectedCount} player${selectedCount === 1 ? '' : 's'} selected`;
+    }
   };
 
   // Create a new label
@@ -329,7 +389,28 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
 
   const handlePlayerSelect = (player: Player) =>
   {
-    setSelectedPlayers(prev => [...prev, player.id]);
+    if (tagAllExcept)
+    {
+      // In "tag all except" mode, add to excluded list
+      setExcludedPlayers(prev => [...prev, player.id]);
+    }
+    else
+    {
+      // In "only tag selected" mode, add to selected list
+      setSelectedPlayers(prev => [...prev, player.id]);
+    }
+    setPlayerInput('');
+    setShowPlayerSuggestions(false);
+  };
+
+  const handleToggleChange = () =>
+  {
+    const newTagAllExcept = !tagAllExcept;
+    setTagAllExcept(newTagAllExcept);
+
+    // Clear both lists when switching modes
+    setSelectedPlayers([]);
+    setExcludedPlayers([]);
     setPlayerInput('');
     setShowPlayerSuggestions(false);
   };
@@ -385,6 +466,9 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
 
     try
     {
+      // Calculate final player IDs based on current mode
+      const finalPlayerIds = getFinalPlayerIds();
+
       if (editMode && existingCoachingPoint)
       {
         // Update existing coaching point
@@ -392,7 +476,7 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
           existingCoachingPoint.id,
           formData.title.trim(),
           formData.feedback.trim(),
-          selectedPlayers,
+          finalPlayerIds,
           selectedLabels,
         );
 
@@ -411,7 +495,7 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
           formData.feedback.trim(),
           Math.floor(timestamp * 1000), // convert to milliseconds
           drawingData,
-          selectedPlayers,
+          finalPlayerIds,
           selectedLabels,
           recordingData.audioBlob || undefined,
           recordingData.recordingEvents,
@@ -492,9 +576,9 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
         }
 
         // Handle player tagging if any players are selected
-        if (selectedPlayers.length > 0)
+        if (finalPlayerIds.length > 0)
         {
-          for (const playerId of selectedPlayers)
+          for (const playerId of finalPlayerIds)
           {
             try
             {
@@ -572,6 +656,9 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
     }));
   };
 
+  // Compute a compact summary for the current player tagging mode.
+  const playerSummary = getPlayerSummaryText();
+
   return (
     <Modal
       isOpen={isOpen}
@@ -640,7 +727,26 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
         </div>
 
         <div className='form-group'>
-          <label className='form-label'>Tagged Players</label>
+          <div className='form-label-with-toggle'>
+            <label className='form-label'>Tagged Players</label>
+            <div className='toggle-container' title={tagAllExcept ? 'Tag all players except the excluded list' : 'Only tag the players you select'}>
+              <span className='toggle-text'>Tag</span>
+              <label className='toggle-switch'>
+                <input
+                  type='checkbox'
+                  checked={tagAllExcept}
+                  onChange={handleToggleChange}
+                />
+                <span className='toggle-slider'></span>
+              </label>
+              <span className='toggle-text'>{tagAllExcept ? 'All except' : 'Only selected'}</span>
+            </div>
+          </div>
+          {playerSummary && (
+            <div className='player-summary'>
+              {playerSummary}
+            </div>
+          )}
           <div className='autocomplete-container' ref={playerInputRef}>
             <input
               type='text'
@@ -649,7 +755,7 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
               onKeyDown={handlePlayerKeyDown}
               onFocus={() => setShowPlayerSuggestions(playerInput.trim().length > 0)}
               className='form-input'
-              placeholder='Type to search players...'
+              placeholder={tagAllExcept ? 'Type to exclude players...' : 'Type to search players...'}
             />
             {showPlayerSuggestions && (
               <div className='autocomplete-suggestions'>
@@ -671,29 +777,59 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
               </div>
             )}
           </div>
-          {selectedPlayers.length > 0 && (
-            <div className='selected-tags'>
-              {selectedPlayers.map((playerId) =>
-              {
-                const player = players.find(p => p.id === playerId);
-                return player ?
-                  (
-                    <span key={playerId} className='selected-tag'>
-                      {player.name.split(' ')[0]}
-                      <button
-                        type='button'
-                        onClick={() => setSelectedPlayers(prev => prev.filter(id => id !== playerId))}
-                        className='remove-tag'
-                        aria-label={`Remove ${player.name}`}
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ) :
-                  null;
-              })}
-            </div>
-          )}
+          {tagAllExcept ?
+            (
+              excludedPlayers.length > 0 && (
+                <div className='selected-tags'>
+                  <div className='tag-section-label'>Excluded:</div>
+                  {excludedPlayers.map((playerId) =>
+                  {
+                    const player = players.find(p => p.id === playerId);
+                    return player ?
+                      (
+                        <span key={playerId} className='selected-tag excluded'>
+                          {player.name.split(' ')[0]}
+                          <button
+                            type='button'
+                            onClick={() => setExcludedPlayers(prev => prev.filter(id => id !== playerId))}
+                            className='remove-tag'
+                            aria-label={`Remove ${player.name} from excluded`}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ) :
+                      null;
+                  })}
+                </div>
+              )
+            ) :
+            (
+              selectedPlayers.length > 0 && (
+                <div className='selected-tags'>
+                  <div className='tag-section-label'>Tagged:</div>
+                  {selectedPlayers.map((playerId) =>
+                  {
+                    const player = players.find(p => p.id === playerId);
+                    return player ?
+                      (
+                        <span key={playerId} className='selected-tag'>
+                          {player.name.split(' ')[0]}
+                          <button
+                            type='button'
+                            onClick={() => setSelectedPlayers(prev => prev.filter(id => id !== playerId))}
+                            className='remove-tag'
+                            aria-label={`Remove ${player.name}`}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ) :
+                      null;
+                  })}
+                </div>
+              )
+            )}
         </div>
 
         <div className='form-group'>

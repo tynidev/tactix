@@ -221,3 +221,113 @@
 .coaching-point-modal .alert {
   margin-bottom: var(--space-lg);
 }
+
+/* Toggle switch styles */
+.form-label-with-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xs);
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+}
+
+/* Compact toggle container keeps label on one line */
+.toggle-container {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  white-space: nowrap; /* prevent wrapping */
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--border-color);
+  transition: all 0.3s ease;
+  border-radius: 24px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: all 0.3s ease;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background-color: var(--color-accent-primary);
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(26px);
+}
+
+.toggle-switch input:focus + .toggle-slider {
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+}
+
+/* Replace old .toggle-label usage with .toggle-text next to the switch */
+.toggle-text {
+  font-size: 0.85rem;
+  color: var(--color-text-primary);
+  letter-spacing: 0.2px;
+}
+
+/* Player summary text */
+.player-summary {
+  margin-top: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  border-left: 3px solid var(--color-accent-primary);
+}
+
+/* Excluded player tags */
+.selected-tag.excluded {
+  background: var(--color-text-muted);
+  color: white;
+}
+
+.selected-tag.excluded .remove-tag:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Tag section labels */
+.tag-section-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--space-xs);
+  margin-top: var(--space-sm);
+}
+
+.tag-section-label:first-child {
+  margin-top: 0;
+}

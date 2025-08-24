@@ -19,20 +19,21 @@ export default defineConfig({
         scope: '/',
         start_url: '/',
         icons: [
+          // Use existing PNG assets from /public to avoid 404s for missing SVGs
           {
-            src: 'pwa-192x192.svg',
+            src: 'favicon.png',
             sizes: '192x192',
-            type: 'image/svg+xml',
+            type: 'image/png',
           },
           {
-            src: 'pwa-512x512.svg',
+            src: 'favicon.png',
             sizes: '512x512',
-            type: 'image/svg+xml',
+            type: 'image/png',
           },
           {
-            src: 'pwa-512x512.svg',
+            src: 'favicon.png',
             sizes: '512x512',
-            type: 'image/svg+xml',
+            type: 'image/png',
             purpose: 'any maskable',
           },
         ],
