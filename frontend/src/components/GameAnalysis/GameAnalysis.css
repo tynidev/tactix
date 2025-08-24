@@ -42,6 +42,11 @@
   outline: 2px solid var(--color-accent-primary);
   outline-offset: 2px;
 }
+
+/* When the flyout is expanded, ensure the back button is visually under it */
+.circular-back-button.under-flyout {
+  z-index: 50; /* Flyout uses z-index: 100 */
+}
 .analysis-header {
   height: 50px;
   background: rgba(0, 0, 0, 0.3);
