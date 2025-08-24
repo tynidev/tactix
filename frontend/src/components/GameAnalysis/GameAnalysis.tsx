@@ -690,6 +690,8 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
         isRecording={isRecording}
         isReady={videoPlayer.isReady}
         audioRecording={audioRecording}
+        guardianPlayerIds={guardianPlayers.map(player => player.id)}
+        selectedPlayerId={selectedPlayerId}
       />
     </div>
   );

@@ -70,7 +70,7 @@
 
 .analysis-btn:disabled {
   opacity: 0.5;
-  color:white;
+  color: white;
   cursor: not-allowed;
   border-color: rgba(255, 255, 255, 0.2);
 }
@@ -125,7 +125,7 @@
   position: relative;
   top: 0px;
   transition: color var(--transition-normal);
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); /* Add shadow for depth */
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .expand-button {
@@ -228,8 +228,8 @@
 }
 
 /* Loading and Error States */
-.loading-state, 
-.error-state, 
+.loading-state,
+.error-state,
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -260,8 +260,42 @@
 .coaching-points-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   flex: 1;
+}
+
+/* Section headers */
+.cp-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.cp-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px var(--space-sm);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--border-color);
+  border-left-width: 6px;
+  border-radius: var(--radius-md);
+}
+
+.cp-section-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.cp-section-count {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  padding: 2px 8px;
 }
 
 .coaching-point-item {
@@ -286,7 +320,6 @@
 }
 
 .coaching-point-item:hover {
-  border-color: var(--color-accent-primary);
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
@@ -317,19 +350,19 @@
 }
 
 .point-timestamp {
-    background: var(--color-bg-secondary);
-    color: var(--color-accent-primary);
-    padding: 10px var(--space-sm);
-    border-radius: var(--radius-sm);
-    font-size: 0.85rem;
-    font-weight: 900;
-    font-family: monospace;
-    white-space: nowrap;
-    letter-spacing: 0.12em;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex: 1;
+  background: var(--color-bg-secondary);
+  color: var(--color-accent-primary);
+  padding: 10px var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 900;
+  font-family: monospace;
+  white-space: nowrap;
+  letter-spacing: 0.12em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
 }
 
 .delete-point-btn {
@@ -384,13 +417,13 @@
     opacity: 0.7;
     transform: scale(1);
   }
-  
+
   .coaching-point-item:hover .delete-point-btn,
   .coaching-point-item .delete-point-btn {
     opacity: 0.7;
     transform: scale(1);
   }
-  
+
   .delete-point-btn:active {
     opacity: 1;
     transform: scale(0.95);
@@ -465,13 +498,12 @@
 .player-tag,
 .label-tag {
   display: inline-block;
-  padding: 2px 6px;
+  padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius-sm);
   font-size: 0.7rem;
   font-weight: 500;
   line-height: 1.2;
   white-space: nowrap;
-  padding:var(--space-xs) var(--space-sm);
 }
 
 .player-tag {
@@ -484,6 +516,22 @@
   background: rgba(16, 185, 129, 0.1);
   color: rgb(16, 185, 129);
   border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+/* Guardian-specific styling (base) */
+.coaching-point-item.guardian-related {
+  border-color: rgb(245, 158, 11);
+}
+
+.coaching-point-item.guardian-related:hover {
+  border-color: rgb(245, 158, 11);
+}
+
+.player-tag.guardian-player {
+  background: rgba(245, 158, 11, 0.1);
+  color: rgb(245, 158, 11);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  font-weight: 600;
 }
 
 .point-footer {
@@ -521,4 +569,140 @@
 
 .flyout-content::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-secondary);
+}
+
+/* View Status and Acknowledgment Indicators (legacy, safe to keep if needed elsewhere) */
+.view-status-indicator {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.unviewed-dot {
+  width: 8px;
+  height: 8px;
+  background: rgb(59, 130, 246);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px white, 0 2px 4px rgba(0, 0, 0, 0.1);
+  animation: unviewedPulse 2s ease-in-out infinite;
+}
+
+@keyframes unviewedPulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+.acknowledgment-indicator {
+  position: absolute;
+  top: 6px;
+  left: 20px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.acknowledged-checkmark {
+  width: 16px;
+  height: 16px;
+  background: rgb(16, 185, 129);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: bold;
+  box-shadow: 0 0 0 2px white, 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Acknowledged checkbox indicator (replaces pill/right-border) */
+.ack-checkbox {
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  /* Allow hover/click for native title tooltip */
+  pointer-events: auto;
+  z-index: 2;
+}
+.ack-checkbox input {
+  width: 16px;
+  height: 16px;
+  accent-color: rgb(16, 185, 129);
+  border-radius: 2px;
+}
+
+/* Coaching Point Item State Styling (new rules) */
+/* Non-tagged: unviewed = blue full border; viewed = no border */
+.coaching-point-item.untagged.unviewed {
+  border-width: 2px;
+  border-color: rgb(59, 130, 246);
+  background: rgba(59, 130, 246, 0.04);
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.06);
+}
+.coaching-point-item.untagged.viewed {
+  border-color: transparent;
+  background: var(--color-bg-primary);
+}
+
+/* Tagged: unviewed = prominent purple border; viewed = subtle indigo border */
+.coaching-point-item.tagged.unviewed {
+  border-width: 2px;
+  border-color: rgb(245, 158, 11);
+  background: rgba(245, 158, 11, 0.04);
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.06);
+}
+.coaching-point-item.tagged.viewed {
+  border-color: rgba(255, 162, 0, 0.507);
+}
+
+/* Remove legacy unviewed left-edge and ack background styles (intentionally omitted) */
+
+/* Ensure hover does not override stateful border colors */
+.coaching-point-item.tagged.unviewed:hover,
+.coaching-point-item.tagged.viewed:hover,
+.coaching-point-item.untagged.unviewed:hover,
+.coaching-point-item.untagged.viewed:hover {
+  /* border-color stays as-is from state classes */
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+/* Mobile adjustments for indicators */
+@media (hover: none) and (pointer: coarse) {
+  .view-status-indicator {
+    top: 8px;
+    left: 8px;
+  }
+
+  .acknowledgment-indicator {
+    top: 8px;
+    left: 24px;
+  }
+
+  .unviewed-dot {
+    width: 10px;
+    height: 10px;
+  }
+
+  .acknowledged-checkmark {
+    width: 18px;
+    height: 18px;
+    font-size: 11px;
+  }
 }

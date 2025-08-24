@@ -709,4 +709,188 @@ router.post('/:id/acknowledge', authenticateUser, async (req: AuthenticatedReque
   }
 });
 
+// POST /api/coaching-points/acknowledgments/bulk - Get acknowledgments for multiple coaching points
+// Supports optional player_id query parameter for guardian proxy acknowledgments
+router.post(
+  '/acknowledgments/bulk',
+  authenticateUser,
+  async (req: AuthenticatedRequest, res: Response): Promise<void> =>
+  {
+    try
+    {
+      const userId = req.user?.id;
+      if (!userId)
+      {
+        res.status(401).json({ message: 'User ID not found' });
+        return;
+      }
+
+      const { coaching_point_ids } = req.body;
+      const { player_id } = req.query;
+
+      // Validate input
+      if (!Array.isArray(coaching_point_ids))
+      {
+        res.status(400).json({ message: 'coaching_point_ids must be an array' });
+        return;
+      }
+
+      if (coaching_point_ids.length === 0)
+      {
+        res.json({});
+        return;
+      }
+
+      // Type guard for player_id query parameter
+      const playerIdParam = typeof player_id === 'string' ? player_id : undefined;
+
+      // Verify access using a representative coaching point and capture team context
+      const { data: sampleCoachingPoint, error: sampleError } = await supabase
+        .from('coaching_points')
+        .select(`
+          id,
+          games!inner(
+            team_id,
+            teams!inner(
+              id,
+              team_memberships!inner(
+                user_id,
+                role
+              )
+            )
+          )
+        `)
+        .eq('id', coaching_point_ids[0])
+        .eq('games.teams.team_memberships.user_id', userId)
+        .single();
+
+      if (sampleError || !sampleCoachingPoint)
+      {
+        res.status(404).json({ message: 'Coaching points not found or access denied' });
+        return;
+      }
+
+      const teamId = sampleCoachingPoint.games.team_id;
+      const memberships = sampleCoachingPoint.games.teams.team_memberships || [];
+      const isCoachOrAdmin = memberships.some((m: any) => ['coach', 'admin'].includes(m.role));
+
+      let targetPlayerId: string;
+
+      try
+      {
+        if (playerIdParam)
+        {
+          // Allow either guardian proxy OR coach/admin querying within same team
+          const { data: guardianRelationship } = await supabase
+            .from('guardian_player_relationships')
+            .select('player_profile_id')
+            .eq('guardian_id', userId)
+            .eq('player_profile_id', playerIdParam)
+            .maybeSingle();
+
+          if (guardianRelationship)
+          {
+            targetPlayerId = playerIdParam;
+          }
+          else if (isCoachOrAdmin)
+          {
+            // Ensure the target player belongs to this team
+            const { data: teamPlayer, error: teamPlayerError } = await supabase
+              .from('team_players')
+              .select('id')
+              .eq('team_id', teamId)
+              .eq('player_id', playerIdParam)
+              .single();
+
+            if (teamPlayerError || !teamPlayer)
+            {
+              res.status(404).json({ message: 'Player not found on team' });
+              return;
+            }
+
+            targetPlayerId = playerIdParam;
+          }
+          else
+          {
+            res.status(403).json({ message: 'Access denied: not authorized to view acknowledgments for this player' });
+            return;
+          }
+        }
+        else
+        {
+          // Get user's own player profile
+          const { data: playerProfile } = await supabase
+            .from('player_profiles')
+            .select('id')
+            .eq('user_id', userId)
+            .maybeSingle();
+
+          if (!playerProfile)
+          {
+            // User might not have a player profile (e.g., coach) - return empty acknowledgments
+            res.json({});
+            return;
+          }
+
+          targetPlayerId = playerProfile.id;
+        }
+      }
+      catch (error)
+      {
+        console.error('Error validating player/team access:', error);
+        res.status(500).json({ message: 'Failed to validate player access' });
+        return;
+      }
+
+      // Get acknowledgment records for all coaching points in a single query
+      const { data: acknowledgments, error: ackError } = await supabase
+        .from('coaching_point_acknowledgments')
+        .select('point_id, acknowledged, ack_at, notes')
+        .in('point_id', coaching_point_ids)
+        .eq('player_id', targetPlayerId);
+
+      if (ackError)
+      {
+        console.error('Error fetching bulk acknowledgments:', ackError);
+        res.status(500).json({ message: 'Failed to fetch acknowledgments' });
+        return;
+      }
+
+      // Create a map of point_id to acknowledgment data
+      const acknowledgmentMap: Record<string, { acknowledged: boolean; ack_at: string | null; notes: string | null; }> =
+        {};
+
+      // Initialize all coaching points with default values
+      coaching_point_ids.forEach((pointId: string) =>
+      {
+        acknowledgmentMap[pointId] = {
+          acknowledged: false,
+          ack_at: null,
+          notes: null,
+        };
+      });
+
+      // Populate with actual acknowledgment data
+      if (acknowledgments)
+      {
+        acknowledgments.forEach((ack) =>
+        {
+          acknowledgmentMap[ack.point_id] = {
+            acknowledged: ack.acknowledged || false,
+            ack_at: ack.ack_at || null,
+            notes: ack.notes || null,
+          };
+        });
+      }
+
+      res.json(acknowledgmentMap);
+    }
+    catch (error)
+    {
+      console.error('Error in POST /coaching-points/acknowledgments/bulk:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  },
+);
+
 export default router;

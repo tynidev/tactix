@@ -2,7 +2,12 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FaCircle, FaPlus } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import type { Drawing } from '../../types/drawing';
-import { getApiUrl } from '../../utils/api';
+import {
+  getApiUrl,
+  getBulkCoachingPointAcknowledgments,
+  getUnviewedCoachingPoints,
+  recordCoachingPointView,
+} from '../../utils/api';
 import { ConfirmationDialog } from '../ConfirmationDialog';
 import TransportControl from '../TransportControl/TransportControl';
 import './CoachingPointsFlyout.css';
@@ -38,6 +43,10 @@ interface CoachingPoint
       name: string;
     };
   }[];
+  // View and acknowledgment status
+  isViewed?: boolean;
+  isAcknowledged?: boolean;
+  acknowledgmentDate?: string | null;
 }
 
 interface CoachingPointEvent
@@ -91,6 +100,9 @@ interface CoachingPointsFlyoutProps
     recordingTime: number;
     error: string | null;
   };
+  // Guardian-specific props
+  guardianPlayerIds?: string[]; // Array of player IDs that the guardian has a relationship with
+  selectedPlayerId?: string | null; // Currently selected player ID for acknowledgment context
 }
 
 export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
@@ -125,6 +137,9 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
     isRecording,
     isReady,
     audioRecording,
+    // Guardian-specific props
+    guardianPlayerIds = [],
+    selectedPlayerId = null,
   }) =>
   {
     const { user } = useAuth();
@@ -163,6 +178,27 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
 
     const flyoutRef = useRef<HTMLDivElement>(null);
 
+    // Helper function to check if a coaching point has guardian-related players
+    const isGuardianRelatedPoint = useCallback((point: CoachingPoint): boolean =>
+    {
+      if (!guardianPlayerIds.length) return false;
+
+      return point.coaching_point_tagged_players?.some(
+        taggedPlayer => guardianPlayerIds.includes(taggedPlayer.player_profiles.id),
+      ) || false;
+    }, [guardianPlayerIds]);
+
+    // Memoize guardianPlayerIds to prevent infinite loops
+    const memoizedGuardianPlayerIds = useMemo(() => guardianPlayerIds, [guardianPlayerIds.join(',')]);
+
+    // Helper function to check if a specific player is a guardian's player
+    const isGuardianPlayer = useCallback((playerId: string): boolean =>
+    {
+      if (!memoizedGuardianPlayerIds.length) return false;
+
+      return memoizedGuardianPlayerIds.includes(playerId);
+    }, [memoizedGuardianPlayerIds]);
+
     const loadCoachingPoints = useCallback(async () =>
     {
       const abortController = new AbortController();
@@ -194,8 +230,76 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
         }
 
         const points = await response.json();
-        const sortedPoints = points.sort((a: CoachingPoint, b: CoachingPoint) =>
+
+        // Get unviewed coaching points for this game
+        let unviewedPointIds: string[] = [];
+        try
         {
+          const unviewedPoints = await getUnviewedCoachingPoints(gameId);
+          unviewedPointIds = unviewedPoints.map(point => point.id);
+        }
+        catch (err)
+        {
+          console.warn('Failed to load unviewed coaching points:', err);
+        }
+
+        // Enrich points with view and acknowledgment status
+        let enrichedPoints = points.map((point: CoachingPoint) => ({
+          ...point,
+          isViewed: !unviewedPointIds.includes(point.id),
+          isAcknowledged: false,
+          acknowledgmentDate: null as string | null,
+        }));
+
+        // Load acknowledgment data in bulk (using same logic as sidebar)
+        if (points.length > 0)
+        {
+          try
+          {
+            const pointIds = points.map((point: CoachingPoint) => point.id);
+            let playerId: string | undefined;
+
+            // Use the same logic as the useAcknowledgment hook:
+            // For non-player roles, use the selectedPlayerId if available
+            if (userRole !== 'player')
+            {
+              playerId = selectedPlayerId || undefined;
+            }
+            const acknowledgments = await getBulkCoachingPointAcknowledgments(pointIds, playerId);
+
+            // Map acknowledgment data back to points
+            enrichedPoints = enrichedPoints.map((point: CoachingPoint) =>
+            {
+              const acknowledgment = acknowledgments[point.id];
+              return {
+                ...point,
+                isAcknowledged: acknowledgment?.acknowledged || false,
+                acknowledgmentDate: acknowledgment?.ack_at || null,
+              };
+            });
+          }
+          catch (err)
+          {
+            console.warn('Failed to load bulk acknowledgments:', err);
+            // Continue with enrichedPoints having default acknowledgment values
+          }
+        }
+
+        const sortedPoints = enrichedPoints.sort((a: CoachingPoint, b: CoachingPoint) =>
+        {
+          const getRank = (p: CoachingPoint): number =>
+          {
+            const tagged = (p.coaching_point_tagged_players && p.coaching_point_tagged_players.length > 0) || false;
+            const unviewed = !p.isViewed;
+            if (tagged && unviewed) return 0; // tagged + unviewed
+            if (unviewed && !tagged) return 1; // unviewed + not tagged
+            if (tagged && !unviewed) return 2; // tagged + viewed
+            return 3; // viewed
+          };
+
+          const ra = getRank(a);
+          const rb = getRank(b);
+          if (ra !== rb) return ra - rb;
           return parseInt(a.timestamp) - parseInt(b.timestamp);
         });
 
@@ -221,7 +325,7 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
       }
 
       return () => abortController.abort();
-    }, [gameId]);
+    }, [gameId, userRole, selectedPlayerId]);
 
     const loadDrawingEvents = useCallback(
       async (pointId: string) =>
@@ -290,6 +394,38 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
 
         // Load and show any drawings for this point
         await loadDrawingEvents(point.id);
+
+        // Optimistically mark as viewed and re-sort without requiring a page refresh
+        if (!point.isViewed)
+        {
+          setCoachingPoints((prev) =>
+          {
+            const updated = prev.map((p) => p.id === point.id ? { ...p, isViewed: true } : p);
+            // Reuse the same ranking logic used during initial load
+            const getRank = (p: CoachingPoint): number =>
+            {
+              const tagged = (p.coaching_point_tagged_players && p.coaching_point_tagged_players.length > 0) || false;
+              const unviewed = !p.isViewed;
+              if (tagged && unviewed) return 0; // tagged + unviewed
+              if (unviewed && !tagged) return 1; // unviewed + not tagged
+              if (tagged && !unviewed) return 2; // tagged + viewed
+              return 3; // viewed
+            };
+            return updated.sort((a, b) =>
+            {
+              const ra = getRank(a);
+              const rb = getRank(b);
+              if (ra !== rb) return ra - rb;
+              return parseInt(a.timestamp) - parseInt(b.timestamp);
+            });
+          });
+
+          // Persist view event in the background (non-blocking)
+          recordCoachingPointView(point.id).catch((err) =>
+          {
+            console.warn('Failed to record coaching point view (non-blocking):', err);
+          });
+        }
 
         // Auto-start playback if the coaching point has an audio URL
         if (point.audio_url && onStartCoachingPointPlayback)
@@ -495,10 +631,10 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
       };
     }, [coachingPoints]);
 
-    // Memoize filtered results
+    // Memoize filtered results with guardian-first sorting
     const filteredPoints = useMemo(() =>
     {
-      return coachingPoints.filter((point) =>
+      const filtered = coachingPoints.filter((point) =>
       {
         // Title filter
         if (
@@ -530,13 +666,58 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
 
         return true;
       });
-    }, [coachingPoints, titleFilter, selectedPlayerFilter, selectedLabelFilter]);
+
+      // Apply the same two-section sorting to filtered results
+      return filtered.sort((a: CoachingPoint, b: CoachingPoint) =>
+      {
+        const getRank = (p: CoachingPoint): number =>
+        {
+          const tagged = (p.coaching_point_tagged_players && p.coaching_point_tagged_players.length > 0) || false;
+          const unviewed = !p.isViewed;
+          if (tagged && unviewed) return 0; // tagged + unviewed
+          if (unviewed && !tagged) return 1; // unviewed + not tagged
+          if (tagged && !unviewed) return 2; // tagged + viewed
+          return 3; // viewed
+        };
+
+        const ra = getRank(a);
+        const rb = getRank(b);
+        if (ra !== rb) return ra - rb;
+        return parseInt(a.timestamp) - parseInt(b.timestamp);
+      });
+    }, [coachingPoints, titleFilter, selectedPlayerFilter, selectedLabelFilter, guardianPlayerIds]);
 
     // Filter coaching points based on active filters
     const filteredCoachingPoints = useCallback(() =>
     {
       return filteredPoints;
     }, [filteredPoints]);
+
+    // Group points into sections for rendering with headers
+    const pointsForRender = filteredCoachingPoints();
+    const groups = useMemo(() =>
+    {
+      const res: {
+        key: 'tagged-unviewed' | 'untagged-unviewed' | 'tagged-viewed' | 'viewed-untagged';
+        title: string;
+        items: CoachingPoint[];
+      }[] = [
+        { key: 'tagged-unviewed', title: 'Tagged • Unviewed', items: [] },
+        { key: 'untagged-unviewed', title: 'Unviewed (Not Tagged)', items: [] },
+        { key: 'tagged-viewed', title: 'Tagged • Viewed', items: [] },
+        { key: 'viewed-untagged', title: 'Viewed (Not Tagged)', items: [] },
+      ];
+      for (const p of pointsForRender)
+      {
+        const tagged = !!(p.coaching_point_tagged_players && p.coaching_point_tagged_players.length > 0);
+        const viewed = !!p.isViewed;
+        if (tagged && !viewed) res[0].items.push(p);
+        else if (!tagged && !viewed) res[1].items.push(p);
+        else if (tagged && viewed) res[2].items.push(p);
+        else res[3].items.push(p);
+      }
+      return res;
+    }, [pointsForRender]);
 
     // Clear all filters
     const clearFilters = useCallback(() =>
@@ -754,7 +935,7 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
               </div>
             )}
 
-            {!loading && !error && coachingPoints.length > 0 && filteredCoachingPoints().length === 0 && (
+            {!loading && !error && pointsForRender.length === 0 && (
               <div className='empty-state'>
                 <p>No coaching points match the current filters.</p>
                 {hasActiveFilters && (
@@ -765,70 +946,154 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
               </div>
             )}
 
-            {!loading && !error && filteredCoachingPoints().length > 0 && (
+            {!loading && !error && pointsForRender.length > 0 && (
               <div className='coaching-points-list'>
-                {filteredCoachingPoints().map((point) => (
-                  <div
-                    key={point.id}
-                    className='coaching-point-item'
-                    onClick={() => handlePointClick(point)}
-                    onTouchStart={(e) => handleTouchStart(e)}
-                    onTouchMove={handleTouchMove}
-                    onTouchEnd={(e) => handleTouchEnd(point, e)}
-                  >
-                    {canDeletePoint(point) && (
-                      <button
-                        className='delete-point-btn'
-                        onClick={(e) => handleDeletePoint(point.id, e)}
-                        onTouchEnd={(e) => handleDeletePoint(point.id, e)}
-                        title='Delete coaching point'
-                        aria-label='Delete coaching point'
-                      >
-                        ✕
-                      </button>
-                    )}
-                    <div className='point-header'>
-                      <div className='point-timestamp'>{formatTimestamp(point.timestamp)}</div>
-                    </div>
+                {groups.map((g) => (
+                  g.items.length > 0 && (
+                    <div key={g.key} className={`cp-section ${g.key}`}>
+                      <div className='cp-section-header'>
+                        <div className='cp-section-title'>{g.title}</div>
+                        <div className='cp-section-count'>{g.items.length}</div>
+                      </div>
 
-                    <div className='point-content'>
-                      <h4 className='point-title'>{point.title}</h4>
-                      <p className='point-feedback'>{point.feedback}</p>
+                      {g.items.map((point) =>
+                      {
+                        const isTagged =
+                          !!(point.coaching_point_tagged_players && point.coaching_point_tagged_players.length > 0);
+                        const classNames = [
+                          'coaching-point-item',
+                          isGuardianRelatedPoint(point) ? 'guardian-related' : '',
+                          point.isViewed ? 'viewed' : 'unviewed',
+                          isTagged ? 'tagged' : 'untagged',
+                          point.isAcknowledged ? 'acknowledged' : '',
+                        ].filter(Boolean);
 
-                      {/* Combined Players and Labels Container */}
-                      {((point.coaching_point_tagged_players && point.coaching_point_tagged_players.length > 0) ||
-                        (point.coaching_point_labels && point.coaching_point_labels.length > 0)) && (
-                        <div className='point-tags-container'>
-                          {/* Tagged Players */}
-                          {point.coaching_point_tagged_players && point.coaching_point_tagged_players.length > 0 && (
-                            <div className='point-tagged-players'>
-                              {point.coaching_point_tagged_players.map((taggedPlayer) => (
-                                <span key={taggedPlayer.id} className='player-tag'>
-                                  {taggedPlayer.player_profiles.name}
-                                </span>
-                              ))}
+                        return (
+                          <div
+                            key={point.id}
+                            className={classNames.join(' ')}
+                            onClick={() => handlePointClick(point)}
+                            onTouchStart={(e) => handleTouchStart(e)}
+                            onTouchMove={handleTouchMove}
+                            onTouchEnd={(e) => handleTouchEnd(point, e)}
+                          >
+                            {canDeletePoint(point) && (
+                              <button
+                                className='delete-point-btn'
+                                onClick={(e) => handleDeletePoint(point.id, e)}
+                                onTouchEnd={(e) => handleDeletePoint(point.id, e)}
+                                title='Delete coaching point'
+                                aria-label='Delete coaching point'
+                              >
+                                ✕
+                              </button>
+                            )}
+                            <div className='point-header'>
+                              <div className='point-timestamp'>{formatTimestamp(point.timestamp)}</div>
                             </div>
-                          )}
 
-                          {/* Labels */}
-                          {point.coaching_point_labels && point.coaching_point_labels.length > 0 && (
-                            <div className='point-labels'>
-                              {point.coaching_point_labels.map((labelAssignment) => (
-                                <span key={labelAssignment.id} className='label-tag'>
-                                  {labelAssignment.labels.name}
-                                </span>
-                              ))}
+                            <div className='point-content'>
+                              <h4 className='point-title'>{point.title}</h4>
+                              <p className='point-feedback'>{point.feedback}</p>
+
+                              {/* Combined Players and Labels Container */}
+                              {((point.coaching_point_tagged_players &&
+                                point.coaching_point_tagged_players.length > 0) ||
+                                (point.coaching_point_labels && point.coaching_point_labels.length > 0)) && (
+                                <div className='point-tags-container'>
+                                  {/* Tagged Players */}
+                                  {point.coaching_point_tagged_players &&
+                                    point.coaching_point_tagged_players.length > 0 && (
+                                    <div className='point-tagged-players'>
+                                      {point.coaching_point_tagged_players
+                                        .slice()
+                                        .sort((a, b) =>
+                                        {
+                                          const aSelected = !!selectedPlayerId &&
+                                            a.player_profiles.id === selectedPlayerId;
+                                          const bSelected = !!selectedPlayerId &&
+                                            b.player_profiles.id === selectedPlayerId;
+                                          if (aSelected && !bSelected)
+                                          {
+                                            return -1;
+                                          }
+                                          if (!aSelected && bSelected)
+                                          {
+                                            return 1;
+                                          }
+
+                                          // Next, prioritize guardian players
+                                          const aGuardian = isGuardianPlayer(a.player_profiles.id);
+                                          const bGuardian = isGuardianPlayer(b.player_profiles.id);
+                                          if (aGuardian && !bGuardian)
+                                          {
+                                            return -1;
+                                          }
+                                          if (!aGuardian && bGuardian)
+                                          {
+                                            return 1;
+                                          }
+
+                                          // Finally, sort by name
+                                          return a.player_profiles.name.localeCompare(b.player_profiles.name);
+                                        })
+                                        .map((taggedPlayer) => (
+                                          <span
+                                            key={taggedPlayer.id}
+                                            className={`player-tag ${
+                                              isGuardianPlayer(taggedPlayer.player_profiles.id) ? 'guardian-player' : ''
+                                            }`}
+                                          >
+                                            {taggedPlayer.player_profiles.name}
+                                          </span>
+                                        ))}
+                                    </div>
+                                  )}
+
+                                  {/* Labels */}
+                                  {point.coaching_point_labels && point.coaching_point_labels.length > 0 && (
+                                    <div className='point-labels'>
+                                      {point.coaching_point_labels.map((labelAssignment) => (
+                                        <span key={labelAssignment.id} className='label-tag'>
+                                          {labelAssignment.labels.name}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
 
-                    <div className='point-footer'>
-                      <span className='point-author'>by {point.author?.name || 'Unknown'}</span>
-                      <div className='point-date'>{formatDate(point.created_at)}</div>
+                            <div className='point-footer'>
+                              <span className='point-author'>by {point.author?.name || 'Unknown'}</span>
+                              <div className='point-date'>{formatDate(point.created_at)}</div>
+                            </div>
+
+                            <span
+                              className='ack-checkbox'
+                              title={point.isAcknowledged && point.acknowledgmentDate ?
+                                `Acknowledged on ${formatDate(point.acknowledgmentDate)}` :
+                                'Not Acknowledged'}
+                              onClick={(e) => e.stopPropagation()}
+                              onMouseDown={(e) => e.stopPropagation()}
+                            >
+                              <input
+                                type='checkbox'
+                                checked={point.isAcknowledged}
+                                readOnly
+                                aria-label={point.isAcknowledged ? 'Acknowledged' : 'Not Acknowledged'}
+                                title={point.isAcknowledged && point.acknowledgmentDate ?
+                                  `Acknowledged on ${formatDate(point.acknowledgmentDate)}` :
+                                  'Not Acknowledged'}
+                                onClick={(e) => e.stopPropagation()}
+                                onMouseDown={(e) => e.stopPropagation()}
+                              />
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
-                  </div>
+                  )
                 ))}
               </div>
             )}

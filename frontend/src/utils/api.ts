@@ -524,6 +524,48 @@ export const getCoachingPointAcknowledgment = async (
 };
 
 /**
+ * Get acknowledgments for multiple coaching points in bulk (supports guardian proxy via playerId)
+ * @param coachingPointIds - Array of coaching point IDs
+ * @param playerId - Optional player ID for guardian proxy acknowledgments
+ * @returns Promise resolving to acknowledgment data keyed by coaching point ID
+ */
+export const getBulkCoachingPointAcknowledgments = async (
+  coachingPointIds: string[],
+  playerId?: string,
+): Promise<Record<string, { acknowledged: boolean; ack_at: string | null; notes: string | null; }>> =>
+{
+  try
+  {
+    if (coachingPointIds.length === 0)
+    {
+      return {};
+    }
+
+    const url = playerId ?
+      `/api/coaching-points/acknowledgments/bulk?player_id=${playerId}` :
+      `/api/coaching-points/acknowledgments/bulk`;
+
+    const response = await apiRequest(url, {
+      method: 'POST',
+      body: JSON.stringify({ coaching_point_ids: coachingPointIds }),
+    });
+
+    if (!response.ok)
+    {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to fetch bulk acknowledgments');
+    }
+
+    return await response.json();
+  }
+  catch (error)
+  {
+    console.error('❌ Error fetching bulk acknowledgments:', error);
+    throw error;
+  }
+};
+
+/**
  * Create or update acknowledgment for a coaching point (supports guardian proxy via playerId)
  * @param coachingPointId - ID of the coaching point
  * @param acknowledged - Whether the coaching point is acknowledged
