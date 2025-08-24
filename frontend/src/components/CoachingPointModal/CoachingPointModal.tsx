@@ -308,9 +308,9 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
     else
     {
       const selectedCount = selectedPlayers.length;
-  // Suppress the warning text entirely when none selected to save space.
-  if (selectedCount === 0) return '';
-  return `${selectedCount} player${selectedCount === 1 ? '' : 's'} selected`;
+      // Suppress the warning text entirely when none selected to save space.
+      if (selectedCount === 0) return '';
+      return `${selectedCount} player${selectedCount === 1 ? '' : 's'} selected`;
     }
   };
 
@@ -729,7 +729,10 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
         <div className='form-group'>
           <div className='form-label-with-toggle'>
             <label className='form-label'>Tagged Players</label>
-            <div className='toggle-container' title={tagAllExcept ? 'Tag all players except the excluded list' : 'Only tag the players you select'}>
+            <div
+              className='toggle-container'
+              title={tagAllExcept ? 'Tag all players except the excluded list' : 'Only tag the players you select'}
+            >
               <span className='toggle-text'>Tag</span>
               <label className='toggle-switch'>
                 <input
