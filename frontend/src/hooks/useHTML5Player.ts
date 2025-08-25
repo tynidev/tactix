@@ -422,9 +422,8 @@ export const useHTML5Player = (videoUrl: string) =>
    * Wrapper around the HTML5 video currentTime property
    *
    * @param time - Time in seconds to seek to
-   * @param allowSeekAhead - Whether to allow seeking ahead of buffered content (ignored for HTML5)
    */
-  const seekTo = useCallback((time: number, allowSeekAhead: boolean = true) =>
+  const seekTo = useCallback((time: number) =>
   {
     if (!videoRef.current) return;
 
