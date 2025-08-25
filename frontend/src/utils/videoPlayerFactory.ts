@@ -1,6 +1,7 @@
+import { useHTML5Player } from '../hooks/useHTML5Player';
 import { useYouTubePlayer } from '../hooks/useYouTubePlayer';
-import { extractYouTubeId } from './videoUtils';
 import type { VideoPlayer } from '../types/videoPlayer';
+import { extractYouTubeId } from './videoUtils';
 
 interface Game
 {
@@ -12,19 +13,17 @@ interface Game
 
 /**
  * Factory function that creates the appropriate video player based on the game data
- * Currently supports YouTube, but designed to be extensible for other providers
+ * Currently supports YouTube and HTML5 video files
  *
  * @param game - The game object containing video information
  * @returns VideoPlayer instance for the appropriate provider
  */
 export function createVideoPlayer(game: Game): VideoPlayer
 {
-  // For now, we only support YouTube videos
-  // In the future, this could detect different video providers:
-  // - YouTube URLs (youtube.com/watch?v=...)
-  // - Vimeo URLs (vimeo.com/...)
-  // - Direct video files (.mp4, .webm, etc.)
-  // - Other video platforms
+  // Supports multiple video providers:
+  // - YouTube URLs (youtube.com/watch?v=...) and video IDs
+  // - HTML5 video files (.mp4, .webm, .ogg, .avi, .mov)
+  // - Future: Vimeo and other video platforms
 
   // Prefer video_url over video_id for backward compatibility
   const videoInput = game.video_url || game.video_id;
@@ -49,11 +48,18 @@ export function createVideoPlayer(game: Game): VideoPlayer
         return createErrorVideoPlayer(`Invalid YouTube URL or ID: ${videoInput}`);
       }
       return useYouTubePlayer(youtubeId);
+    case 'html5':
+      // Use HTML5 player for direct video files
+      return useHTML5Player(videoInput);
     case 'unknown':
-      return createErrorVideoPlayer(`Unsupported video format: ${videoInput}. Please use a YouTube URL or video ID.`);
+      return createErrorVideoPlayer(
+        `Unsupported video format: ${videoInput}. Please use a YouTube URL or a direct video file (mp4, webm, ogg, avi, mov).`,
+      );
     default:
       console.error('Unsupported video provider:', videoProvider, 'for input:', videoInput);
-      return createErrorVideoPlayer(`Video provider "${videoProvider}" is not yet supported. Please use a YouTube URL or video ID.`);
+      return createErrorVideoPlayer(
+        `Video provider "${videoProvider}" is not yet supported. Please use a YouTube URL or a direct video file.`,
+      );
   }
 }
 
@@ -68,6 +74,7 @@ function createNullVideoPlayer(): VideoPlayer
     isReady: false,
     currentTime: 0,
     duration: 0,
+    videoType: 'none',
     videoDimensions: null,
     togglePlayPause: () =>
     {},
@@ -95,25 +102,34 @@ function createNullVideoPlayer(): VideoPlayer
  * Creates an error video player controller for unsupported video formats
  * This allows the UI to display appropriate error messages
  */
-function createErrorVideoPlayer(errorMessage: string): VideoPlayer & { error: string }
+function createErrorVideoPlayer(errorMessage: string): VideoPlayer & { error: string; }
 {
   return {
     isPlaying: false,
     isReady: false,
     currentTime: 0,
     duration: 0,
+    videoType: 'none',
     videoDimensions: null,
-    togglePlayPause: () => {},
-    seekVideo: () => {},
-    seekToTime: () => {},
-    setPlaybackRate: () => {},
-    updateVideoDimensions: () => {},
+    togglePlayPause: () =>
+    {},
+    seekVideo: () =>
+    {},
+    seekToTime: () =>
+    {},
+    setPlaybackRate: () =>
+    {},
+    updateVideoDimensions: () =>
+    {},
     getCurrentTime: () => 0,
     getPlayerState: () => -1,
     getPlaybackRate: () => 1,
-    pauseVideo: () => {},
-    playVideo: () => {},
-    seekTo: () => {},
+    pauseVideo: () =>
+    {},
+    playVideo: () =>
+    {},
+    seekTo: () =>
+    {},
     error: errorMessage, // Add error property
   };
 }
@@ -125,7 +141,7 @@ function createErrorVideoPlayer(errorMessage: string): VideoPlayer & { error: st
  * @param videoInput - The video ID or URL
  * @returns The detected provider type
  */
-function detectVideoProvider(videoInput: string): 'youtube' | 'vimeo' | 'direct' | 'unknown'
+function detectVideoProvider(videoInput: string): 'youtube' | 'vimeo' | 'html5' | 'unknown'
 {
   if (!videoInput) return 'unknown';
 
@@ -146,10 +162,10 @@ function detectVideoProvider(videoInput: string): 'youtube' | 'vimeo' | 'direct'
   //   return 'vimeo';
   // }
 
-  // Direct video file detection
+  // HTML5 video file detection
   if (/\.(mp4|webm|ogg|avi|mov)$/i.test(videoInput))
   {
-    return 'direct';
+    return 'html5';
   }
 
   // Return unknown instead of defaulting to YouTube

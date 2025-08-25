@@ -2,7 +2,7 @@
 
 export interface VideoInfo
 {
-  type: 'youtube' | 'mp4';
+  type: 'youtube' | 'html5';
   id?: string; // For YouTube videos
   url: string; // Full URL
 }
@@ -27,7 +27,26 @@ export function isYouTubeUrl(url: string): boolean
 }
 
 /**
- * Detects if a URL is an MP4 video
+ * Detects if a URL is an HTML5 video file
+ */
+export function isHTML5VideoUrl(url: string): boolean
+{
+  if (!url) return false;
+
+  try
+  {
+    const urlObj = new URL(url);
+    const pathname = urlObj.pathname.toLowerCase();
+    return /\.(mp4|webm|ogg|avi|mov)$/i.test(pathname);
+  }
+  catch
+  {
+    return false;
+  }
+}
+
+/**
+ * Detects if a URL is an MP4 video (legacy function for backward compatibility)
  */
 export function isMp4Url(url: string): boolean
 {
@@ -88,7 +107,7 @@ export function normalizeVideoUrl(input: string): string | null
     return `https://www.youtube.com/watch?v=${videoId}`;
   }
 
-  if (isMp4Url(input))
+  if (isHTML5VideoUrl(input))
   {
     return input;
   }
@@ -115,10 +134,10 @@ export function parseVideoInfo(input: string): VideoInfo | null
     };
   }
 
-  if (isMp4Url(input))
+  if (isHTML5VideoUrl(input))
   {
     return {
-      type: 'mp4',
+      type: 'html5',
       url: input,
     };
   }

@@ -13,6 +13,7 @@ import { CoachingPointModal } from '../CoachingPointModal/CoachingPointModal';
 import { CoachingPointsFlyout } from '../CoachingPointsFlyout/CoachingPointsFlyout';
 import DrawingCanvas from '../DrawingCanvas/DrawingCanvas';
 import DrawingToolbar from '../DrawingToolbar/DrawingToolbar';
+import HTML5Player from '../HTML5Player/HTML5Player';
 import YouTubePlayer from '../YouTubePlayer/YouTubePlayer';
 import { useAcknowledgment } from './hooks/useAcknowledgment';
 import { useAutoHideUI } from './hooks/useAutoHideUI';
@@ -541,7 +542,9 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
         <GameHeader game={game} isFlyoutExpanded={isFlyoutExpanded} />
         <div className='error-state'>
           <h2>No Video Available</h2>
-          <p>This game doesn't have a video URL. Please add a YouTube video URL to begin analysis.</p>
+          <p>
+            This game doesn't have a video URL. Please add a YouTube video URL or direct video file to begin analysis.
+          </p>
         </div>
       </div>
     );
@@ -572,7 +575,9 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
             !isFlyoutExpanded ? 'flyout-collapsed' : ''
           }`}
         >
-          <YouTubePlayer className={videoPlayer.isReady ? '' : 'loading'} />
+          {videoPlayer.videoType === 'html5' ?
+            <HTML5Player className={videoPlayer.isReady ? '' : 'loading'} /> :
+            <YouTubePlayer className={videoPlayer.isReady ? '' : 'loading'} />}
           <DrawingCanvas
             canvasRef={canvasRef}
             startDrawing={startDrawing}
