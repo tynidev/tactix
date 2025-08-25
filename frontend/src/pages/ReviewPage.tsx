@@ -9,7 +9,8 @@ interface Game
   opponent: string;
   date: string;
   location: string | null;
-  video_id: string | null;
+  video_id: string | null; // DEPRECATED: Use video_url instead
+  video_url: string | null;
   team_score: number | null;
   opp_score: number | null;
   game_type: 'regular' | 'tournament' | 'scrimmage';
@@ -157,7 +158,7 @@ export const ReviewPage: React.FC = () =>
         (
           <div className='games-grid'>
             {games
-              .filter(game => game.video_id) // Only show games with video
+              .filter(game => game.video_url || game.video_id) // Only show games with video (check both for backward compatibility)
               .map((game) => (
                 <div key={game.id} className='game-card'>
                   <div className='game-header'>
@@ -206,7 +207,7 @@ export const ReviewPage: React.FC = () =>
           </div>
         )}
 
-      {games.length > 0 && games.filter(game => game.video_id).length === 0 && (
+      {games.length > 0 && games.filter(game => game.video_url || game.video_id).length === 0 && (
         <div className='empty-state'>
           <h3>No Videos Available</h3>
           <p>Add video links to your games to start reviewing them.</p>
