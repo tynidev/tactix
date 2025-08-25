@@ -3,7 +3,7 @@ import { AuthenticatedRequest, authenticateUser } from '../middleware/auth.js';
 import { TeamRole } from '../types/database.js';
 import { requireTeamRole } from '../utils/roleAuth.js';
 import { supabase } from '../utils/supabase.js';
-import { extractYouTubeId } from '../utils/videoUtils.js';
+import { extractYouTubeId, parseVideoInfo } from '../utils/videoUtils.js';
 import { validateYouTubeVideo } from '../utils/youtubeValidator.js';
 
 const router = Router();
@@ -54,6 +54,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> 
         date,
         location,
         video_id,
+        video_url,
         team_score,
         opp_score,
         game_type,
@@ -110,7 +111,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
       opponent,
       date,
       location,
-      video_id,
+      video_url,
       team_score,
       opp_score,
       game_type,
@@ -131,9 +132,9 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
       return;
     }
 
-    if (!video_id || !video_id.trim())
+    if (!video_url || !video_url.trim())
     {
-      res.status(400).json({ error: 'YouTube video URL is required' });
+      res.status(400).json({ error: 'Video URL is required' });
       return;
     }
 
@@ -157,15 +158,23 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
       return;
     }
 
-    // Extract YouTube video ID from URL if full URL is provided
-    const processedVideoId = extractYouTubeId(video_id) || video_id;
-
-    // Validate YouTube video exists and is accessible
-    const validationResult = await validateYouTubeVideo(processedVideoId);
-    if (!validationResult.isValid)
+    // Parse and validate video URL
+    const videoInfo = parseVideoInfo(video_url.trim());
+    if (!videoInfo)
     {
-      res.status(400).json({ error: (validationResult.error || 'Invalid YouTube video') });
+      res.status(400).json({ error: 'Please provide a valid YouTube or HTML5 video URL' });
       return;
+    }
+
+    // For YouTube videos, validate they exist and are accessible
+    if (videoInfo.type === 'youtube' && videoInfo.id)
+    {
+      const validationResult = await validateYouTubeVideo(videoInfo.id);
+      if (!validationResult.isValid)
+      {
+        res.status(400).json({ error: validationResult.error || 'Invalid YouTube video' });
+        return;
+      }
     }
 
     // Create the game
@@ -176,7 +185,8 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
         opponent,
         date,
         location: location || null,
-        video_id: processedVideoId || null,
+        video_url: videoInfo.url,
+        video_id: videoInfo.type === 'youtube' ? videoInfo.id : null, // Keep for backward compatibility
         team_score: team_score !== undefined ? team_score : null,
         opp_score: opp_score !== undefined ? opp_score : null,
         game_type: game_type || 'regular',
@@ -241,6 +251,7 @@ router.get('/team/:teamId', async (req: AuthenticatedRequest, res: Response): Pr
         date,
         location,
         video_id,
+        video_url,
         team_score,
         opp_score,
         game_type,
@@ -368,7 +379,7 @@ router.put('/:gameId', async (req: AuthenticatedRequest, res: Response): Promise
       opponent,
       date,
       location,
-      video_id,
+      video_url,
       team_score,
       opp_score,
       game_type,
@@ -416,21 +427,29 @@ router.put('/:gameId', async (req: AuthenticatedRequest, res: Response): Promise
       return;
     }
 
-    if (!video_id || !video_id.trim())
+    if (!video_url || !video_url.trim())
     {
-      res.status(400).json({ error: 'YouTube video URL is required' });
+      res.status(400).json({ error: 'Video URL is required' });
       return;
     }
 
-    // Extract YouTube video ID from URL if full URL is provided
-    const processedVideoId = extractYouTubeId(video_id) || video_id;
-
-    // Validate YouTube video exists and is accessible
-    const validationResult = await validateYouTubeVideo(processedVideoId);
-    if (!validationResult.isValid)
+    // Parse and validate video URL
+    const videoInfo = parseVideoInfo(video_url.trim());
+    if (!videoInfo)
     {
-      res.status(400).json({ error: validationResult.error || 'Invalid YouTube video' });
+      res.status(400).json({ error: 'Please provide a valid YouTube or HTML5 video URL' });
       return;
+    }
+
+    // For YouTube videos, validate they exist and are accessible
+    if (videoInfo.type === 'youtube' && videoInfo.id)
+    {
+      const validationResult = await validateYouTubeVideo(videoInfo.id);
+      if (!validationResult.isValid)
+      {
+        res.status(400).json({ error: validationResult.error || 'Invalid YouTube video' });
+        return;
+      }
     }
 
     // Update the game
@@ -440,7 +459,8 @@ router.put('/:gameId', async (req: AuthenticatedRequest, res: Response): Promise
         opponent,
         date,
         location: location || null,
-        video_id: processedVideoId || null,
+        video_url: videoInfo.url,
+        video_id: videoInfo.type === 'youtube' ? videoInfo.id : null, // Keep for backward compatibility
         team_score: team_score !== undefined ? team_score : null,
         opp_score: opp_score !== undefined ? opp_score : null,
         game_type: game_type || 'regular',

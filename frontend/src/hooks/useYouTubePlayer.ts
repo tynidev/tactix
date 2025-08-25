@@ -494,6 +494,7 @@ export const useYouTubePlayer = (videoId?: string) =>
     isReady,
     currentTime,
     duration,
+    videoType: 'youtube' as const,
     videoDimensions,
     togglePlayPause,
     seekVideo,

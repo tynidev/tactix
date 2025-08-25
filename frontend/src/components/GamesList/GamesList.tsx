@@ -86,6 +86,7 @@ interface Game
   date: string;
   location: string | null;
   video_id: string | null;
+  video_url: string | null;
   team_score: number | null;
   opp_score: number | null;
   game_type: 'regular' | 'tournament' | 'scrimmage';
@@ -560,9 +561,9 @@ export const GamesList = memo(forwardRef<GamesListRef, GamesListProps>(({
             {filteredGames.map((game) => (
               <div
                 key={game.id}
-                className={`game-card ${game.video_id ? 'clickable' : 'disabled'}`}
-                onClick={() => game.video_id && onAnalyzeGame(game)}
-                title={game.video_id ? 'Click to analyze game' : 'Video required for analysis'}
+                className={`game-card ${(game.video_id || game.video_url) ? 'clickable' : 'disabled'}`}
+                onClick={() => (game.video_id || game.video_url) && onAnalyzeGame(game)}
+                title={(game.video_id || game.video_url) ? 'Click to analyze game' : 'Video required for analysis'}
               >
                 {/* Floating Action Icons */}
                 {((game.user_role || userRole) === 'coach' || (game.user_role || userRole) === 'admin') && (
@@ -657,7 +658,7 @@ export const GamesList = memo(forwardRef<GamesListRef, GamesListProps>(({
                   </div>
 
                   <div className='game-stats'>
-                    {game.video_id && (
+                    {(game.video_id || game.video_url) && (
                       <span className='game-stat'>
                         📹 Video Available
                       </span>

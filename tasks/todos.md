@@ -9,7 +9,6 @@
 * [ ] Delete of coaching point not working when Josh tried it on laptop with touchpad mouse (when delete was clicked it just didn't do anything or sometimes would load the coaching point)
 * [ ] Keyboard shortcuts for adding coaching point
 * [ ] Email tagged players and their guardians when tagged; batch notifications once daily for new points
-* [ ] Show clips where a player or a player's guardian is tagged in a distinct color
 * [ ] Coach can view acknowledgements from players
 
 # Change Tech Stack

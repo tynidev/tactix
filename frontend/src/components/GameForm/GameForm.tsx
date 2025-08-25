@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { extractYouTubeId } from '../../utils/videoUtils';
+import { parseVideoInfo } from '../../utils/videoUtils';
 import { Modal } from '../Modal';
 import './GameForm.css';
 
@@ -8,7 +8,7 @@ interface GameFormData
   opponent: string;
   date: string;
   location: string | null;
-  video_id: string | null;
+  video_url: string | null;
   team_score: number | null;
   opp_score: number | null;
   game_type: 'regular' | 'tournament' | 'scrimmage';
@@ -56,7 +56,7 @@ export const GameForm: React.FC<GameFormProps> = ({
       opponent: data.opponent || '',
       date: data.date || '',
       location: data.location || null,
-      video_id: isEditing ? getVideoUrlForEditing(data.video_id) : (data.video_id || null),
+      video_url: isEditing ? getVideoUrlForEditing(data.video_url) : (data.video_url || null),
       team_score: data.team_score !== undefined ? data.team_score : null,
       opp_score: data.opp_score !== undefined ? data.opp_score : null,
       game_type: data.game_type || 'regular',
@@ -86,36 +86,36 @@ export const GameForm: React.FC<GameFormProps> = ({
       return;
     }
 
-    // Validate YouTube video URL is provided
-    if (!formData.video_id?.trim())
+    // Validate video URL is provided
+    if (!formData.video_url?.trim())
     {
-      setValidationMessage('YouTube Video URL is required');
+      setValidationMessage('Video URL is required');
       return;
     }
 
-    // Validate that we can extract a valid YouTube ID
-    const extractedId = extractYouTubeId(formData.video_id.trim());
-    if (!extractedId)
+    // Validate that we can parse a valid video URL
+    const videoInfo = parseVideoInfo(formData.video_url.trim());
+    if (!videoInfo)
     {
-      // If extractedId is null, it means no patterns matched
-      setValidationMessage('Please provide a valid YouTube video URL');
+      // If videoInfo is null, it means no patterns matched
+      setValidationMessage('Please provide a valid YouTube or HTML5 video URL');
       return;
     }
 
     setIsSubmitting(true);
-    setValidationMessage('Validating YouTube video...');
+    setValidationMessage('Validating video...');
 
     try
     {
-      // Convert empty strings to null for API and extract YouTube ID
+      // Convert empty strings to null for API and keep full video URL
       const apiData = {
         ...formData,
         location: formData.location?.trim() || null,
-        video_id: formData.video_id?.trim() ? extractYouTubeId(formData.video_id.trim()) : null,
+        video_url: formData.video_url?.trim() || null,
         notes: formData.notes?.trim() || null,
         team_id: teamId,
       };
-      await onSubmit(apiData as any);
+      await onSubmit(apiData);
     }
     catch (error)
     {
@@ -285,21 +285,21 @@ export const GameForm: React.FC<GameFormProps> = ({
         </div>
 
         <div className='form-group'>
-          <label htmlFor='video_id' className='form-label'>
-            YouTube Video URL
+          <label htmlFor='video_url' className='form-label'>
+            Video URL
           </label>
           <input
-            id='video_id'
-            name='video_id'
+            id='video_url'
+            name='video_url'
             type='url'
-            value={formData.video_id || ''}
+            value={formData.video_url || ''}
             onChange={handleInputChange}
             className='form-input'
-            placeholder='https://www.youtube.com/watch?v=...'
+            placeholder='https://www.youtube.com/watch?v=... or https://example.com/video.mp4'
             required
           />
           <div className='form-help'>
-            Paste the full YouTube URL. We'll extract the video ID automatically.
+            Paste a YouTube URL or direct link to an HTML5 video file (MP4, WebM, OGG, AVI, MOV).
           </div>
         </div>
 

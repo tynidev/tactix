@@ -6,7 +6,8 @@ export interface Game
   opponent: string;
   date: string;
   location: string | null;
-  video_id: string | null;
+  video_id: string | null; // DEPRECATED: Use video_url instead
+  video_url: string | null;
   team_score: number | null;
   opp_score: number | null;
   game_type: 'regular' | 'tournament' | 'scrimmage';

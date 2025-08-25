@@ -11,6 +11,9 @@ export interface VideoPlayer
   currentTime: number;
   duration: number;
 
+  // Video type identifier
+  videoType: 'youtube' | 'html5' | 'none';
+
   // Dimension tracking for overlay positioning
   videoDimensions: {
     width: number;
@@ -33,7 +36,16 @@ export interface VideoPlayer
   pauseVideo: () => void;
   playVideo: () => void;
   seekTo: (time: number, allowSeekAhead?: boolean) => void;
+
+  // Optional error property for error states
+  error?: string;
 }
+
+/**
+ * Union type for video player factory results
+ * Allows for proper type checking of error states
+ */
+export type VideoPlayerResult = VideoPlayer | (VideoPlayer & { error: string; });
 
 /**
  * Player state constants for cross-platform compatibility

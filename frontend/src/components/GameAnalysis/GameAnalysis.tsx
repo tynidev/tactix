@@ -13,6 +13,7 @@ import { CoachingPointModal } from '../CoachingPointModal/CoachingPointModal';
 import { CoachingPointsFlyout } from '../CoachingPointsFlyout/CoachingPointsFlyout';
 import DrawingCanvas from '../DrawingCanvas/DrawingCanvas';
 import DrawingToolbar from '../DrawingToolbar/DrawingToolbar';
+import HTML5Player from '../HTML5Player/HTML5Player';
 import YouTubePlayer from '../YouTubePlayer/YouTubePlayer';
 import { useAcknowledgment } from './hooks/useAcknowledgment';
 import { useAutoHideUI } from './hooks/useAutoHideUI';
@@ -184,22 +185,6 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
   }, [selectedCoachingPoint, playback, clearCanvas]);
 
   // Video controls will be initialized after recording controls (needs isRecording)
-
-  // -----------------------------
-  // Effects: Video URL sync
-  // -----------------------------
-  // Load the game video when component mounts or video_id changes
-  useEffect(() =>
-  {
-    if (game.video_id)
-    {
-      // The video ID is passed to the hook, so the player will load it automatically
-      // We can also update the URL parameter to reflect the current video
-      const url = new URL(window.location.href);
-      url.searchParams.set('videoId', game.video_id);
-      window.history.replaceState({}, '', url.toString());
-    }
-  }, [game.video_id]);
 
   // Track current video time
   // Note: currentTime is now provided by the useYouTubePlayer hook as playerCurrentTime
@@ -550,14 +535,31 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
   // =============================
   // Render
   // =============================
-  if (!game.video_id)
+  if (!game.video_url && !game.video_id)
   {
     return (
       <div className='game-analysis'>
         <GameHeader game={game} isFlyoutExpanded={isFlyoutExpanded} />
         <div className='error-state'>
           <h2>No Video Available</h2>
-          <p>This game doesn't have a video URL. Please add a YouTube video URL to begin analysis.</p>
+          <p>
+            This game doesn't have a video URL. Please add a YouTube video URL or direct video file to begin analysis.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if video player has an error
+  if ('error' in videoPlayer && typeof videoPlayer.error === 'string')
+  {
+    return (
+      <div className='game-analysis'>
+        <GameHeader game={game} isFlyoutExpanded={isFlyoutExpanded} />
+        <div className='error-state'>
+          <h2>Video Error</h2>
+          <p>{videoPlayer.error}</p>
+          <p>Please update the game with a valid YouTube URL or contact support.</p>
         </div>
       </div>
     );
@@ -573,7 +575,9 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
             !isFlyoutExpanded ? 'flyout-collapsed' : ''
           }`}
         >
-          <YouTubePlayer className={videoPlayer.isReady ? '' : 'loading'} />
+          {videoPlayer.videoType === 'html5' ?
+            <HTML5Player className={videoPlayer.isReady ? '' : 'loading'} /> :
+            <YouTubePlayer className={videoPlayer.isReady ? '' : 'loading'} />}
           <DrawingCanvas
             canvasRef={canvasRef}
             startDrawing={startDrawing}

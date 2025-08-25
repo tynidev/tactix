@@ -1,0 +1,55 @@
+.html5-player-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  overflow: hidden;
+}
+
+.html5-video-element {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+}
+
+.html5-player-wrapper.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.html5-player-wrapper.loading::before {
+  content: 'Loading video...';
+  color: #fff;
+  font-size: 16px;
+  position: absolute;
+  z-index: 1;
+}
+
+/* Hide default video controls */
+.html5-video-element::-webkit-media-controls {
+  display: none !important;
+}
+
+.html5-video-element::-webkit-media-controls-panel {
+  display: none !important;
+}
+
+.html5-video-element::-webkit-media-controls-play-button {
+  display: none !important;
+}
+
+.html5-video-element::-webkit-media-controls-start-playback-button {
+  display: none !important;
+}
+
+/* Firefox */
+.html5-video-element::-moz-media-controls {
+  display: none !important;
+}
+
+/* Remove outline on focus */
+.html5-video-element:focus {
+  outline: none;
+}
