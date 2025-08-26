@@ -1,13 +1,16 @@
 # Backend Dockerfile using the official Puppeteer image (includes Chromium + OS deps)
 # See: https://github.com/puppeteer/puppeteer/tree/main/docker
-FROM ghcr.io/puppeteer/puppeteer:22.12.1
+FROM ghcr.io/puppeteer/puppeteer:24.17.0
 
 # Install dumb-init for proper process management as recommended by Puppeteer docs
 USER root
 RUN apt-get update && apt-get install -y dumb-init && rm -rf /var/lib/apt/lists/*
-USER pptruser
 
-# Set workdir under the non-root user (pptruser) home
+# Create and set ownership of the working directory
+RUN mkdir -p /home/pptruser/app && chown -R pptruser:pptruser /home/pptruser/app
+
+# Switch to non-root user and set workdir
+USER pptruser
 WORKDIR /home/pptruser/app
 
 # Copy manifests first for efficient caching (monorepo workspaces)
