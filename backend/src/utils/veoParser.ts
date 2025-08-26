@@ -141,10 +141,61 @@ async function parseVeoVideoWithPuppeteer(url: string, retryCount = 0): Promise<
     await page.waitForSelector('body', { timeout: 10000 }).catch(() => {});
     
     // Wait for potential dynamic content and iframes to load
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    await new Promise(resolve => setTimeout(resolve, 3000));
     
-    // Wait for network to be mostly idle
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // Try to wait for video-related elements to appear
+    await Promise.race([
+      page.waitForSelector('video', { timeout: 8000 }).catch(() => {}),
+      page.waitForSelector('source', { timeout: 8000 }).catch(() => {}),
+      page.waitForSelector('[src*="veocdn"]', { timeout: 8000 }).catch(() => {}),
+      page.waitForSelector('[href*="veocdn"]', { timeout: 8000 }).catch(() => {}),
+      new Promise(resolve => setTimeout(resolve, 8000))
+    ]);
+    
+    // Additional wait for network activity to settle
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    // Try to simulate user interaction that might trigger video loading
+    try {
+      // Click on any play buttons or video containers
+      await page.evaluate(() => {
+        // Look for common play button selectors
+        const playSelectors = [
+          'button[aria-label*="play"]',
+          'button[title*="play"]',
+          '.play-button',
+          '.video-play',
+          '[data-testid*="play"]',
+          'button:has(svg)',
+          '.video-container button',
+        ];
+        
+        for (const selector of playSelectors) {
+          const elements = document.querySelectorAll(selector);
+          for (const element of elements) {
+            try {
+              (element as HTMLElement).click();
+              return true;
+            } catch {}
+          }
+        }
+        
+        // Try clicking on video elements themselves
+        const videos = document.querySelectorAll('video, .video-player, [class*="video"]');
+        for (const video of videos) {
+          try {
+            (video as HTMLElement).click();
+          } catch {}
+        }
+        
+        return false;
+      });
+      
+      // Wait a bit after interaction
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    } catch (interactionError) {
+      console.warn('User interaction simulation failed:', interactionError);
+    }
 
     // Try multiple approaches to find video data, handling frame issues
     let videoData = null;
@@ -164,54 +215,99 @@ async function parseVeoVideoWithPuppeteer(url: string, retryCount = 0): Promise<
     if (!videoData) {
       try {
         videoData = await page.evaluate(() => {
-          try {
-            // Look for video elements
-            const videos = document.querySelectorAll('video');
-            for (const video of videos) {
-              try {
-                const src = video.src || video.currentSrc;
-                const poster = video.poster;
-
-                if (src && (src.includes('.mp4') || src.includes('veocdn.com'))) {
-                  return {
-                    videoUrl: src,
-                    posterUrl: poster || '',
-                  };
-                }
-              } catch (videoError) {
-                continue;
+          console.log('🎭 [VEO Parser] DOM Evaluation: Starting...');
+          
+          // Simple approach - just find the video element and its source
+          const video = document.querySelector('video');
+          console.log('🎭 [VEO Parser] DOM Evaluation: Video element found:', !!video);
+          
+          if (video) {
+            console.log('🎭 [VEO Parser] DOM Evaluation: Video element details:');
+            console.log('  - tagName:', video.tagName);
+            console.log('  - poster:', video.poster || 'none');
+            console.log('  - src:', video.src || 'none');
+            console.log('  - children count:', video.children.length);
+            
+            const source = video.querySelector('source');
+            console.log('🎭 [VEO Parser] DOM Evaluation: Source element found:', !!source);
+            
+            if (source) {
+              console.log('🎭 [VEO Parser] DOM Evaluation: Source element details:');
+              console.log('  - src:', source.src || 'none');
+              console.log('  - type:', source.type || 'none');
+              
+              if (source.src) {
+                console.log('🎉 [VEO Parser] DOM Evaluation: SUCCESS - Found video and poster');
+                return {
+                  videoUrl: source.src,
+                  posterUrl: video.poster || '',
+                };
+              } else {
+                console.log('❌ [VEO Parser] DOM Evaluation: Source element has no src');
+              }
+            } else {
+              console.log('❌ [VEO Parser] DOM Evaluation: No source element in video');
+              
+              // Debug: List all children of video element
+              console.log('🔍 [VEO Parser] DOM Evaluation: Video children:');
+              for (let i = 0; i < video.children.length; i++) {
+                const child = video.children[i];
+                console.log(`  ${i + 1}. ${child.tagName} - ${child.outerHTML.substring(0, 100)}...`);
               }
             }
-
-            // Look for source elements
-            const sources = document.querySelectorAll('source');
-            for (const source of sources) {
-              try {
-                const src = source.src;
-                if (src && (src.includes('.mp4') || src.includes('veocdn.com'))) {
-                  const parentVideo = source.closest('video');
-                  const poster = parentVideo?.poster || '';
-                  return { videoUrl: src, posterUrl: poster };
-                }
-              } catch (sourceError) {
-                continue;
-              }
+          } else {
+            console.log('❌ [VEO Parser] DOM Evaluation: No video element found');
+            
+            // Debug: Check what elements are in the page
+            const allElements = document.querySelectorAll('*');
+            console.log(`🔍 [VEO Parser] DOM Evaluation: Total elements in page: ${allElements.length}`);
+            
+            // Look for elements that might contain video
+            const videoRelated = document.querySelectorAll('[class*="video"], [id*="video"], [data-*="video"]');
+            console.log(`🔍 [VEO Parser] DOM Evaluation: Video-related elements: ${videoRelated.length}`);
+            if (videoRelated.length > 0) {
+              console.log('🔍 [VEO Parser] DOM Evaluation: Video-related elements found:');
+              Array.from(videoRelated).slice(0, 3).forEach((el, index) => {
+                console.log(`  ${index + 1}. ${el.tagName}.${el.className} - ${el.outerHTML.substring(0, 100)}...`);
+              });
             }
-
-            // Look for veocdn URLs in page content
-            const bodyHTML = document.body?.innerHTML || '';
-            const veocdnMatches = bodyHTML.match(/https:\/\/[a-z]\.veocdn\.com\/[^"'\s]*\.mp4/gi);
-            if (veocdnMatches && veocdnMatches.length > 0) {
-              const videoUrl = veocdnMatches[0];
-              const posterMatches = bodyHTML.match(/https:\/\/[a-z]\.veocdn\.com\/[^"'\s]*\.(jpg|jpeg|png|webp)/gi);
-              const posterUrl = posterMatches?.[0] || '';
-              return { videoUrl, posterUrl };
-            }
-
-            return null;
-          } catch (error) {
-            return null;
           }
+          
+          // Fallback: look for any veocdn URLs in the page
+          console.log('🎭 [VEO Parser] DOM Evaluation: Fallback - searching HTML for veocdn URLs...');
+          const bodyHTML = document.body?.innerHTML || '';
+          console.log(`🎭 [VEO Parser] DOM Evaluation: Body HTML length: ${bodyHTML.length}`);
+          
+          const veocdnMatch = bodyHTML.match(/https:\/\/[a-z]\.veocdn\.com\/[^"'\s]+\.mp4/i);
+          
+          if (veocdnMatch) {
+            const videoUrl = veocdnMatch[0];
+            console.log(`✅ [VEO Parser] DOM Evaluation: Found veocdn URL in HTML: ${videoUrl}`);
+            
+            const posterMatch = bodyHTML.match(/https:\/\/[a-z]\.veocdn\.com\/[^"'\s]+\.jpg/i);
+            const posterUrl = posterMatch ? posterMatch[0] : '';
+            
+            if (posterUrl) {
+              console.log(`✅ [VEO Parser] DOM Evaluation: Found poster URL: ${posterUrl}`);
+            } else {
+              console.log('⚠️ [VEO Parser] DOM Evaluation: No poster URL found');
+            }
+            
+            console.log('🎉 [VEO Parser] DOM Evaluation: SUCCESS via fallback');
+            return {
+              videoUrl,
+              posterUrl,
+            };
+          } else {
+            console.log('❌ [VEO Parser] DOM Evaluation: No veocdn URLs found in HTML');
+            
+            // Final debug: show a sample of the HTML
+            const sampleHTML = bodyHTML.substring(0, 500);
+            console.log('🔍 [VEO Parser] DOM Evaluation: HTML sample:', sampleHTML);
+          }
+          
+          console.log('❌ [VEO Parser] DOM Evaluation: All methods failed');
+          return null;
         });
       } catch (evalError) {
         console.warn('DOM evaluation failed:', evalError);
@@ -219,14 +315,17 @@ async function parseVeoVideoWithPuppeteer(url: string, retryCount = 0): Promise<
       }
     }
 
-    if (videoData)
+    if (videoData && videoData.videoUrl)
     {
       return videoData;
     }
 
+    // Enhanced error reporting with debug info
+    const debugInfo = videoData && typeof videoData === 'object' && !videoData.videoUrl ? videoData : {};
+    
     return {
       error: 'Could not find video elements in the rendered VEO page',
-      details: 'Video content may require user interaction or authentication to load',
+      details: `Video content may require user interaction or authentication to load. Debug: ${JSON.stringify(debugInfo)}`,
     };
   }
   catch (error)
@@ -287,17 +386,23 @@ async function parseVeoVideoWithPuppeteer(url: string, retryCount = 0): Promise<
  */
 export async function parseVeoVideo(url: string): Promise<VeoParseResult | VeoParseError>
 {
+  console.log(`🚀 [VEO Parser] Starting parse for URL: ${url}`);
+  
   // Validate URL format
   if (!isVeoUrl(url))
   {
+    console.log('❌ [VEO Parser] Invalid URL format');
     return {
       error: 'Invalid VEO URL format. Expected format: https://app.veo.co/matches/...',
     };
   }
 
+  console.log('✅ [VEO Parser] URL format is valid');
+
   try
   {
     // Step 1: Try fast regex-based parsing first
+    console.log('📡 [VEO Parser] Step 1: Fetching page HTML...');
     const response = await fetch(url, {
       headers: {
         'User-Agent':
@@ -307,30 +412,50 @@ export async function parseVeoVideo(url: string): Promise<VeoParseResult | VeoPa
 
     if (!response.ok)
     {
+      console.log(`❌ [VEO Parser] HTTP error: ${response.status} ${response.statusText}`);
       return {
         error: `Failed to fetch VEO page: ${response.status} ${response.statusText}`,
         details: `HTTP ${response.status}`,
       };
     }
 
+    console.log('✅ [VEO Parser] Page fetched successfully');
     const html = await response.text();
+    console.log(`📄 [VEO Parser] HTML received: ${html.length} characters`);
 
     // Try regex parsing first (fast)
+    console.log('🔍 [VEO Parser] Step 2: Trying regex-based parsing...');
     const regexResult = parseVideoFromHtml(html);
 
     if (!('error' in regexResult))
     {
+      console.log('🎉 [VEO Parser] SUCCESS with regex parsing!');
+      console.log(`📹 [VEO Parser] Video URL: ${regexResult.videoUrl}`);
+      console.log(`🖼️ [VEO Parser] Poster URL: ${regexResult.posterUrl}`);
       return regexResult;
     }
 
+    console.log('⚠️ [VEO Parser] Regex parsing failed, trying Puppeteer...');
+    console.log(`🔍 [VEO Parser] Regex error: ${regexResult.error}`);
+
     // Step 2: If regex parsing fails, use Puppeteer
+    console.log('🎭 [VEO Parser] Step 3: Starting Puppeteer parsing...');
     const puppeteerResult = await parseVeoVideoWithPuppeteer(url);
+
+    if (!('error' in puppeteerResult)) {
+      console.log('🎉 [VEO Parser] SUCCESS with Puppeteer parsing!');
+      console.log(`📹 [VEO Parser] Video URL: ${puppeteerResult.videoUrl}`);
+      console.log(`🖼️ [VEO Parser] Poster URL: ${puppeteerResult.posterUrl}`);
+    } else {
+      console.log('❌ [VEO Parser] Puppeteer parsing also failed');
+      console.log(`🔍 [VEO Parser] Puppeteer error: ${puppeteerResult.error}`);
+    }
 
     return puppeteerResult;
   }
   catch (error)
   {
-    console.error('VEO parsing error:', error);
+    console.error('💥 [VEO Parser] Unexpected error:', error);
     return {
       error: 'Failed to parse VEO video',
       details: error instanceof Error ? error.message : 'Unknown error',
@@ -339,149 +464,122 @@ export async function parseVeoVideo(url: string): Promise<VeoParseResult | VeoPa
 }
 
 /**
- * Extracts video and poster URLs from HTML content
+ * Extracts video and poster URLs from HTML content - simplified approach with debug logging
  */
 function parseVideoFromHtml(html: string): VeoParseResult | VeoParseError
 {
-  // VEO pages are JavaScript applications, so we need to look for different patterns
-
-  // Method 1: Look for video elements with src and poster attributes
-  const videoRegex = /<video[^>]*>/gi;
-  const videoMatches = html.match(videoRegex);
-
-  if (videoMatches && videoMatches.length > 0)
-  {
-    // Extract src and poster from the first video element
-    for (const videoMatch of videoMatches)
-    {
-      const srcMatch = videoMatch.match(/src=["']([^"']+)["']/i);
-      const posterMatch = videoMatch.match(/poster=["']([^"']+)["']/i);
-
-      if (srcMatch)
-      {
-        const videoUrl = srcMatch[1];
-        const posterUrl = posterMatch ? posterMatch[1] : '';
-
-        // Validate that we found a reasonable video URL
-        if (videoUrl && (videoUrl.includes('.mp4') || videoUrl.includes('veocdn.com')))
-        {
-          return {
-            videoUrl,
-            posterUrl,
-          };
-        }
+  console.log('🔍 [VEO Parser] Starting HTML parsing...');
+  console.log(`📄 [VEO Parser] HTML length: ${html.length} characters`);
+  
+  // VEO has a single video element with this structure:
+  // <video...poster="POSTER_URL"><source src="VIDEO_URL" type="video/mp4"></video>
+  
+  // Method 1: Simple regex to find the video element and extract poster
+  console.log('🎯 [VEO Parser] Method 1: Looking for video element with poster...');
+  const videoElementRegex = /<video[^>]*poster=["']([^"']+)["'][^>]*>/i;
+  const videoMatch = html.match(videoElementRegex);
+  
+  if (videoMatch) {
+    const posterUrl = videoMatch[1];
+    console.log(`✅ [VEO Parser] Found video element with poster: ${posterUrl}`);
+    
+    // Now find the source element within the video
+    console.log('🎯 [VEO Parser] Looking for source element...');
+    const sourceRegex = /<source[^>]*src=["']([^"']+\.mp4[^"']*)["'][^>]*type=["']video\/mp4["'][^>]*>/i;
+    const sourceMatch = html.match(sourceRegex);
+    
+    if (sourceMatch) {
+      const videoUrl = sourceMatch[1];
+      console.log(`✅ [VEO Parser] Found source element with video URL: ${videoUrl}`);
+      console.log('🎉 [VEO Parser] Method 1 SUCCESS - Returning video and poster URLs');
+      return {
+        videoUrl,
+        posterUrl,
+      };
+    } else {
+      console.log('❌ [VEO Parser] No source element found with Method 1');
+      // Try a more flexible source regex
+      const flexibleSourceRegex = /<source[^>]*src=["']([^"']+\.mp4[^"']*)["'][^>]*>/i;
+      const flexibleSourceMatch = html.match(flexibleSourceRegex);
+      if (flexibleSourceMatch) {
+        const videoUrl = flexibleSourceMatch[1];
+        console.log(`✅ [VEO Parser] Found source element with flexible regex: ${videoUrl}`);
+        return {
+          videoUrl,
+          posterUrl,
+        };
       }
+    }
+  } else {
+    console.log('❌ [VEO Parser] No video element with poster found');
+    
+    // Debug: Check if there's any video element at all
+    const anyVideoRegex = /<video[^>]*>/i;
+    const anyVideoMatch = html.match(anyVideoRegex);
+    if (anyVideoMatch) {
+      console.log(`🔍 [VEO Parser] DEBUG: Found video element without poster: ${anyVideoMatch[0]}`);
+    } else {
+      console.log('🔍 [VEO Parser] DEBUG: No video element found at all');
+    }
+  }
+  
+  // Method 2: Even simpler - just look for any veocdn mp4 URL in the HTML
+  console.log('🎯 [VEO Parser] Method 2: Looking for veocdn mp4 URLs...');
+  const veocdnRegex = /https:\/\/[a-z]\.veocdn\.com\/[^"'\s]+\.mp4/i;
+  const veocdnMatch = html.match(veocdnRegex);
+  
+  if (veocdnMatch) {
+    const videoUrl = veocdnMatch[0];
+    console.log(`✅ [VEO Parser] Found veocdn video URL: ${videoUrl}`);
+    
+    // Look for veocdn poster URL (usually jpg)
+    console.log('🎯 [VEO Parser] Looking for veocdn poster URL...');
+    const posterRegex = /https:\/\/[a-z]\.veocdn\.com\/[^"'\s]+\.jpg/i;
+    const posterMatch = html.match(posterRegex);
+    const posterUrl = posterMatch ? posterMatch[0] : '';
+    
+    if (posterUrl) {
+      console.log(`✅ [VEO Parser] Found veocdn poster URL: ${posterUrl}`);
+    } else {
+      console.log('⚠️ [VEO Parser] No veocdn poster URL found');
+    }
+    
+    console.log('🎉 [VEO Parser] Method 2 SUCCESS - Returning video URL');
+    return {
+      videoUrl,
+      posterUrl,
+    };
+  } else {
+    console.log('❌ [VEO Parser] No veocdn mp4 URLs found');
+    
+    // Debug: Check for any veocdn URLs at all
+    const anyVeocdnRegex = /https:\/\/[a-z]\.veocdn\.com\/[^"'\s]+/gi;
+    const anyVeocdnMatches = html.match(anyVeocdnRegex);
+    if (anyVeocdnMatches) {
+      console.log(`🔍 [VEO Parser] DEBUG: Found ${anyVeocdnMatches.length} veocdn URLs (but no mp4):`);
+      anyVeocdnMatches.slice(0, 5).forEach((url, index) => {
+        console.log(`  ${index + 1}. ${url}`);
+      });
+    } else {
+      console.log('🔍 [VEO Parser] DEBUG: No veocdn URLs found at all');
+    }
+    
+    // Debug: Check for any mp4 URLs
+    const anyMp4Regex = /https:\/\/[^"'\s]+\.mp4/gi;
+    const anyMp4Matches = html.match(anyMp4Regex);
+    if (anyMp4Matches) {
+      console.log(`🔍 [VEO Parser] DEBUG: Found ${anyMp4Matches.length} mp4 URLs (but not veocdn):`);
+      anyMp4Matches.slice(0, 3).forEach((url, index) => {
+        console.log(`  ${index + 1}. ${url}`);
+      });
+    } else {
+      console.log('🔍 [VEO Parser] DEBUG: No mp4 URLs found at all');
     }
   }
 
-  // Method 2: Look for source elements
-  const sourceRegex = /<source[^>]*src=["']([^"']+)["'][^>]*>/gi;
-  const sourceMatches = html.match(sourceRegex);
-
-  if (sourceMatches)
-  {
-    for (const sourceMatch of sourceMatches)
-    {
-      const srcMatch = sourceMatch.match(/src=["']([^"']+)["']/i);
-      if (srcMatch)
-      {
-        const videoUrl = srcMatch[1];
-        if (videoUrl && (videoUrl.includes('.mp4') || videoUrl.includes('veocdn.com')))
-        {
-          // Look for poster in nearby video element
-          const posterRegex = /poster=["']([^"']+)["']/i;
-          const posterMatch = html.match(posterRegex);
-          const posterUrl = posterMatch ? posterMatch[1] : '';
-
-          return {
-            videoUrl,
-            posterUrl,
-          };
-        }
-      }
-    }
-  }
-
-  // Method 3: Look for embedded video URLs in JavaScript or data attributes
-  // Pattern: look for veocdn.com URLs in the page source
-  // This covers the pattern: https://c.veocdn.com/e1b45af3-530e-48c8-ad61-96b312908e4c/standard/machine/f9f8ca4f/video.mp4
-  const veocdnRegex = /https:\/\/[a-z]\.veocdn\.com\/[^"'\s]*\.mp4/gi;
-  const veocdnMatches = html.match(veocdnRegex);
-
-  if (veocdnMatches && veocdnMatches.length > 0)
-  {
-    const videoUrl = veocdnMatches[0];
-
-    // Look for poster URL patterns (JPG/PNG from veocdn)
-    const posterRegex = /https:\/\/[a-z]\.veocdn\.com\/[^"'\s]*\.(jpg|jpeg|png|webp)/gi;
-    const posterMatches = html.match(posterRegex);
-    const posterUrl = posterMatches && posterMatches.length > 0 ? posterMatches[0] : '';
-
-    return {
-      videoUrl,
-      posterUrl,
-    };
-  }
-
-  // Method 3b: More general veocdn pattern
-  const veocdnGeneralRegex = /https:\/\/[^"'\s]*veocdn\.com[^"'\s]*\.mp4/gi;
-  const veocdnGeneralMatches = html.match(veocdnGeneralRegex);
-
-  if (veocdnGeneralMatches && veocdnGeneralMatches.length > 0)
-  {
-    const videoUrl = veocdnGeneralMatches[0];
-
-    // Look for poster URL patterns (JPG/PNG from veocdn)
-    const posterGeneralRegex = /https:\/\/[^"'\s]*veocdn\.com[^"'\s]*\.(jpg|jpeg|png|webp)/gi;
-    const posterGeneralMatches = html.match(posterGeneralRegex);
-    const posterUrl = posterGeneralMatches && posterGeneralMatches.length > 0 ? posterGeneralMatches[0] : '';
-
-    return {
-      videoUrl,
-      posterUrl,
-    };
-  }
-
-  // Method 4: Look for any .mp4 URLs that might be video sources
-  const mp4Regex = /https:\/\/[^"'\s]*\.mp4[^"'\s]*/gi;
-  const mp4Matches = html.match(mp4Regex);
-
-  if (mp4Matches && mp4Matches.length > 0)
-  {
-    const videoUrl = mp4Matches[0];
-
-    // Look for any image URLs that might be posters
-    const imageRegex = /https:\/\/[^"'\s]*\.(jpg|jpeg|png|webp)[^"'\s]*/gi;
-    const imageMatches = html.match(imageRegex);
-    const posterUrl = imageMatches && imageMatches.length > 0 ? imageMatches[0] : '';
-
-    return {
-      videoUrl,
-      posterUrl,
-    };
-  }
-
-  // Method 5: Look for JSON data that might contain video information
-  const jsonRegex = /"videoUrl":\s*"([^"]+)"/gi;
-  const jsonMatch = jsonRegex.exec(html);
-  if (jsonMatch)
-  {
-    const videoUrl = jsonMatch[1];
-
-    // Look for posterUrl in the same JSON
-    const posterJsonRegex = /"posterUrl":\s*"([^"]+)"/gi;
-    const posterJsonMatch = posterJsonRegex.exec(html);
-    const posterUrl = posterJsonMatch ? posterJsonMatch[1] : '';
-
-    return {
-      videoUrl,
-      posterUrl,
-    };
-  }
-
+  console.log('❌ [VEO Parser] All HTML parsing methods failed');
   return {
-    error: 'Could not extract video URL from VEO page',
-    details:
-      'This VEO page appears to be a JavaScript application. The video content may be loaded dynamically and not accessible via simple HTML parsing. You may need to access the VEO page directly in a browser to get the video URL.',
+    error: 'Could not find VEO video URL in page',
+    details: 'No veocdn.com video URL found in the HTML content',
   };
 }
