@@ -54,6 +54,16 @@ app.get('/health', (req: Request, res: Response) =>
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// Root route for platform health checks
+app.get('/', (req: Request, res: Response) =>
+{
+  res.status(200).send('OK');
+});
+app.head('/', (req: Request, res: Response) =>
+{
+  res.status(200).end();
+});
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/coaching-points', coachingPointRoutes);

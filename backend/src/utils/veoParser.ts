@@ -91,18 +91,53 @@ async function parseVeoVideoWithPlaywright(url: string): Promise<VeoParseResult 
       });
       await page.setViewportSize({ width: 1920, height: 1080 });
 
-      // Navigate to the VEO page
-      await page.goto(url, {
-        waitUntil: 'networkidle',
-        timeout: 30000,
-      });
+      // Navigate to the VEO page and wait for initial network idle
+      await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
+
+      // Try to accept cookie/consent banners if present
+      const consentSelectors = [
+        'button:has-text("Accept")',
+        'button:has-text("I agree")',
+        'button:has-text("Got it")',
+        '[data-testid="uc-accept-all-button"]',
+      ];
+      for (const sel of consentSelectors)
+      {
+        const btn = await page.$(sel).catch(() => null);
+        if (btn)
+        {
+          try { await btn.click({ timeout: 2000 }); } catch { /* ignore */ }
+        }
+      }
+
+      // Small extra settle time
+      await page.waitForTimeout(1500);
 
       // Wait for potential video elements to load
       await page.waitForSelector('body', { timeout: 5000 }).catch(() =>
       {});
       await new Promise(resolve => setTimeout(resolve, 3000));
 
-      // Try to find video elements in the rendered DOM
+      // Collect veocdn URLs from network responses
+      const veocdn: { video?: string; poster?: string } = {};
+      page.on('response', async (resp) =>
+      {
+        try
+        {
+          const urlStr = resp.url();
+          if (!veocdn.video && /veocdn\.com\/.*\.mp4/i.test(urlStr))
+          {
+            veocdn.video = urlStr;
+          }
+          if (!veocdn.poster && /veocdn\.com\/.*\.(jpg|jpeg|png|webp)/i.test(urlStr))
+          {
+            veocdn.poster = urlStr;
+          }
+        }
+        catch { /* ignore */ }
+      });
+
+      // Try to find video elements in the rendered DOM and Next.js data payloads
       const videoData = await page.evaluate(() =>
       {
         // Look for video elements
@@ -139,7 +174,29 @@ async function parseVeoVideoWithPlaywright(url: string): Promise<VeoParseResult 
           }
         }
 
-        // Look for data attributes or JavaScript variables
+        // Try Next.js data payloads
+        // 1) __NEXT_DATA__ script tag
+        const nextData = document.querySelector('#__NEXT_DATA__');
+        if (nextData && nextData.textContent)
+        {
+          try
+          {
+            const json = JSON.parse(nextData.textContent);
+            const text = JSON.stringify(json);
+            const mp4Match = text.match(/https:\/\/[^"'\s]*veocdn\.com[^"'\s]*\.mp4/);
+            const imgMatch = text.match(/https:\/\/[^"'\s]*veocdn\.com[^"'\s]*\.(jpg|jpeg|png|webp)/);
+            if (mp4Match)
+            {
+              return {
+                videoUrl: mp4Match[0],
+                posterUrl: imgMatch ? imgMatch[0] : '',
+              };
+            }
+          }
+          catch { /* ignore */ }
+        }
+
+        // 2) App markup scan
         const bodyHTML = document.body.innerHTML;
 
         // Search for veocdn URLs in the page content
@@ -164,6 +221,15 @@ async function parseVeoVideoWithPlaywright(url: string): Promise<VeoParseResult 
       if (videoData)
       {
         return videoData;
+      }
+
+      // If network events captured veocdn links, use them
+      if (veocdn.video)
+      {
+        return {
+          videoUrl: veocdn.video,
+          posterUrl: veocdn.poster || '',
+        } as any;
       }
 
       return {
