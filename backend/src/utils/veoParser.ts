@@ -1,6 +1,11 @@
 // VEO video URL parser utility
-// Note: We lazy-load Playwright so the backend doesn't require it in environments where it's not installed.
-import type { Browser, Page } from 'playwright';
+// Note: We lazy-load Puppeteer so the backend doesn't require it on environments where it's not installed.
+import type { Browser, BrowserContext, Page, HTTPResponse } from 'puppeteer';
+
+function sleep(ms: number): Promise<void>
+{
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 export interface VeoParseResult
 {
@@ -16,27 +21,28 @@ export interface VeoParseError
 
 // Browser instance management for performance
 let browserInstance: Browser | null = null;
-let playwrightLoadError: Error | null = null;
+let puppeteerLoadError: Error | null = null;
 
 /**
- * Get or create a browser instance for Playwright
+ * Get or create a browser instance for Puppeteer
  */
 async function getBrowser(): Promise<Browser>
 {
-  if (browserInstance && browserInstance.isConnected()) return browserInstance;
+  if (browserInstance && browserInstance.isConnected()) return browserInstance!;
 
   try
   {
     // Dynamic import to avoid hard dependency at startup
-    const { chromium } = await import('playwright');
-    // Playwright Docker image already configures sandbox and dependencies; avoid non-standard flags
-    browserInstance = await chromium.launch({ headless: true });
-    return browserInstance;
+    const mod = await import('puppeteer');
+    const puppeteer = (mod as any).default ?? mod;
+    // Puppeteer Docker image has all deps; --no-sandbox is generally safe in containers
+    browserInstance = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+  return browserInstance!;
   }
   catch (err)
   {
-    playwrightLoadError = err instanceof Error ? err : new Error('Failed to load Playwright');
-    throw playwrightLoadError;
+    puppeteerLoadError = err instanceof Error ? err : new Error('Failed to load Puppeteer');
+    throw puppeteerLoadError;
   }
 }
 
@@ -71,56 +77,34 @@ export function isVeoUrl(url: string): boolean
 }
 
 /**
- * Parses a VEO match page using Playwright to handle JavaScript-rendered content
+ * Parses a VEO match page using Puppeteer to handle JavaScript-rendered content
  */
-async function parseVeoVideoWithPlaywright(url: string): Promise<VeoParseResult | VeoParseError>
+async function parseVeoVideoWithPuppeteer(url: string): Promise<VeoParseResult | VeoParseError>
 {
   let lastError: unknown;
   for (let attempt = 1; attempt <= 2; attempt++)
   {
+    let context: BrowserContext | undefined;
     let page: Page | undefined;
     try
     {
       const browser = await getBrowser();
-      page = await browser.newPage();
+      // Use a fresh browser context for strong per-request isolation
+      // Puppeteer v22+: createBrowserContext()
+      context = await (browser as any).createBrowserContext();
+      if (!context) throw new Error('Failed to create browser context');
+      page = await context.newPage();
 
-      // Set user agent and viewport
-      await page.setExtraHTTPHeaders({
+  // Set user agent and viewport
+  await page.setExtraHTTPHeaders({
         'User-Agent':
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
       });
-      await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.setViewport({ width: 1366, height: 768 });
 
-      // Navigate to the VEO page and wait for initial network idle
-      await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
-
-      // Try to accept cookie/consent banners if present
-      const consentSelectors = [
-        'button:has-text("Accept")',
-        'button:has-text("I agree")',
-        'button:has-text("Got it")',
-        '[data-testid="uc-accept-all-button"]',
-      ];
-      for (const sel of consentSelectors)
-      {
-        const btn = await page.$(sel).catch(() => null);
-        if (btn)
-        {
-          try { await btn.click({ timeout: 2000 }); } catch { /* ignore */ }
-        }
-      }
-
-      // Small extra settle time
-      await page.waitForTimeout(1500);
-
-      // Wait for potential video elements to load
-      await page.waitForSelector('body', { timeout: 5000 }).catch(() =>
-      {});
-      await new Promise(resolve => setTimeout(resolve, 3000));
-
-      // Collect veocdn URLs from network responses
+      // Collect veocdn URLs from network responses (attach before navigation)
       const veocdn: { video?: string; poster?: string } = {};
-      page.on('response', async (resp) =>
+      page.on('response', async (resp: HTTPResponse) =>
       {
         try
         {
@@ -128,14 +112,42 @@ async function parseVeoVideoWithPlaywright(url: string): Promise<VeoParseResult 
           if (!veocdn.video && /veocdn\.com\/.*\.mp4/i.test(urlStr))
           {
             veocdn.video = urlStr;
+            console.log('[VEO] network captured mp4:', urlStr);
           }
           if (!veocdn.poster && /veocdn\.com\/.*\.(jpg|jpeg|png|webp)/i.test(urlStr))
           {
             veocdn.poster = urlStr;
+            console.log('[VEO] network captured poster:', urlStr);
           }
         }
         catch { /* ignore */ }
       });
+
+      // Navigate to the VEO page and wait for initial network idle
+      await page.goto(url, { waitUntil: 'networkidle0', timeout: 30000 });
+
+  // Try to accept cookie/consent banners if present (Puppeteer doesn't support :has-text)
+      await page.evaluate(() =>
+      {
+        const labels = ['accept', 'i agree', 'got it', 'agree all', 'allow all'];
+        const buttons = Array.from(document.querySelectorAll('button, [role="button"], input[type="button"], input[type="submit"]')) as HTMLElement[];
+        for (const el of buttons)
+        {
+          const txt = (el.innerText || el.getAttribute('aria-label') || '').toLowerCase();
+          if (labels.some(l => txt.includes(l)))
+          {
+            (el as HTMLElement).click();
+          }
+        }
+      });
+
+  // Small extra settle time
+  await sleep(1500);
+
+  // Wait for potential video elements to load
+      await page.waitForSelector('body', { timeout: 5000 }).catch(() =>
+      {});
+      await new Promise(resolve => setTimeout(resolve, 3000));
 
       // Try to find video elements in the rendered DOM and Next.js data payloads
       const videoData = await page.evaluate(() =>
@@ -218,12 +230,13 @@ async function parseVeoVideoWithPlaywright(url: string): Promise<VeoParseResult 
         return null;
       });
 
-      if (videoData)
+  if (videoData)
       {
         return videoData;
       }
 
       // If network events captured veocdn links, use them
+  console.log('[VEO] network summary video:', veocdn.video || 'none', 'poster:', veocdn.poster || 'none');
       if (veocdn.video)
       {
         return {
@@ -241,11 +254,11 @@ async function parseVeoVideoWithPlaywright(url: string): Promise<VeoParseResult 
     {
       lastError = error;
       // If Playwright isn't installed or fails to load, surface a helpful error
-      if (playwrightLoadError)
+    if (puppeteerLoadError)
       {
         return {
-          error: 'Playwright is not available. Install it to enable VEO parsing fallback.',
-          details: playwrightLoadError.message,
+      error: 'Puppeteer is not available. Install it to enable VEO parsing fallback.',
+      details: puppeteerLoadError.message,
         };
       }
 
@@ -265,9 +278,9 @@ async function parseVeoVideoWithPlaywright(url: string): Promise<VeoParseResult 
         continue;
       }
 
-      console.error('Playwright parsing error:', error);
+      console.error('Puppeteer parsing error:', error);
       return {
-        error: 'Failed to parse VEO page with Playwright',
+        error: 'Failed to parse VEO page with Puppeteer',
         details: message,
       };
     }
@@ -275,28 +288,25 @@ async function parseVeoVideoWithPlaywright(url: string): Promise<VeoParseResult 
     {
       if (page)
       {
-        try
-        {
-          await page.close();
-        }
-        catch
-        {
-          /* ignore */
-        }
+        try { await page.close(); } catch { /* ignore */ }
+      }
+      if (context)
+      {
+        try { await context.close(); } catch { /* ignore */ }
       }
     }
   }
 
   // If we fall through both attempts
   return {
-    error: 'Failed to parse VEO page with Playwright',
+    error: 'Failed to parse VEO page with Puppeteer',
     details: lastError instanceof Error ? lastError.message : 'Unknown error',
   };
 }
 
 /**
  * Parses a VEO match page to extract video and poster URLs
- * Uses a hybrid approach: fast regex parsing first, then Playwright if needed
+ * Uses a hybrid approach: fast regex parsing first, then Puppeteer if needed
  */
 export async function parseVeoVideo(url: string): Promise<VeoParseResult | VeoParseError>
 {
@@ -336,10 +346,10 @@ export async function parseVeoVideo(url: string): Promise<VeoParseResult | VeoPa
       return regexResult;
     }
 
-    // Step 2: If regex parsing fails, use Playwright
-    const playwrightResult = await parseVeoVideoWithPlaywright(url);
+  // Step 2: If regex parsing fails, use Puppeteer
+  const puppeteerResult = await parseVeoVideoWithPuppeteer(url);
 
-    return playwrightResult;
+  return puppeteerResult;
   }
   catch (error)
   {

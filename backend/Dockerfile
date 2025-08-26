@@ -1,6 +1,6 @@
-# Backend Dockerfile using the official Playwright image (includes browsers + OS deps)
-# See: https://mcr.microsoft.com/en-us/product/playwright/tags
-FROM mcr.microsoft.com/playwright:v1.55.0-jammy
+# Backend Dockerfile using the official Puppeteer image (includes Chromium + OS deps)
+# See: https://github.com/puppeteer/puppeteer/tree/main/docker
+FROM ghcr.io/puppeteer/puppeteer:22.12.1
 
 # Set workdir
 WORKDIR /app
