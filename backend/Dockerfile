@@ -2,20 +2,20 @@
 # See: https://github.com/puppeteer/puppeteer/tree/main/docker
 FROM ghcr.io/puppeteer/puppeteer:22.12.1
 
-# Set workdir
-WORKDIR /app
+# Set workdir under the non-root user (pptruser) home
+WORKDIR /home/pptruser/app
 
 # Copy manifests first for efficient caching (monorepo workspaces)
-COPY package.json package-lock.json* ./
-COPY backend/package.json backend/package-lock.json* ./backend/
-COPY frontend/package.json frontend/package-lock.json* ./frontend/
+COPY --chown=pptruser:pptruser package.json package-lock.json* ./
+COPY --chown=pptruser:pptruser backend/package.json backend/package-lock.json* ./backend/
+COPY --chown=pptruser:pptruser frontend/package.json frontend/package-lock.json* ./frontend/
 
 # Install all workspaces deps (dev deps included for build)
 # If you don't have lockfiles for all workspaces, fallback to `npm install --workspaces` below.
 RUN if [ -f package-lock.json ]; then npm ci --workspaces; else npm install --workspaces; fi
 
 # Copy the rest of the repository
-COPY . .
+COPY --chown=pptruser:pptruser . .
 
 # Build only the backend
 RUN npm run -w backend build
