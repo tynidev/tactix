@@ -1,5 +1,6 @@
 // VEO video URL parser utility
-import { type Browser, chromium, type Page } from 'playwright';
+// Note: We lazy-load Playwright so the backend doesn't require it in environments where it's not installed.
+import type { Browser, Page } from 'playwright';
 
 export interface VeoParseResult
 {
@@ -15,14 +16,19 @@ export interface VeoParseError
 
 // Browser instance management for performance
 let browserInstance: Browser | null = null;
+let playwrightLoadError: Error | null = null;
 
 /**
  * Get or create a browser instance for Playwright
  */
-async function getBrowser()
+async function getBrowser(): Promise<Browser>
 {
-  if (!browserInstance)
+  if (browserInstance) return browserInstance;
+
+  try
   {
+    // Dynamic import to avoid hard dependency at startup
+    const { chromium } = await import('playwright');
     browserInstance = await chromium.launch({
       headless: true,
       args: [
@@ -36,8 +42,13 @@ async function getBrowser()
         '--disable-gpu',
       ],
     });
+    return browserInstance;
   }
-  return browserInstance;
+  catch (err)
+  {
+    playwrightLoadError = err instanceof Error ? err : new Error('Failed to load Playwright');
+    throw playwrightLoadError;
+  }
 }
 
 /**
@@ -171,6 +182,14 @@ async function parseVeoVideoWithPlaywright(url: string): Promise<VeoParseResult 
   }
   catch (error)
   {
+    // If Playwright isn't installed or fails to load, surface a helpful error
+    if (playwrightLoadError)
+    {
+      return {
+        error: 'Playwright is not available. Install it to enable VEO parsing fallback.',
+        details: playwrightLoadError.message,
+      };
+    }
     console.error('Playwright parsing error:', error);
     return {
       error: 'Failed to parse VEO page with Playwright',

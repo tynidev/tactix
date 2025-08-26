@@ -1,11 +1,9 @@
 services:
   - type: web
     name: tactix-backend
-    env: node
+    env: docker
     plan: free
-    rootDir: backend
-    buildCommand: npm install && npm run build
-    startCommand: npm start
+    dockerfilePath: ./backend/Dockerfile
     envVars:
       - key: NODE_ENV
         value: production
