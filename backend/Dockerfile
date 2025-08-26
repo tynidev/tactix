@@ -2,6 +2,11 @@
 # See: https://github.com/puppeteer/puppeteer/tree/main/docker
 FROM ghcr.io/puppeteer/puppeteer:22.12.1
 
+# Install dumb-init for proper process management as recommended by Puppeteer docs
+USER root
+RUN apt-get update && apt-get install -y dumb-init && rm -rf /var/lib/apt/lists/*
+USER pptruser
+
 # Set workdir under the non-root user (pptruser) home
 WORKDIR /home/pptruser/app
 
@@ -24,5 +29,6 @@ RUN npm run -w backend build
 ENV NODE_ENV=production
 EXPOSE 3001
 
-# Start the backend server
+# Use dumb-init as entrypoint for proper process management
+ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "backend/dist/server.js"]
