@@ -8,8 +8,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "npm install --include=dev && tsc",
     "start": "node dist/server.js",
-    "type-check": "tsc --noEmit",
-    "postinstall": "npx playwright install chromium || npx playwright install --with-deps chromium"
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.38.0",
@@ -18,7 +17,6 @@
     "express": "^4.18.2",
     "helmet": "^7.1.0",
     "morgan": "^1.10.0",
-    "playwright": "^1.47.0",
     "tactix-backend": "file:"
   },
   "devDependencies": {
