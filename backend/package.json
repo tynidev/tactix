@@ -9,7 +9,7 @@
     "build": "npm install --include=dev && tsc",
     "start": "node dist/server.js",
     "type-check": "tsc --noEmit",
-    "postinstall": "npx playwright install"
+    "postinstall": "npx playwright install chromium || npx playwright install --with-deps chromium"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.38.0",
