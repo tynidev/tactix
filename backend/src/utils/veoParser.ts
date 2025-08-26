@@ -21,6 +21,12 @@ let browserInstance: any = null;
  */
 async function getBrowser()
 {
+  // Check if browser instance is still connected
+  if (browserInstance && !browserInstance.isConnected())
+  {
+    browserInstance = null;
+  }
+
   if (!browserInstance)
   {
     browserInstance = await puppeteer.launch({
@@ -36,6 +42,11 @@ async function getBrowser()
         '--disable-gpu',
       ],
     });
+
+    // Handle browser disconnection
+    browserInstance.on('disconnected', () => {
+      browserInstance = null;
+    });
   }
   return browserInstance;
 }
@@ -47,8 +58,21 @@ export async function closeBrowser()
 {
   if (browserInstance)
   {
-    await browserInstance.close();
-    browserInstance = null;
+    try
+    {
+      if (browserInstance.isConnected())
+      {
+        await browserInstance.close();
+      }
+    }
+    catch (error)
+    {
+      console.warn('Error closing browser:', error);
+    }
+    finally
+    {
+      browserInstance = null;
+    }
   }
 }
 
@@ -72,13 +96,33 @@ export function isVeoUrl(url: string): boolean
 
 /**
  * Parses a VEO match page using Puppeteer to handle JavaScript-rendered content
+ * Uses a fresh browser instance for each request to avoid connection issues
  */
-async function parseVeoVideoWithPuppeteer(url: string): Promise<VeoParseResult | VeoParseError>
+async function parseVeoVideoWithPuppeteer(url: string, retryCount = 0): Promise<VeoParseResult | VeoParseError>
 {
+  const maxRetries = 2;
   let page;
+  let browser;
+  
   try
   {
-    const browser = await getBrowser();
+    // Always create a fresh browser instance to avoid frame detachment issues
+    browser = await puppeteer.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process',
+        '--disable-gpu',
+        '--disable-web-security',
+        '--disable-features=VizDisplayCompositor',
+      ],
+    });
+
     page = await browser.newPage();
 
     // Set user agent and viewport
@@ -87,76 +131,93 @@ async function parseVeoVideoWithPuppeteer(url: string): Promise<VeoParseResult |
     );
     await page.setViewport({ width: 1920, height: 1080 });
 
-    // Navigate to the VEO page
+    // Set a reasonable timeout for navigation
     await page.goto(url, {
-      waitUntil: 'networkidle2',
+      waitUntil: 'domcontentloaded',
       timeout: 30000,
     });
 
-    // Wait for potential video elements to load
-    await page.waitForSelector('body', { timeout: 5000 }).catch(() =>
-    {});
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    // Wait for the page to stabilize and load dynamic content
+    await page.waitForSelector('body', { timeout: 10000 }).catch(() => {});
+    
+    // Wait for potential dynamic content and iframes to load
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    
+    // Wait for network to be mostly idle
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // Try to find video elements in the rendered DOM
-    const videoData = await page.evaluate(() =>
-    {
-      // Look for video elements
-      const videos = document.querySelectorAll('video');
-      for (const video of videos)
-      {
-        const src = video.src || video.currentSrc;
-        const poster = video.poster;
-
-        if (src && (src.includes('.mp4') || src.includes('veocdn.com')))
-        {
-          return {
-            videoUrl: src,
-            posterUrl: poster || '',
-          };
-        }
+    // Try multiple approaches to find video data, handling frame issues
+    let videoData = null;
+    
+    // Approach 1: Try to get page content first (safest)
+    try {
+      const content = await page.content();
+      const regexResult = parseVideoFromHtml(content);
+      if (!('error' in regexResult)) {
+        videoData = regexResult;
       }
+    } catch (contentError) {
+      console.warn('Failed to get page content:', contentError);
+    }
+    
+    // Approach 2: If regex parsing didn't work, try DOM evaluation with better error handling
+    if (!videoData) {
+      try {
+        videoData = await page.evaluate(() => {
+          try {
+            // Look for video elements
+            const videos = document.querySelectorAll('video');
+            for (const video of videos) {
+              try {
+                const src = video.src || video.currentSrc;
+                const poster = video.poster;
 
-      // Look for source elements
-      const sources = document.querySelectorAll('source');
-      for (const source of sources)
-      {
-        const src = source.src;
-        if (src && (src.includes('.mp4') || src.includes('veocdn.com')))
-        {
-          // Try to find poster from parent video element
-          const parentVideo = source.closest('video');
-          const poster = parentVideo?.poster || '';
+                if (src && (src.includes('.mp4') || src.includes('veocdn.com'))) {
+                  return {
+                    videoUrl: src,
+                    posterUrl: poster || '',
+                  };
+                }
+              } catch (videoError) {
+                continue;
+              }
+            }
 
-          return {
-            videoUrl: src,
-            posterUrl: poster,
-          };
-        }
+            // Look for source elements
+            const sources = document.querySelectorAll('source');
+            for (const source of sources) {
+              try {
+                const src = source.src;
+                if (src && (src.includes('.mp4') || src.includes('veocdn.com'))) {
+                  const parentVideo = source.closest('video');
+                  const poster = parentVideo?.poster || '';
+                  return { videoUrl: src, posterUrl: poster };
+                }
+              } catch (sourceError) {
+                continue;
+              }
+            }
+
+            // Look for veocdn URLs in page content
+            const bodyHTML = document.body?.innerHTML || '';
+            const veocdnMatches = bodyHTML.match(/https:\/\/[a-z]\.veocdn\.com\/[^"'\s]*\.mp4/gi);
+            if (veocdnMatches && veocdnMatches.length > 0) {
+              const videoUrl = veocdnMatches[0];
+              const posterMatches = bodyHTML.match(/https:\/\/[a-z]\.veocdn\.com\/[^"'\s]*\.(jpg|jpeg|png|webp)/gi);
+              const posterUrl = posterMatches?.[0] || '';
+              return { videoUrl, posterUrl };
+            }
+
+            return null;
+          } catch (error) {
+            return null;
+          }
+        });
+      } catch (evalError) {
+        console.warn('DOM evaluation failed:', evalError);
+        videoData = null;
       }
-
-      // Look for data attributes or JavaScript variables
-      const bodyText = document.body.innerText;
-      const bodyHTML = document.body.innerHTML;
-
-      // Search for veocdn URLs in the page content
-      const veocdnMatches = bodyHTML.match(/https:\/\/[a-z]\.veocdn\.com\/[^"'\s]*\.mp4/gi);
-      if (veocdnMatches && veocdnMatches.length > 0)
-      {
-        const videoUrl = veocdnMatches[0];
-
-        // Look for poster URLs
-        const posterMatches = bodyHTML.match(/https:\/\/[a-z]\.veocdn\.com\/[^"'\s]*\.(jpg|jpeg|png|webp)/gi);
-        const posterUrl = posterMatches && posterMatches.length > 0 ? posterMatches[0] : '';
-
-        return {
-          videoUrl,
-          posterUrl,
-        };
-      }
-
-      return null;
-    });
+    }
 
     if (videoData)
     {
@@ -171,6 +232,20 @@ async function parseVeoVideoWithPuppeteer(url: string): Promise<VeoParseResult |
   catch (error)
   {
     console.error('Puppeteer parsing error:', error);
+    
+    // Check if this is a detached frame error and we can retry
+    if (error instanceof Error && 
+        error.message.includes('detached Frame') && 
+        retryCount < maxRetries)
+    {
+      console.warn(`Retrying due to detached frame error. Attempt ${retryCount + 1}/${maxRetries + 1}`);
+      
+      // Wait a bit before retrying
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      return parseVeoVideoWithPuppeteer(url, retryCount + 1);
+    }
+    
     return {
       error: 'Failed to parse VEO page with Puppeteer',
       details: error instanceof Error ? error.message : 'Unknown error',
@@ -178,9 +253,30 @@ async function parseVeoVideoWithPuppeteer(url: string): Promise<VeoParseResult |
   }
   finally
   {
-    if (page)
-    {
-      await page.close();
+    // Safely close page
+    if (page) {
+      try {
+        // Check if page is still valid before closing
+        if (!page.isClosed()) {
+          await page.close();
+        }
+      } catch (closeError) {
+        // Ignore close errors as they often happen with detached frames
+        const errorMsg = closeError instanceof Error ? closeError.message : 'Unknown error';
+        console.warn('Page close warning (can be ignored):', errorMsg);
+      }
+    }
+    
+    // Always close the browser since we create a fresh one each time
+    if (browser) {
+      try {
+        if (browser.isConnected()) {
+          await browser.close();
+        }
+      } catch (browserCloseError) {
+        const errorMsg = browserCloseError instanceof Error ? browserCloseError.message : 'Unknown error';
+        console.warn('Browser close warning (can be ignored):', errorMsg);
+      }
     }
   }
 }
