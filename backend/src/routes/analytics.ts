@@ -7,7 +7,8 @@ const router = express.Router();
 /**
  * Options for filtering views in getViewsWithGuardianSupport
  */
-interface ViewsQueryOptions {
+interface ViewsQueryOptions
+{
   teamId?: string;
   playerId?: string;
   startDate?: string;
@@ -19,41 +20,48 @@ interface ViewsQueryOptions {
 
 /**
  * Comprehensive function to get views by any combination of filters.
- * Handles both direct player views (when player has user_profile) and 
+ * Handles both direct player views (when player has user_profile) and
  * guardian views (when player doesn't have user_profile).
  */
-async function getViewsWithGuardianSupport(options: ViewsQueryOptions): Promise<Array<{
-  player_profile_id: string;
-  player_name: string;
-  point_id: string;
-  point_title: string;
-  game_id: string;
-  team_id: string;
-  completion_percentage: number | null;
-  created_at: string;
-  view_source: 'direct' | 'guardian';
-  guardian_id?: string;
-}>> {
+async function getViewsWithGuardianSupport(options: ViewsQueryOptions): Promise<
+  Array<{
+    player_profile_id: string;
+    player_name: string;
+    point_id: string;
+    point_title: string;
+    game_id: string;
+    team_id: string;
+    completion_percentage: number | null;
+    created_at: string;
+    view_source: 'direct' | 'guardian';
+    guardian_id?: string;
+  }>
+>
+{
   // Build dynamic WHERE clauses based on provided options
   const whereConditions: string[] = [];
   const params: any[] = [];
   let paramIndex = 1;
 
   // Helper to add parameterized condition
-  const addCondition = (condition: string, value: any) => {
+  const addCondition = (condition: string, value: any) =>
+  {
     whereConditions.push(`${condition} = $${paramIndex}`);
     params.push(value);
     paramIndex++;
   };
 
   // Helper to add date range condition
-  const addDateRange = (field: string) => {
-    if (options.startDate) {
+  const addDateRange = (field: string) =>
+  {
+    if (options.startDate)
+    {
       whereConditions.push(`${field} >= $${paramIndex}`);
       params.push(options.startDate);
       paramIndex++;
     }
-    if (options.endDate) {
+    if (options.endDate)
+    {
       whereConditions.push(`${field} <= $${paramIndex}`);
       params.push(options.endDate);
       paramIndex++;
@@ -66,7 +74,7 @@ async function getViewsWithGuardianSupport(options: ViewsQueryOptions): Promise<
   if (options.coachingPointId) addCondition('cp.id', options.coachingPointId);
   if (options.gameId) addCondition('g.id', options.gameId);
   if (options.coachId) addCondition('cp.author_id', options.coachId);
-  
+
   // Add date range for view events
   addDateRange('cpve.created_at');
 
@@ -143,9 +151,10 @@ async function getViewsWithGuardianSupport(options: ViewsQueryOptions): Promise<
     ORDER BY player_profile_id, point_id, created_at;
   `;
 
-  try {
+  try
+  {
     // Since we need complex filtering, we'll break this into parts using standard Supabase queries
-    
+
     // Step 1: Build base query conditions for coaching_point_view_events
     let viewQuery = supabase
       .from('coaching_point_view_events')
@@ -165,70 +174,89 @@ async function getViewsWithGuardianSupport(options: ViewsQueryOptions): Promise<
       `);
 
     // Apply filters
-    if (options.coachingPointId) {
+    if (options.coachingPointId)
+    {
       viewQuery = viewQuery.eq('point_id', options.coachingPointId);
     }
-    if (options.startDate) {
+    if (options.startDate)
+    {
       viewQuery = viewQuery.gte('created_at', options.startDate);
     }
-    if (options.endDate) {
+    if (options.endDate)
+    {
       viewQuery = viewQuery.lte('created_at', options.endDate);
     }
-    if (options.teamId) {
+    if (options.teamId)
+    {
       viewQuery = viewQuery.eq('coaching_points.games.team_id', options.teamId);
     }
-    if (options.gameId) {
+    if (options.gameId)
+    {
       viewQuery = viewQuery.eq('coaching_points.games.id', options.gameId);
     }
-    if (options.coachId) {
+    if (options.coachId)
+    {
       viewQuery = viewQuery.eq('coaching_points.author_id', options.coachId);
     }
 
     const { data: viewEvents, error: viewError } = await viewQuery;
 
-    if (viewError) {
+    if (viewError)
+    {
       console.error('Error fetching view events:', viewError);
       throw viewError;
     }
 
-    if (!viewEvents || viewEvents.length === 0) {
+    if (!viewEvents || viewEvents.length === 0)
+    {
       return [];
     }
 
     // Step 2: Get player profiles to determine which views are direct vs guardian
     // Filter players to only those on relevant teams based on the query options
     let relevantTeamIds: string[] = [];
-    
+
     // Determine which teams are relevant based on the filters
-    if (options.teamId) {
+    if (options.teamId)
+    {
       relevantTeamIds = [options.teamId];
-    } else if (options.gameId) {
+    }
+    else if (options.gameId)
+    {
       // Get team from the game
-      const gameTeam = (viewEvents || []).find(event => {
+      const gameTeam = (viewEvents || []).find(event =>
+      {
         const game = event.coaching_points?.games;
         return game?.id === options.gameId;
       });
-      if (gameTeam?.coaching_points?.games?.team_id) {
+      if (gameTeam?.coaching_points?.games?.team_id)
+      {
         relevantTeamIds = [gameTeam.coaching_points.games.team_id];
       }
-    } else if (options.coachId) {
+    }
+    else if (options.coachId)
+    {
       // Get teams where the coach has coach/admin role
       const { data: coachTeams, error: coachTeamsError } = await supabase
         .from('team_memberships')
         .select('team_id')
         .eq('user_id', options.coachId)
         .in('role', ['coach', 'admin']);
-        
-      if (coachTeamsError) {
+
+      if (coachTeamsError)
+      {
         console.error('Error fetching coach teams:', coachTeamsError);
         throw coachTeamsError;
       }
-      
+
       relevantTeamIds = (coachTeams || []).map(t => t.team_id);
-    } else {
+    }
+    else
+    {
       // Extract unique team IDs from view events if no specific team filter
       const teamIdSet = new Set<string>();
-      (viewEvents || []).forEach(event => {
+      (viewEvents || []).forEach(event =>
+      {
         const teamId = event.coaching_points?.games?.team_id;
         if (teamId) teamIdSet.add(teamId);
       });
@@ -245,18 +273,21 @@ async function getViewsWithGuardianSupport(options: ViewsQueryOptions): Promise<
       `);
 
     // Filter by specific player if provided
-    if (options.playerId) {
+    if (options.playerId)
+    {
       playerQuery = playerQuery.eq('id', options.playerId);
     }
-    
+
     // Filter players to only those on relevant teams
-    if (relevantTeamIds.length > 0) {
+    if (relevantTeamIds.length > 0)
+    {
       playerQuery = playerQuery.in('team_players.team_id', relevantTeamIds);
     }
 
     const { data: playerProfiles, error: playerError } = await playerQuery;
 
-    if (playerError) {
+    if (playerError)
+    {
       console.error('Error fetching player profiles:', playerError);
       throw playerError;
     }
@@ -266,18 +297,21 @@ async function getViewsWithGuardianSupport(options: ViewsQueryOptions): Promise<
     const playersWithoutUser = (playerProfiles || []).filter(p => !p.user_id);
     let guardianMap = new Map<string, string[]>();
 
-    if (playersWithoutUser.length > 0) {
+    if (playersWithoutUser.length > 0)
+    {
       const { data: guardianRels, error: guardianError } = await supabase
         .from('guardian_player_relationships')
         .select('guardian_id, player_profile_id')
         .in('player_profile_id', playersWithoutUser.map(p => p.id));
 
-      if (guardianError) {
+      if (guardianError)
+      {
         console.error('Error fetching guardian relationships:', guardianError);
         throw guardianError;
       }
 
-      (guardianRels || []).forEach(rel => {
+      (guardianRels || []).forEach(rel =>
+      {
         const existing = guardianMap.get(rel.player_profile_id) || [];
         existing.push(rel.guardian_id);
         guardianMap.set(rel.player_profile_id, existing);
@@ -298,13 +332,15 @@ async function getViewsWithGuardianSupport(options: ViewsQueryOptions): Promise<
       guardian_id?: string;
     }> = [];
 
-    (viewEvents || []).forEach(event => {
+    (viewEvents || []).forEach(event =>
+    {
       const point = event.coaching_points;
       const game = point.games;
 
       // Check if this is a direct player view
       const directPlayer = (playerProfiles || []).find(p => p.user_id === event.user_id);
-      if (directPlayer) {
+      if (directPlayer)
+      {
         result.push({
           player_profile_id: directPlayer.id,
           player_name: directPlayer.name,
@@ -314,16 +350,19 @@ async function getViewsWithGuardianSupport(options: ViewsQueryOptions): Promise<
           team_id: game.team_id,
           completion_percentage: event.completion_percentage,
           created_at: event.created_at,
-          view_source: 'direct'
+          view_source: 'direct',
         });
         return;
       }
 
       // Check if this is a guardian view
-      for (const [playerId, guardianIds] of guardianMap.entries()) {
-        if (guardianIds.includes(event.user_id)) {
+      for (const [playerId, guardianIds] of guardianMap.entries())
+      {
+        if (guardianIds.includes(event.user_id))
+        {
           const player = playersWithoutUser.find(p => p.id === playerId);
-          if (player) {
+          if (player)
+          {
             result.push({
               player_profile_id: player.id,
               player_name: player.name,
@@ -334,7 +373,7 @@ async function getViewsWithGuardianSupport(options: ViewsQueryOptions): Promise<
               completion_percentage: event.completion_percentage,
               created_at: event.created_at,
               view_source: 'guardian',
-              guardian_id: event.user_id
+              guardian_id: event.user_id,
             });
           }
           break;
@@ -344,30 +383,36 @@ async function getViewsWithGuardianSupport(options: ViewsQueryOptions): Promise<
 
     // Sort by players with the most views (group by player and count views)
     const playerViewCounts = new Map<string, number>();
-    result.forEach(view => {
+    result.forEach(view =>
+    {
       const currentCount = playerViewCounts.get(view.player_profile_id) || 0;
       playerViewCounts.set(view.player_profile_id, currentCount + 1);
     });
 
     // Sort result by player view count (descending), then by player name, then by created_at
-    return result.sort((a, b) => {
+    return result.sort((a, b) =>
+    {
       const aViewCount = playerViewCounts.get(a.player_profile_id) || 0;
       const bViewCount = playerViewCounts.get(b.player_profile_id) || 0;
-      
+
       // First, sort by view count (descending)
-      if (aViewCount !== bViewCount) {
+      if (aViewCount !== bViewCount)
+      {
         return bViewCount - aViewCount;
       }
-      
+
       // Then by player name (ascending)
-      if (a.player_name !== b.player_name) {
+      if (a.player_name !== b.player_name)
+      {
         return a.player_name.localeCompare(b.player_name);
       }
-      
+
       // Finally by created_at (descending - most recent first)
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
-  } catch (error) {
+  }
+  catch (error)
+  {
     console.error('Error in getViewsWithGuardianSupport:', error);
     throw error;
   }
@@ -388,13 +433,15 @@ async function getGuardianViewsForPlayers(
     .select('guardian_id, player_profile_id')
     .in('player_profile_id', playersWithoutUser.map(p => p.id));
 
-  if (error) {
+  if (error)
+  {
     console.error('Error fetching guardian relationships:', error);
     return new Map();
   }
 
   const guardianMap = new Map<string, string[]>();
-  (guardianRelationships || []).forEach(rel => {
+  (guardianRelationships || []).forEach(rel =>
+  {
     const existing = guardianMap.get(rel.player_profile_id) || [];
     existing.push(rel.guardian_id);
     guardianMap.set(rel.player_profile_id, existing);
@@ -409,8 +456,12 @@ async function getGuardianViewsForPlayers(
 async function getViewEventsWithGuardianViews(
   pointIds: string[],
   playerProfiles: Array<{ id: string; user_id: string | null; }>,
-  dateFilter?: { startISO: string; endISO: string; }
-): Promise<Array<{ point_id: string; user_id: string; completion_percentage: number | null; created_at: string; player_id?: string; }>>
+  dateFilter?: { startISO: string; endISO: string; },
+): Promise<
+  Array<
+    { point_id: string; user_id: string; completion_percentage: number | null; created_at: string; player_id?: string; }
+  >
+>
 {
   if (pointIds.length === 0) return [];
 
@@ -422,9 +473,11 @@ async function getViewEventsWithGuardianViews(
   const directUserIds = playersWithUser.map(p => p.user_id!);
 
   // Build query for guardian views (guardians of players without user_id)
-  const guardianUserIds = Array.from(new Set(
-    Array.from(guardianMap.values()).flat()
-  ));
+  const guardianUserIds = Array.from(
+    new Set(
+      Array.from(guardianMap.values()).flat(),
+    ),
+  );
 
   // Get all relevant user IDs
   const allUserIds = [...directUserIds, ...guardianUserIds];
@@ -437,31 +490,39 @@ async function getViewEventsWithGuardianViews(
     .in('point_id', pointIds)
     .in('user_id', allUserIds);
 
-  if (dateFilter) {
+  if (dateFilter)
+  {
     query = query.gte('created_at', dateFilter.startISO).lte('created_at', dateFilter.endISO);
   }
 
   const { data: viewEvents, error } = await query;
 
-  if (error) {
+  if (error)
+  {
     console.error('Error fetching view events:', error);
     return [];
   }
 
   // Map guardian views to their respective players
-  const result: Array<{ point_id: string; user_id: string; completion_percentage: number | null; created_at: string; player_id?: string; }> = [];
+  const result: Array<
+    { point_id: string; user_id: string; completion_percentage: number | null; created_at: string; player_id?: string; }
+  > = [];
 
-  (viewEvents || []).forEach(event => {
+  (viewEvents || []).forEach(event =>
+  {
     // Check if this is a direct player view
     const directPlayer = playersWithUser.find(p => p.user_id === event.user_id);
-    if (directPlayer) {
+    if (directPlayer)
+    {
       result.push({ ...event, player_id: directPlayer.id });
       return;
     }
 
     // Check if this is a guardian view
-    for (const [playerId, guardianIds] of guardianMap.entries()) {
-      if (guardianIds.includes(event.user_id)) {
+    for (const [playerId, guardianIds] of guardianMap.entries())
+    {
+      if (guardianIds.includes(event.user_id))
+      {
         result.push({ ...event, player_id: playerId });
         break; // A guardian can only be mapped to one player per event
       }
@@ -478,17 +539,18 @@ async function getViewEventsWithGuardianViews(
  */
 function buildPerPlayerPointMaxMap(
   viewEvents: Array<{ point_id: string; user_id: string; completion_percentage: number | null; player_id?: string; }>,
-  playerProfiles: Array<{ id: string; user_id: string | null; }>
+  playerProfiles: Array<{ id: string; user_id: string | null; }>,
 ): Map<string, number>
 {
   const perPlayerPointMax = new Map<string, number>();
-  
+
   (viewEvents || []).forEach(ev =>
   {
     // For events that include player_id (from guardian views), use that
     // For direct player views, find the player by user_id
     let playerId = ev.player_id;
-    if (!playerId) {
+    if (!playerId)
+    {
       const player = playerProfiles.find(p => p.user_id === ev.user_id);
       playerId = player?.id;
     }
@@ -774,19 +836,23 @@ async function calculatePlayerEngagementScores(
   pointIds: string[],
   tagsByPlayer: Map<string, string[]>,
   ackCountByPlayer: Map<string, number>,
-  playerViewEvents: Array<{ point_id: string; user_id: string; completion_percentage: number | null; player_id?: string; }>,
-): Promise<Array<{
-  player_profile_id: string;
-  name: string;
-  // Overall engagement (ALL points)
-  ackRate: number; // 0..1
-  completionRate: number; // 0..1
-  score: number; // 0..1
-  // Tagged-specific engagement
-  taggedAckRate: number; // 0..1
-  taggedCompletionRate: number; // 0..1
-  taggedScore: number; // 0..1
-}>>
+  playerViewEvents: Array<
+    { point_id: string; user_id: string; completion_percentage: number | null; player_id?: string; }
+  >,
+): Promise<
+  Array<{
+    player_profile_id: string;
+    name: string;
+    // Overall engagement (ALL points)
+    ackRate: number; // 0..1
+    completionRate: number; // 0..1
+    score: number; // 0..1
+    // Tagged-specific engagement
+    taggedAckRate: number; // 0..1
+    taggedCompletionRate: number; // 0..1
+    taggedScore: number; // 0..1
+  }>
+>
 {
   // Build per-player-point max completion map from view events that include guardian views
   const perPlayerPointMax = buildPerPlayerPointMaxMap(playerViewEvents, players);
@@ -1015,7 +1081,7 @@ router.get('/coach-overview', authenticateUser, async (req: AuthenticatedRequest
     // Get comprehensive view data with guardian support for these teams within the date window
     const allViewData = await getViewsWithGuardianSupport({
       startDate: startISO,
-      endDate: endISO
+      endDate: endISO,
     });
 
     // Filter view data to only include teams the user has access to
@@ -1132,14 +1198,14 @@ router.get('/coach-overview', authenticateUser, async (req: AuthenticatedRequest
     const playerViewEvents = await getViewEventsWithGuardianViews(
       pointIds,
       allPlayerProfiles,
-      { startISO, endISO }
+      { startISO, endISO },
     );
 
     // Calculate comprehensive player engagement scores using utility function for ALL players
-    const playersForScoring = allPlayerProfiles.map(p => ({ 
-      id: p.id, 
-      name: p.name, 
-      user_id: p.user_id 
+    const playersForScoring = allPlayerProfiles.map(p => ({
+      id: p.id,
+      name: p.name,
+      user_id: p.user_id,
     }));
 
     const playerScores = await calculatePlayerEngagementScores(
@@ -1320,13 +1386,13 @@ router.get('/team/:teamId', authenticateUser, async (req: AuthenticatedRequest, 
 
     // Get comprehensive view data with guardian support for this team (all time)
     const allTeamViewData = await getViewsWithGuardianSupport({
-      teamId: teamId
+      teamId: teamId,
     });
 
     // Get view events using the guardian-aware helper for role breakdowns and backward compatibility
     const teamPlayerViewEvents = await getViewEventsWithGuardianViews(
       pointIds,
-      Array.from(playerProfileById.values())
+      Array.from(playerProfileById.values()),
     );
 
     // Acknowledgments for all coaching points (no date filter)
@@ -1366,7 +1432,7 @@ router.get('/team/:teamId', authenticateUser, async (req: AuthenticatedRequest, 
     const heatmapViewData = await getViewsWithGuardianSupport({
       teamId: teamId,
       startDate: startISO,
-      endDate: endISO
+      endDate: endISO,
     });
 
     // Engagement heatmap (UTC day-of-week/hour) - uses date-filtered data
@@ -1390,13 +1456,13 @@ router.get('/team/:teamId', authenticateUser, async (req: AuthenticatedRequest, 
     // Per-role breakdown using guardian-supported view data
     const roles = ['coach', 'admin', 'player', 'guardian'];
     const roleViewsCount = new Map<string, number>();
-    
+
     // Get all view events (not date filtered) to calculate role breakdowns
     const allRoleViewEvents = await getViewEventsWithGuardianViews(
       pointIds,
-      Array.from(playerProfileById.values())
+      Array.from(playerProfileById.values()),
     );
-    
+
     allRoleViewEvents.forEach(ev =>
     {
       const role = ev.user_id ? userRoleMap.get(ev.user_id) : undefined;
@@ -1404,15 +1470,18 @@ router.get('/team/:teamId', authenticateUser, async (req: AuthenticatedRequest, 
     });
 
     // Calculate role-based completion averages using per-player-point max
-    const perPlayerPointMaxForRoles = buildPerPlayerPointMaxMap(allRoleViewEvents, Array.from(playerProfileById.values()));
+    const perPlayerPointMaxForRoles = buildPerPlayerPointMaxMap(
+      allRoleViewEvents,
+      Array.from(playerProfileById.values()),
+    );
     const roleAgg: Record<string, { sum: number; count: number; }> = {};
-    
+
     perPlayerPointMaxForRoles.forEach((v, key) =>
     {
       const [, playerId] = key.split('__');
       const player = Array.from(playerProfileById.values()).find(p => p.id === playerId);
       if (!player?.user_id) return;
-      
+
       const role = userRoleMap.get(player.user_id);
       if (!role) return;
       if (!roleAgg[role]) roleAgg[role] = { sum: 0, count: 0 };
@@ -1449,11 +1518,11 @@ router.get('/team/:teamId', authenticateUser, async (req: AuthenticatedRequest, 
 
     // Top players by engagement (all players including those without user accounts)
     const allPlayers = Array.from(playerProfileById.values());
-    
+
     // Get view events with guardian views for player engagement calculations
     const playerEngagementViewEvents = await getViewEventsWithGuardianViews(
       pointIds,
-      allPlayers
+      allPlayers,
       // Note: No date filter here since we want all-time data for team analytics
     );
 
@@ -1513,7 +1582,6 @@ router.get('/team/:teamId', authenticateUser, async (req: AuthenticatedRequest, 
         taggedCompletionPercent: Math.round(p.taggedCompletionRate * 100),
         taggedScorePercent: Math.round(p.taggedScore * 100),
       }));
-
 
     res.json({
       totals: {
@@ -1633,16 +1701,17 @@ router.get('/game/:gameId', authenticateUser, async (req: AuthenticatedRequest, 
     const gameViewData = await getViewsWithGuardianSupport({
       gameId: gameId,
       startDate: startISO,
-      endDate: endISO
+      endDate: endISO,
     });
 
     // Total views from guardian-supported data
     const totalViews = gameViewData.length;
 
-    // Unique viewers calculation from guardian-supported data 
+    // Unique viewers calculation from guardian-supported data
     // (count unique player profiles that have views, not unique user IDs)
     const uniquePlayerViewers = new Set<string>();
-    gameViewData.forEach(view => {
+    gameViewData.forEach(view =>
+    {
       uniquePlayerViewers.add(view.player_profile_id);
     });
     const uniqueViewers = uniquePlayerViewers.size;
@@ -1720,7 +1789,7 @@ router.get('/game/:gameId', authenticateUser, async (req: AuthenticatedRequest, 
       return;
     }
 
-    // Keep the old per-user max for backward compatibility where needed  
+    // Keep the old per-user max for backward compatibility where needed
     const perUserPointMax = buildPerUserPointMaxMap(legacyViewEvents);
 
     // Per-point engagement table
@@ -1974,13 +2043,11 @@ router.get(
 
       // Get comprehensive view data for this specific player using guardian support
       const myPlayerViewData = await getViewsWithGuardianSupport({
-        playerId: playerProfileId
+        playerId: playerProfileId,
       });
 
       // Filter to only tagged points for this specific analysis
-      const myTaggedViewData = myPlayerViewData.filter(view => 
-        taggedPointSet.has(view.point_id)
-      );
+      const myTaggedViewData = myPlayerViewData.filter(view => taggedPointSet.has(view.point_id));
 
       // Convert guardian-supported view data to legacy format for compatibility
       const myViewEvents = myTaggedViewData.map(view => ({
@@ -1988,11 +2055,11 @@ router.get(
         user_id: view.guardian_id || 'placeholder', // placeholder for guardian views
         completion_percentage: view.completion_percentage,
         created_at: view.created_at,
-        player_id: view.player_profile_id
+        player_id: view.player_profile_id,
       }));
 
       let myViewSummaries: any[] = [];
-      
+
       if (playerProfile.user_id)
       {
         const userIdForPlayer = playerProfile.user_id as string;
@@ -2008,55 +2075,65 @@ router.get(
           return;
         }
         myViewSummaries = vs || [];
-      } else {
+      }
+      else
+      {
         // For players without user accounts, we need to get guardian view summaries
         const guardianMap = await getGuardianViewsForPlayers([{
           id: playerProfile.id,
-          user_id: playerProfile.user_id
+          user_id: playerProfile.user_id,
         }]);
-        
+
         const guardianIds = guardianMap.get(playerProfile.id) || [];
-        if (guardianIds.length > 0) {
+        if (guardianIds.length > 0)
+        {
           const { data: guardianViewSummaries, error: gvsErr } = await supabase
             .from('coaching_point_view_summary')
             .select('point_id, first_viewed_at, last_viewed_at, user_id')
             .in('point_id', Array.from(taggedPointSet))
             .in('user_id', guardianIds);
 
-          if (gvsErr) {
+          if (gvsErr)
+          {
             res.status(400).json({ error: gvsErr.message });
             return;
           }
-          
+
           // Group by point_id and take the earliest first_viewed_at and latest last_viewed_at
-          const summaryMap = new Map<string, {first_viewed_at: string | null, last_viewed_at: string | null}>();
-          (guardianViewSummaries || []).forEach(summary => {
+          const summaryMap = new Map<string, { first_viewed_at: string | null; last_viewed_at: string | null; }>();
+          (guardianViewSummaries || []).forEach(summary =>
+          {
             const existing = summaryMap.get(summary.point_id);
             const firstViewed = summary.first_viewed_at;
             const lastViewed = summary.last_viewed_at;
-            
-            if (!existing) {
+
+            if (!existing)
+            {
               summaryMap.set(summary.point_id, {
                 first_viewed_at: firstViewed,
-                last_viewed_at: lastViewed
+                last_viewed_at: lastViewed,
               });
-            } else {
+            }
+            else
+            {
               // Take earliest first_viewed_at
-              if (firstViewed && (!existing.first_viewed_at || firstViewed < existing.first_viewed_at)) {
+              if (firstViewed && (!existing.first_viewed_at || firstViewed < existing.first_viewed_at))
+              {
                 existing.first_viewed_at = firstViewed;
               }
-              // Take latest last_viewed_at  
-              if (lastViewed && (!existing.last_viewed_at || lastViewed > existing.last_viewed_at)) {
+              // Take latest last_viewed_at
+              if (lastViewed && (!existing.last_viewed_at || lastViewed > existing.last_viewed_at))
+              {
                 existing.last_viewed_at = lastViewed;
               }
             }
           });
-          
+
           myViewSummaries = Array.from(summaryMap.entries()).map(([point_id, data]) => ({
             point_id,
             first_viewed_at: data.first_viewed_at,
             last_viewed_at: data.last_viewed_at,
-            user_id: null // Since this represents aggregated guardian views
+            user_id: null, // Since this represents aggregated guardian views
           }));
         }
       }
@@ -2304,7 +2381,7 @@ router.get('/point/:pointId', authenticateUser, async (req: AuthenticatedRequest
 
     // Get comprehensive view data with guardian support for this specific coaching point
     const pointViewData = await getViewsWithGuardianSupport({
-      coachingPointId: pointId
+      coachingPointId: pointId,
     });
 
     // Legacy view events query for backward compatibility with completion distribution
@@ -2491,7 +2568,7 @@ router.get(
 
       // Get comprehensive view data with guardian support for this coaching point
       const pointViewData = await getViewsWithGuardianSupport({
-        coachingPointId: pointId
+        coachingPointId: pointId,
       });
 
       // Get view/acknowledgment status for each tagged player
@@ -2502,16 +2579,16 @@ router.get(
         // Get view count and completion for this player from guardian-supported data
         const playerViewData = pointViewData.filter(view => view.player_profile_id === playerId);
         const viewCount = playerViewData.length;
-        
+
         // Calculate max completion percentage for this player
-        const maxCompletion = playerViewData.length > 0 
-          ? Math.max(...playerViewData.map(view => view.completion_percentage || 0))
-          : 0;
+        const maxCompletion = playerViewData.length > 0 ?
+          Math.max(...playerViewData.map(view => view.completion_percentage || 0)) :
+          0;
 
         // Get first/last viewed times (if player has direct views)
         let firstViewedAt: string | null = null;
         let lastViewedAt: string | null = null;
-        
+
         // Try to get view summary for direct views
         const { data: viewSummary } = await supabase
           .from('coaching_point_view_summary')
@@ -2520,12 +2597,15 @@ router.get(
           .eq('user_id', playerId)
           .single();
 
-        if (viewSummary) {
+        if (viewSummary)
+        {
           firstViewedAt = viewSummary.first_viewed_at;
           lastViewedAt = viewSummary.last_viewed_at;
-        } else if (playerViewData.length > 0) {
+        }
+        else if (playerViewData.length > 0)
+        {
           // For guardian views, calculate from the view data
-          const sortedViews = [...playerViewData].sort((a, b) => 
+          const sortedViews = [...playerViewData].sort((a, b) =>
             new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
           );
           firstViewedAt = sortedViews[0].created_at;
@@ -2567,17 +2647,20 @@ router.get(
 
       // Calculate max completion per player from guardian-supported view data
       const playerCompletionMap = new Map<string, number>();
-      pointViewData.forEach(view => {
+      pointViewData.forEach(view =>
+      {
         const playerId = view.player_profile_id;
         const completion = view.completion_percentage || 0;
         const existing = playerCompletionMap.get(playerId) || 0;
-        if (completion > existing) {
+        if (completion > existing)
+        {
           playerCompletionMap.set(playerId, completion);
         }
       });
 
       // Build buckets from max completion per player
-      playerCompletionMap.forEach(completion => {
+      playerCompletionMap.forEach(completion =>
+      {
         if (completion < 25) completionBuckets['0-25%']++;
         else if (completion < 50) completionBuckets['25-50%']++;
         else if (completion < 75) completionBuckets['50-75%']++;

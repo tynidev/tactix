@@ -98,7 +98,8 @@ async function parseVeoVideoWithPlaywright(url: string): Promise<VeoParseResult 
       });
 
       // Wait for potential video elements to load
-      await page.waitForSelector('body', { timeout: 5000 }).catch(() => {});
+      await page.waitForSelector('body', { timeout: 5000 }).catch(() =>
+      {});
       await new Promise(resolve => setTimeout(resolve, 3000));
 
       // Try to find video elements in the rendered DOM
@@ -208,7 +209,14 @@ async function parseVeoVideoWithPlaywright(url: string): Promise<VeoParseResult 
     {
       if (page)
       {
-        try { await page.close(); } catch { /* ignore */ }
+        try
+        {
+          await page.close();
+        }
+        catch
+        {
+          /* ignore */
+        }
       }
     }
   }

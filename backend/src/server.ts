@@ -17,8 +17,8 @@ import coachingPointViewRoutes from './routes/coachingPointViews.js';
 import gameRoutes from './routes/games.js';
 import playerRoutes from './routes/players.js';
 import teamRoutes from './routes/teams.js';
-import veoRoutes from './routes/veo.js';
 import testRoutes from './routes/test.js';
+import veoRoutes from './routes/veo.js';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;

@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { getApiUrl } from '../utils/api';
 import '../styles/coach-analytics.css';
 
-interface LookupData {
+interface LookupData
+{
   teams: Array<{ id: string; name: string; }>;
   games: Array<{ id: string; opponent: string; date: string; team_name: string; }>;
   players: Array<{ id: string; name: string; team_name: string; }>;
@@ -11,7 +12,8 @@ interface LookupData {
   coaches: Array<{ id: string; name: string; }>;
 }
 
-interface TestResult {
+interface TestResult
+{
   player_profile_id: string;
   player_name: string;
   point_id: string;
@@ -25,7 +27,8 @@ interface TestResult {
   guardian_id?: string;
 }
 
-interface TestSummary {
+interface TestSummary
+{
   totalViews: number;
   directViews: number;
   guardianViews: number;
@@ -34,14 +37,15 @@ interface TestSummary {
   averageCompletion: number;
 }
 
-export const TestPage: React.FC = () => {
+export const TestPage: React.FC = () =>
+{
   const [lookupData, setLookupData] = useState<LookupData | null>(null);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<TestResult[] | null>(null);
   const [summary, setSummary] = useState<TestSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loadingData, setLoadingData] = useState(true);
-  
+
   // Form state
   const [teamId, setTeamId] = useState('');
   const [playerId, setPlayerId] = useState('');
@@ -52,12 +56,16 @@ export const TestPage: React.FC = () => {
   const [coachId, setCoachId] = useState('');
 
   // Load lookup data on component mount
-  useEffect(() => {
-    const loadLookupData = async () => {
-      try {
+  useEffect(() =>
+  {
+    const loadLookupData = async () =>
+    {
+      try
+      {
         setLoadingData(true);
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
+        if (!session)
+        {
           setError('Please log in to access the test page');
           setLoadingData(false);
           return;
@@ -65,7 +73,7 @@ export const TestPage: React.FC = () => {
 
         const apiUrl = getApiUrl();
         console.log('Fetching lookup data from:', `${apiUrl}/api/test/lookup-data`);
-        
+
         const response = await fetch(`${apiUrl}/api/test/lookup-data`, {
           headers: {
             'Authorization': `Bearer ${session.access_token}`,
@@ -73,8 +81,9 @@ export const TestPage: React.FC = () => {
         });
 
         console.log('Response status:', response.status);
-        
-        if (!response.ok) {
+
+        if (!response.ok)
+        {
           const errorText = await response.text();
           console.error('Error response:', errorText);
           throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
@@ -82,7 +91,7 @@ export const TestPage: React.FC = () => {
 
         const data = await response.json();
         console.log('Loaded lookup data:', data);
-        
+
         // Sort all lists alphabetically
         const sortedData = {
           teams: (data.teams || []).sort((a: any, b: any) => a.name.localeCompare(b.name)),
@@ -91,12 +100,16 @@ export const TestPage: React.FC = () => {
           coachingPoints: (data.coachingPoints || []).sort((a: any, b: any) => a.title.localeCompare(b.title)),
           coaches: (data.coaches || []).sort((a: any, b: any) => a.name.localeCompare(b.name)),
         };
-        
+
         setLookupData(sortedData);
-      } catch (err) {
+      }
+      catch (err)
+      {
         console.error('Failed to load lookup data:', err);
         setError(`Failed to load lookup data: ${err instanceof Error ? err.message : 'Unknown error'}`);
-      } finally {
+      }
+      finally
+      {
         setLoadingData(false);
       }
     };
@@ -104,16 +117,19 @@ export const TestPage: React.FC = () => {
     loadLookupData();
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) =>
+  {
     e.preventDefault();
     setLoading(true);
     setError(null);
     setResults(null);
     setSummary(null);
 
-    try {
+    try
+    {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      if (!session)
+      {
         throw new Error('Please log in to test the function');
       }
 
@@ -136,7 +152,8 @@ export const TestPage: React.FC = () => {
         body: JSON.stringify(requestBody),
       });
 
-      if (!response.ok) {
+      if (!response.ok)
+      {
         const errorData = await response.json();
         throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
@@ -144,22 +161,28 @@ export const TestPage: React.FC = () => {
       const data = await response.json();
       setResults(data.results);
       setSummary(data.summary);
-    } catch (err) {
+    }
+    catch (err)
+    {
       console.error('Test failed:', err);
       setError(err instanceof Error ? err.message : 'Test failed');
-    } finally {
+    }
+    finally
+    {
       setLoading(false);
     }
   };
 
   // Helper function to get team name from team ID
-  const getTeamName = (teamId: string): string => {
+  const getTeamName = (teamId: string): string =>
+  {
     if (!lookupData?.teams) return 'Unknown Team';
     const team = lookupData.teams.find(t => t.id === teamId);
     return team?.name || 'Unknown Team';
   };
 
-  const clearForm = () => {
+  const clearForm = () =>
+  {
     setTeamId('');
     setPlayerId('');
     setStartDate('');
@@ -172,7 +195,8 @@ export const TestPage: React.FC = () => {
     setError(null);
   };
 
-  if (loadingData && !error) {
+  if (loadingData && !error)
+  {
     return (
       <main className='dashboard-main'>
         <div className='section-header'>
@@ -183,7 +207,8 @@ export const TestPage: React.FC = () => {
     );
   }
 
-  if (error && !lookupData) {
+  if (error && !lookupData)
+  {
     return (
       <main className='dashboard-main'>
         <div className='section-header'>
@@ -192,8 +217,8 @@ export const TestPage: React.FC = () => {
         <div className='alert alert-error'>
           <h3>Error Loading Test Page</h3>
           <p>{error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
+          <button
+            onClick={() => window.location.reload()}
             className='btn btn-error'
           >
             Retry
@@ -203,7 +228,8 @@ export const TestPage: React.FC = () => {
     );
   }
 
-  if (!lookupData) {
+  if (!lookupData)
+  {
     return (
       <main className='dashboard-main'>
         <div className='section-header'>
@@ -222,11 +248,11 @@ export const TestPage: React.FC = () => {
       <div className='section-header'>
         <h1 className='section-title'>Guardian Views Test Page</h1>
       </div>
-      
+
       <div className='card intro-card'>
         <div className='stat-label'>
-          Test the guardian view support function with various filter parameters.
-          This function includes views by guardians for players without user accounts in engagement calculations.
+          Test the guardian view support function with various filter parameters. This function includes views by
+          guardians for players without user accounts in engagement calculations.
         </div>
       </div>
 
@@ -239,10 +265,8 @@ export const TestPage: React.FC = () => {
                 value={teamId}
                 onChange={(e) => setTeamId(e.target.value)}
               >
-                <option value="">All Teams</option>
-                {lookupData.teams.map(team => (
-                  <option key={team.id} value={team.id}>{team.name}</option>
-                ))}
+                <option value=''>All Teams</option>
+                {lookupData.teams.map(team => <option key={team.id} value={team.id}>{team.name}</option>)}
               </select>
             </div>
 
@@ -252,7 +276,7 @@ export const TestPage: React.FC = () => {
                 value={playerId}
                 onChange={(e) => setPlayerId(e.target.value)}
               >
-                <option value="">All Players</option>
+                <option value=''>All Players</option>
                 {lookupData.players.map(player => (
                   <option key={player.id} value={player.id}>
                     {player.name}
@@ -267,7 +291,7 @@ export const TestPage: React.FC = () => {
                 value={gameId}
                 onChange={(e) => setGameId(e.target.value)}
               >
-                <option value="">All Games</option>
+                <option value=''>All Games</option>
                 {lookupData.games.map(game => (
                   <option key={game.id} value={game.id}>
                     {game.team_name} vs {game.opponent} ({new Date(game.date).toLocaleDateString()})
@@ -282,7 +306,7 @@ export const TestPage: React.FC = () => {
                 value={coachingPointId}
                 onChange={(e) => setCoachingPointId(e.target.value)}
               >
-                <option value="">All Coaching Points</option>
+                <option value=''>All Coaching Points</option>
                 {lookupData.coachingPoints.map(point => (
                   <option key={point.id} value={point.id}>
                     {point.title} (vs {point.game_opponent}) - {point.team_name}
@@ -297,17 +321,15 @@ export const TestPage: React.FC = () => {
                 value={coachId}
                 onChange={(e) => setCoachId(e.target.value)}
               >
-                <option value="">All Coaches</option>
-                {lookupData.coaches.map(coach => (
-                  <option key={coach.id} value={coach.id}>{coach.name}</option>
-                ))}
+                <option value=''>All Coaches</option>
+                {lookupData.coaches.map(coach => <option key={coach.id} value={coach.id}>{coach.name}</option>)}
               </select>
             </div>
 
             <div className='filter-item'>
               <label className='filter-label'>Start Date</label>
               <input
-                type="date"
+                type='date'
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
               />
@@ -316,7 +338,7 @@ export const TestPage: React.FC = () => {
             <div className='filter-item'>
               <label className='filter-label'>End Date</label>
               <input
-                type="date"
+                type='date'
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
               />
@@ -324,14 +346,14 @@ export const TestPage: React.FC = () => {
 
             <div className='filter-actions'>
               <button
-                type="submit"
+                type='submit'
                 disabled={loading}
                 className='btn btn-primary'
               >
                 {loading ? 'Testing...' : 'Test Function'}
               </button>
               <button
-                type="button"
+                type='button'
                 onClick={clearForm}
                 className='btn btn-secondary'
               >

@@ -7,8 +7,8 @@ import {
   ReviewPage,
   TeamDetailPage,
   TeamsPage,
-  VeoTestParserPage,
   TestPage,
+  VeoTestParserPage,
 } from '../../pages';
 import { Auth } from '../Auth/Auth';
 import { Navigation } from '../Navigation/Navigation';
