@@ -23,25 +23,14 @@ let playwrightLoadError: Error | null = null;
  */
 async function getBrowser(): Promise<Browser>
 {
-  if (browserInstance) return browserInstance;
+  if (browserInstance && browserInstance.isConnected()) return browserInstance;
 
   try
   {
     // Dynamic import to avoid hard dependency at startup
     const { chromium } = await import('playwright');
-    browserInstance = await chromium.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--single-process',
-        '--disable-gpu',
-      ],
-    });
+    // Playwright Docker image already configures sandbox and dependencies; avoid non-standard flags
+    browserInstance = await chromium.launch({ headless: true });
     return browserInstance;
   }
   catch (err)
@@ -86,123 +75,149 @@ export function isVeoUrl(url: string): boolean
  */
 async function parseVeoVideoWithPlaywright(url: string): Promise<VeoParseResult | VeoParseError>
 {
-  let page: Page | undefined;
-  try
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= 2; attempt++)
   {
-    const browser = await getBrowser();
-    page = await browser.newPage();
-
-    // Set user agent and viewport
-    await page.setExtraHTTPHeaders({
-      'User-Agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-    });
-    await page.setViewportSize({ width: 1920, height: 1080 });
-
-    // Navigate to the VEO page
-    await page.goto(url, {
-      waitUntil: 'networkidle',
-      timeout: 30000,
-    });
-
-    // Wait for potential video elements to load
-    await page.waitForSelector('body', { timeout: 5000 }).catch(() =>
-    {});
-    await new Promise(resolve => setTimeout(resolve, 3000));
-
-    // Try to find video elements in the rendered DOM
-    const videoData = await page.evaluate(() =>
+    let page: Page | undefined;
+    try
     {
-      // Look for video elements
-      const videos = document.querySelectorAll('video');
-      for (const video of videos)
-      {
-        const src = video.src || video.currentSrc;
-        const poster = video.poster;
+      const browser = await getBrowser();
+      page = await browser.newPage();
 
-        if (src && (src.includes('.mp4') || src.includes('veocdn.com')))
+      // Set user agent and viewport
+      await page.setExtraHTTPHeaders({
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+      });
+      await page.setViewportSize({ width: 1920, height: 1080 });
+
+      // Navigate to the VEO page
+      await page.goto(url, {
+        waitUntil: 'networkidle',
+        timeout: 30000,
+      });
+
+      // Wait for potential video elements to load
+      await page.waitForSelector('body', { timeout: 5000 }).catch(() => {});
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      // Try to find video elements in the rendered DOM
+      const videoData = await page.evaluate(() =>
+      {
+        // Look for video elements
+        const videos = document.querySelectorAll('video');
+        for (const video of videos)
         {
+          const src = (video as HTMLVideoElement).src || (video as HTMLVideoElement).currentSrc;
+          const poster = (video as HTMLVideoElement).poster;
+
+          if (src && (src.includes('.mp4') || src.includes('veocdn.com')))
+          {
+            return {
+              videoUrl: src,
+              posterUrl: poster || '',
+            };
+          }
+        }
+
+        // Look for source elements
+        const sources = document.querySelectorAll('source');
+        for (const source of sources)
+        {
+          const src = (source as HTMLSourceElement).src;
+          if (src && (src.includes('.mp4') || src.includes('veocdn.com')))
+          {
+            // Try to find poster from parent video element
+            const parentVideo = source.closest('video') as HTMLVideoElement | null;
+            const poster = parentVideo?.poster || '';
+
+            return {
+              videoUrl: src,
+              posterUrl: poster,
+            };
+          }
+        }
+
+        // Look for data attributes or JavaScript variables
+        const bodyHTML = document.body.innerHTML;
+
+        // Search for veocdn URLs in the page content
+        const veocdnMatches = bodyHTML.match(/https:\/\/[a-z]\.veocdn\.com\/[^"'\s]*\.mp4/gi);
+        if (veocdnMatches && veocdnMatches.length > 0)
+        {
+          const videoUrl = veocdnMatches[0];
+
+          // Look for poster URLs
+          const posterMatches = bodyHTML.match(/https:\/\/[a-z]\.veocdn\.com\/[^"'\s]*\.(jpg|jpeg|png|webp)/gi);
+          const posterUrl = posterMatches && posterMatches.length > 0 ? posterMatches[0] : '';
+
           return {
-            videoUrl: src,
-            posterUrl: poster || '',
+            videoUrl,
+            posterUrl,
           };
         }
+
+        return null;
+      });
+
+      if (videoData)
+      {
+        return videoData;
       }
 
-      // Look for source elements
-      const sources = document.querySelectorAll('source');
-      for (const source of sources)
+      return {
+        error: 'Could not find video elements in the rendered VEO page',
+        details: 'Video content may require user interaction or authentication to load',
+      };
+    }
+    catch (error)
+    {
+      lastError = error;
+      // If Playwright isn't installed or fails to load, surface a helpful error
+      if (playwrightLoadError)
       {
-        const src = source.src;
-        if (src && (src.includes('.mp4') || src.includes('veocdn.com')))
-        {
-          // Try to find poster from parent video element
-          const parentVideo = source.closest('video');
-          const poster = parentVideo?.poster || '';
-
-          return {
-            videoUrl: src,
-            posterUrl: poster,
-          };
-        }
-      }
-
-      // Look for data attributes or JavaScript variables
-      const bodyText = document.body.innerText;
-      const bodyHTML = document.body.innerHTML;
-
-      // Search for veocdn URLs in the page content
-      const veocdnMatches = bodyHTML.match(/https:\/\/[a-z]\.veocdn\.com\/[^"'\s]*\.mp4/gi);
-      if (veocdnMatches && veocdnMatches.length > 0)
-      {
-        const videoUrl = veocdnMatches[0];
-
-        // Look for poster URLs
-        const posterMatches = bodyHTML.match(/https:\/\/[a-z]\.veocdn\.com\/[^"'\s]*\.(jpg|jpeg|png|webp)/gi);
-        const posterUrl = posterMatches && posterMatches.length > 0 ? posterMatches[0] : '';
-
         return {
-          videoUrl,
-          posterUrl,
+          error: 'Playwright is not available. Install it to enable VEO parsing fallback.',
+          details: playwrightLoadError.message,
         };
       }
 
-      return null;
-    });
+      const message = error instanceof Error ? error.message : String(error);
+      const closed = /has been closed|Target page, context or browser has been closed/i.test(message);
+      if (closed && attempt === 1)
+      {
+        // Reset instance and retry once
+        try
+        {
+          await closeBrowser();
+        }
+        catch
+        {
+          // ignore
+        }
+        continue;
+      }
 
-    if (videoData)
-    {
-      return videoData;
-    }
-
-    return {
-      error: 'Could not find video elements in the rendered VEO page',
-      details: 'Video content may require user interaction or authentication to load',
-    };
-  }
-  catch (error)
-  {
-    // If Playwright isn't installed or fails to load, surface a helpful error
-    if (playwrightLoadError)
-    {
+      console.error('Playwright parsing error:', error);
       return {
-        error: 'Playwright is not available. Install it to enable VEO parsing fallback.',
-        details: playwrightLoadError.message,
+        error: 'Failed to parse VEO page with Playwright',
+        details: message,
       };
     }
-    console.error('Playwright parsing error:', error);
-    return {
-      error: 'Failed to parse VEO page with Playwright',
-      details: error instanceof Error ? error.message : 'Unknown error',
-    };
-  }
-  finally
-  {
-    if (page)
+    finally
     {
-      await page.close();
+      if (page)
+      {
+        try { await page.close(); } catch { /* ignore */ }
+      }
     }
   }
+
+  // If we fall through both attempts
+  return {
+    error: 'Failed to parse VEO page with Playwright',
+    details: lastError instanceof Error ? lastError.message : 'Unknown error',
+  };
 }
 
 /**
