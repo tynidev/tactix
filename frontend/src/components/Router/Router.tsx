@@ -7,7 +7,6 @@ import {
   ReviewPage,
   TeamDetailPage,
   TeamsPage,
-  VEOTestPage,
 } from '../../pages';
 import { Auth } from '../Auth/Auth';
 import { Navigation } from '../Navigation/Navigation';
@@ -36,7 +35,6 @@ export const AppRouter: React.FC = () =>
         <Route path='/games/:teamId' element={<GamesPage />} />
         <Route path='/profile' element={<UserProfilePage />} />
         <Route path='/review/:gameId' element={<ReviewPage />} />
-        <Route path='/veo-test' element={<VEOTestPage />} />
 
         {/* Catch all route - redirect to games, preserving query params */}
         <Route path='*' element={<Navigate to='/games' replace />} />
