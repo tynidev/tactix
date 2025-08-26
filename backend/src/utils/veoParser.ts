@@ -1,5 +1,5 @@
 // VEO video URL parser utility
-import puppeteer from 'puppeteer';
+import { type Browser, chromium, type Page } from 'playwright';
 
 export interface VeoParseResult
 {
@@ -14,16 +14,16 @@ export interface VeoParseError
 }
 
 // Browser instance management for performance
-let browserInstance: any = null;
+let browserInstance: Browser | null = null;
 
 /**
- * Get or create a browser instance for Puppeteer
+ * Get or create a browser instance for Playwright
  */
 async function getBrowser()
 {
   if (!browserInstance)
   {
-    browserInstance = await puppeteer.launch({
+    browserInstance = await chromium.launch({
       headless: true,
       args: [
         '--no-sandbox',
@@ -71,25 +71,26 @@ export function isVeoUrl(url: string): boolean
 }
 
 /**
- * Parses a VEO match page using Puppeteer to handle JavaScript-rendered content
+ * Parses a VEO match page using Playwright to handle JavaScript-rendered content
  */
-async function parseVeoVideoWithPuppeteer(url: string): Promise<VeoParseResult | VeoParseError>
+async function parseVeoVideoWithPlaywright(url: string): Promise<VeoParseResult | VeoParseError>
 {
-  let page;
+  let page: Page | undefined;
   try
   {
     const browser = await getBrowser();
     page = await browser.newPage();
 
     // Set user agent and viewport
-    await page.setUserAgent(
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-    );
-    await page.setViewport({ width: 1920, height: 1080 });
+    await page.setExtraHTTPHeaders({
+      'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+    });
+    await page.setViewportSize({ width: 1920, height: 1080 });
 
     // Navigate to the VEO page
     await page.goto(url, {
-      waitUntil: 'networkidle2',
+      waitUntil: 'networkidle',
       timeout: 30000,
     });
 
@@ -170,9 +171,9 @@ async function parseVeoVideoWithPuppeteer(url: string): Promise<VeoParseResult |
   }
   catch (error)
   {
-    console.error('Puppeteer parsing error:', error);
+    console.error('Playwright parsing error:', error);
     return {
-      error: 'Failed to parse VEO page with Puppeteer',
+      error: 'Failed to parse VEO page with Playwright',
       details: error instanceof Error ? error.message : 'Unknown error',
     };
   }
@@ -187,7 +188,7 @@ async function parseVeoVideoWithPuppeteer(url: string): Promise<VeoParseResult |
 
 /**
  * Parses a VEO match page to extract video and poster URLs
- * Uses a hybrid approach: fast regex parsing first, then Puppeteer if needed
+ * Uses a hybrid approach: fast regex parsing first, then Playwright if needed
  */
 export async function parseVeoVideo(url: string): Promise<VeoParseResult | VeoParseError>
 {
@@ -227,10 +228,10 @@ export async function parseVeoVideo(url: string): Promise<VeoParseResult | VeoPa
       return regexResult;
     }
 
-    // Step 2: If regex parsing fails, use Puppeteer
-    const puppeteerResult = await parseVeoVideoWithPuppeteer(url);
+    // Step 2: If regex parsing fails, use Playwright
+    const playwrightResult = await parseVeoVideoWithPlaywright(url);
 
-    return puppeteerResult;
+    return playwrightResult;
   }
   catch (error)
   {
