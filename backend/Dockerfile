@@ -1,6 +1,6 @@
 # Backend Dockerfile using the official Playwright image (includes browsers + OS deps)
 # See: https://mcr.microsoft.com/en-us/product/playwright/tags
-FROM mcr.microsoft.com/playwright:v1.47.0-jammy
+FROM mcr.microsoft.com/playwright:v1.55.0-jammy
 
 # Set workdir
 WORKDIR /app
