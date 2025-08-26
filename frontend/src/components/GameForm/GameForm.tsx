@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { apiRequest } from '../../utils/api';
+import { parseVeoUrl } from '../../utils/veoUtils';
 import { parseVideoInfo } from '../../utils/videoUtils';
 import { Modal } from '../Modal';
 import './GameForm.css';
@@ -30,13 +32,27 @@ interface GameFormProps
 const getVideoUrlForEditing = (videoId: string | null | undefined): string | null =>
 {
   if (!videoId) return null;
-  // If it's already a full URL, return as is
-  if (videoId.includes('youtube.com') || videoId.includes('youtu.be'))
+
+  // Check if it's already a full URL (contains protocol)
+  try
   {
+    new URL(videoId);
+    // If URL constructor succeeds, it's already a valid full URL - return as is
     return videoId;
   }
-  // If it's just an ID, convert to full URL
-  return `https://www.youtube.com/watch?v=${videoId}`;
+  catch
+  {
+    // Not a valid URL, check if it's a YouTube video ID
+    // YouTube video IDs are exactly 11 characters of alphanumeric, dash, and underscore
+    if (/^[a-zA-Z0-9_-]{11}$/.test(videoId))
+    {
+      return `https://www.youtube.com/watch?v=${videoId}`;
+    }
+
+    // If it's not a valid URL and not a YouTube ID, return as is
+    // This handles edge cases gracefully
+    return videoId;
+  }
 };
 
 export const GameForm: React.FC<GameFormProps> = ({
@@ -98,23 +114,52 @@ export const GameForm: React.FC<GameFormProps> = ({
     if (!videoInfo)
     {
       // If videoInfo is null, it means no patterns matched
-      setValidationMessage('Please provide a valid YouTube or HTML5 video URL');
+      setValidationMessage('Please provide a valid YouTube, VEO, or HTML5 video URL');
       return;
     }
 
     setIsSubmitting(true);
-    setValidationMessage('Validating video...');
 
     try
     {
-      // Convert empty strings to null for API and keep full video URL
+      let finalVideoUrl = formData.video_url.trim();
+
+      // If it's a VEO URL, parse it to get the actual video URL
+      if (videoInfo.type === 'veo')
+      {
+        setValidationMessage('Processing VEO URL...');
+
+        try
+        {
+          const veoResult = await parseVeoUrl(finalVideoUrl, apiRequest);
+          finalVideoUrl = veoResult.videoUrl;
+          setValidationMessage('VEO URL processed successfully. Validating video...');
+        }
+        catch (veoError)
+        {
+          console.error('VEO parsing error:', veoError);
+          setValidationMessage(
+            veoError instanceof Error ?
+              `VEO parsing failed: ${veoError.message}` :
+              'Failed to process VEO URL. Please try again or use a direct video URL.',
+          );
+          return;
+        }
+      }
+      else
+      {
+        setValidationMessage('Validating video...');
+      }
+
+      // Convert empty strings to null for API and use the final video URL
       const apiData = {
         ...formData,
         location: formData.location?.trim() || null,
-        video_url: formData.video_url?.trim() || null,
+        video_url: finalVideoUrl,
         notes: formData.notes?.trim() || null,
         team_id: teamId,
       };
+
       await onSubmit(apiData);
     }
     catch (error)
@@ -295,11 +340,12 @@ export const GameForm: React.FC<GameFormProps> = ({
             value={formData.video_url || ''}
             onChange={handleInputChange}
             className='form-input'
-            placeholder='https://www.youtube.com/watch?v=... or https://example.com/video.mp4'
+            placeholder='https://www.youtube.com/watch?v=... or https://app.veo.co/matches/... or https://example.com/video.mp4'
             required
           />
           <div className='form-help'>
-            Paste a YouTube URL or direct link to an HTML5 video file (MP4, WebM, OGG, AVI, MOV).
+            Paste a YouTube URL, VEO match URL (app.veo.co), or direct link to an HTML5 video file (MP4, WebM, OGG, AVI,
+            MOV).
           </div>
         </div>
 
@@ -321,7 +367,9 @@ export const GameForm: React.FC<GameFormProps> = ({
         {validationMessage && (
           <div
             className={`form-message ${
-              validationMessage.includes('Validating') ? 'form-message-info' : 'form-message-error'
+              validationMessage.includes('Validating') || validationMessage.includes('Processing') ?
+                'form-message-info' :
+                'form-message-error'
             }`}
           >
             {validationMessage}

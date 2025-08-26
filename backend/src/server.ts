@@ -17,6 +17,7 @@ import coachingPointViewRoutes from './routes/coachingPointViews.js';
 import gameRoutes from './routes/games.js';
 import playerRoutes from './routes/players.js';
 import teamRoutes from './routes/teams.js';
+import veoRoutes from './routes/veo.js';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -63,6 +64,7 @@ app.use('/api/games', gameRoutes);
 app.use('/api/players', playerRoutes);
 app.use('/api/teams', teamRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/veo', veoRoutes);
 
 // Error handling
 app.use(errorHandler);
@@ -73,10 +75,35 @@ app.use('*', (req: Request, res: Response) =>
   res.status(404).json({ error: 'Route not found' });
 });
 
-app.listen(PORT, '0.0.0.0', () =>
+const server = app.listen(PORT, '0.0.0.0', () =>
 {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📱 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
+});
+
+// Graceful shutdown handling
+process.on('SIGTERM', async () =>
+{
+  console.log('🛑 SIGTERM received, shutting down gracefully...');
+  const { closeBrowser } = await import('./utils/veoParser.js');
+  await closeBrowser();
+  server.close(() =>
+  {
+    console.log('✅ Server closed');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', async () =>
+{
+  console.log('🛑 SIGINT received, shutting down gracefully...');
+  const { closeBrowser } = await import('./utils/veoParser.js');
+  await closeBrowser();
+  server.close(() =>
+  {
+    console.log('✅ Server closed');
+    process.exit(0);
+  });
 });
 
 export default app;

@@ -1,10 +1,12 @@
 // Video URL detection and validation utilities
+import { isVeoUrl } from './veoUtils';
 
 export interface VideoInfo
 {
-  type: 'youtube' | 'html5';
+  type: 'youtube' | 'html5' | 'veo';
   id?: string; // For YouTube videos
   url: string; // Full URL
+  originalUrl?: string; // For VEO URLs, store the original VEO URL
 }
 
 /**
@@ -139,6 +141,15 @@ export function parseVideoInfo(input: string): VideoInfo | null
     return {
       type: 'html5',
       url: input,
+    };
+  }
+
+  if (isVeoUrl(input))
+  {
+    return {
+      type: 'veo',
+      url: input, // Initially use the VEO URL, will be replaced after parsing
+      originalUrl: input,
     };
   }
 
