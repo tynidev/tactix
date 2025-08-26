@@ -5,3 +5,4 @@ export { ReviewPage } from './ReviewPage';
 export { TeamDetailPage } from './TeamDetailPage';
 export { TeamsPage } from './TeamsPage';
 export { VeoTestParserPage } from './VeoTestParserPage';
+export { TestPage } from './TestPage';

@@ -5,8 +5,511 @@ import { supabase } from '../utils/supabase.js';
 const router = express.Router();
 
 /**
+ * Options for filtering views in getViewsWithGuardianSupport
+ */
+interface ViewsQueryOptions {
+  teamId?: string;
+  playerId?: string;
+  startDate?: string;
+  endDate?: string;
+  coachingPointId?: string;
+  gameId?: string;
+  coachId?: string;
+}
+
+/**
+ * Comprehensive function to get views by any combination of filters.
+ * Handles both direct player views (when player has user_profile) and 
+ * guardian views (when player doesn't have user_profile).
+ */
+async function getViewsWithGuardianSupport(options: ViewsQueryOptions): Promise<Array<{
+  player_profile_id: string;
+  player_name: string;
+  point_id: string;
+  point_title: string;
+  game_id: string;
+  team_id: string;
+  completion_percentage: number | null;
+  created_at: string;
+  view_source: 'direct' | 'guardian';
+  guardian_id?: string;
+}>> {
+  // Build dynamic WHERE clauses based on provided options
+  const whereConditions: string[] = [];
+  const params: any[] = [];
+  let paramIndex = 1;
+
+  // Helper to add parameterized condition
+  const addCondition = (condition: string, value: any) => {
+    whereConditions.push(`${condition} = $${paramIndex}`);
+    params.push(value);
+    paramIndex++;
+  };
+
+  // Helper to add date range condition
+  const addDateRange = (field: string) => {
+    if (options.startDate) {
+      whereConditions.push(`${field} >= $${paramIndex}`);
+      params.push(options.startDate);
+      paramIndex++;
+    }
+    if (options.endDate) {
+      whereConditions.push(`${field} <= $${paramIndex}`);
+      params.push(options.endDate);
+      paramIndex++;
+    }
+  };
+
+  // Build filter conditions
+  if (options.teamId) addCondition('g.team_id', options.teamId);
+  if (options.playerId) addCondition('pp.id', options.playerId);
+  if (options.coachingPointId) addCondition('cp.id', options.coachingPointId);
+  if (options.gameId) addCondition('g.id', options.gameId);
+  if (options.coachId) addCondition('cp.author_id', options.coachId);
+  
+  // Add date range for view events
+  addDateRange('cpve.created_at');
+
+  const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+  const query = `
+    WITH direct_player_views AS (
+      -- Get views for players who have their own user accounts
+      SELECT 
+        pp.id as player_profile_id,
+        pp.name as player_name,
+        cp.id as point_id,
+        cp.title as point_title,
+        g.id as game_id,
+        g.team_id,
+        cpve.completion_percentage,
+        cpve.created_at,
+        'direct'::text as view_source,
+        NULL::uuid as guardian_id
+      FROM player_profiles pp
+      INNER JOIN coaching_point_view_events cpve ON pp.user_id = cpve.user_id
+      INNER JOIN coaching_points cp ON cpve.point_id = cp.id
+      INNER JOIN games g ON cp.game_id = g.id
+      WHERE pp.user_id IS NOT NULL
+        ${whereConditions.length > 0 ? `AND ${whereConditions.join(' AND ')}` : ''}
+    ),
+    guardian_views AS (
+      -- Get views from guardians for players without user accounts
+      SELECT 
+        pp.id as player_profile_id,
+        pp.name as player_name,
+        cp.id as point_id,
+        cp.title as point_title,
+        g.id as game_id,
+        g.team_id,
+        cpve.completion_percentage,
+        cpve.created_at,
+        'guardian'::text as view_source,
+        gpr.guardian_id
+      FROM player_profiles pp
+      INNER JOIN guardian_player_relationships gpr ON pp.id = gpr.player_profile_id
+      INNER JOIN coaching_point_view_events cpve ON gpr.guardian_id = cpve.user_id
+      INNER JOIN coaching_points cp ON cpve.point_id = cp.id
+      INNER JOIN games g ON cp.game_id = g.id
+      WHERE pp.user_id IS NULL
+        ${whereConditions.length > 0 ? `AND ${whereConditions.join(' AND ')}` : ''}
+    )
+    -- Combine both sources
+    SELECT 
+      player_profile_id,
+      player_name,
+      point_id,
+      point_title,
+      game_id,
+      team_id,
+      completion_percentage,
+      created_at,
+      view_source,
+      guardian_id
+    FROM direct_player_views
+    UNION ALL
+    SELECT 
+      player_profile_id,
+      player_name,
+      point_id,
+      point_title,
+      game_id,
+      team_id,
+      completion_percentage,
+      created_at,
+      view_source,
+      guardian_id
+    FROM guardian_views
+    ORDER BY player_profile_id, point_id, created_at;
+  `;
+
+  try {
+    // Since we need complex filtering, we'll break this into parts using standard Supabase queries
+    
+    // Step 1: Build base query conditions for coaching_point_view_events
+    let viewQuery = supabase
+      .from('coaching_point_view_events')
+      .select(`
+        point_id,
+        user_id,
+        completion_percentage,
+        created_at,
+        coaching_points!inner(
+          id,
+          title,
+          games!inner(
+            id,
+            team_id
+          )
+        )
+      `);
+
+    // Apply filters
+    if (options.coachingPointId) {
+      viewQuery = viewQuery.eq('point_id', options.coachingPointId);
+    }
+    if (options.startDate) {
+      viewQuery = viewQuery.gte('created_at', options.startDate);
+    }
+    if (options.endDate) {
+      viewQuery = viewQuery.lte('created_at', options.endDate);
+    }
+    if (options.teamId) {
+      viewQuery = viewQuery.eq('coaching_points.games.team_id', options.teamId);
+    }
+    if (options.gameId) {
+      viewQuery = viewQuery.eq('coaching_points.games.id', options.gameId);
+    }
+    if (options.coachId) {
+      viewQuery = viewQuery.eq('coaching_points.author_id', options.coachId);
+    }
+
+    const { data: viewEvents, error: viewError } = await viewQuery;
+
+    if (viewError) {
+      console.error('Error fetching view events:', viewError);
+      throw viewError;
+    }
+
+    if (!viewEvents || viewEvents.length === 0) {
+      return [];
+    }
+
+    // Step 2: Get player profiles to determine which views are direct vs guardian
+    // Filter players to only those on relevant teams based on the query options
+    let relevantTeamIds: string[] = [];
+    
+    // Determine which teams are relevant based on the filters
+    if (options.teamId) {
+      relevantTeamIds = [options.teamId];
+    } else if (options.gameId) {
+      // Get team from the game
+      const gameTeam = (viewEvents || []).find(event => {
+        const game = event.coaching_points?.games;
+        return game?.id === options.gameId;
+      });
+      if (gameTeam?.coaching_points?.games?.team_id) {
+        relevantTeamIds = [gameTeam.coaching_points.games.team_id];
+      }
+    } else if (options.coachId) {
+      // Get teams where the coach has coach/admin role
+      const { data: coachTeams, error: coachTeamsError } = await supabase
+        .from('team_memberships')
+        .select('team_id')
+        .eq('user_id', options.coachId)
+        .in('role', ['coach', 'admin']);
+        
+      if (coachTeamsError) {
+        console.error('Error fetching coach teams:', coachTeamsError);
+        throw coachTeamsError;
+      }
+      
+      relevantTeamIds = (coachTeams || []).map(t => t.team_id);
+    } else {
+      // Extract unique team IDs from view events if no specific team filter
+      const teamIdSet = new Set<string>();
+      (viewEvents || []).forEach(event => {
+        const teamId = event.coaching_points?.games?.team_id;
+        if (teamId) teamIdSet.add(teamId);
+      });
+      relevantTeamIds = Array.from(teamIdSet);
+    }
+
+    let playerQuery = supabase
+      .from('player_profiles')
+      .select(`
+        id, 
+        name, 
+        user_id,
+        team_players!inner(team_id)
+      `);
+
+    // Filter by specific player if provided
+    if (options.playerId) {
+      playerQuery = playerQuery.eq('id', options.playerId);
+    }
+    
+    // Filter players to only those on relevant teams
+    if (relevantTeamIds.length > 0) {
+      playerQuery = playerQuery.in('team_players.team_id', relevantTeamIds);
+    }
+
+    const { data: playerProfiles, error: playerError } = await playerQuery;
+
+    if (playerError) {
+      console.error('Error fetching player profiles:', playerError);
+      throw playerError;
+    }
+
+    // Step 3: Get guardian relationships for players without user accounts
+    // Only get players that are already filtered by team membership
+    const playersWithoutUser = (playerProfiles || []).filter(p => !p.user_id);
+    let guardianMap = new Map<string, string[]>();
+
+    if (playersWithoutUser.length > 0) {
+      const { data: guardianRels, error: guardianError } = await supabase
+        .from('guardian_player_relationships')
+        .select('guardian_id, player_profile_id')
+        .in('player_profile_id', playersWithoutUser.map(p => p.id));
+
+      if (guardianError) {
+        console.error('Error fetching guardian relationships:', guardianError);
+        throw guardianError;
+      }
+
+      (guardianRels || []).forEach(rel => {
+        const existing = guardianMap.get(rel.player_profile_id) || [];
+        existing.push(rel.guardian_id);
+        guardianMap.set(rel.player_profile_id, existing);
+      });
+    }
+
+    // Step 4: Process and categorize view events
+    const result: Array<{
+      player_profile_id: string;
+      player_name: string;
+      point_id: string;
+      point_title: string;
+      game_id: string;
+      team_id: string;
+      completion_percentage: number | null;
+      created_at: string;
+      view_source: 'direct' | 'guardian';
+      guardian_id?: string;
+    }> = [];
+
+    (viewEvents || []).forEach(event => {
+      const point = event.coaching_points;
+      const game = point.games;
+
+      // Check if this is a direct player view
+      const directPlayer = (playerProfiles || []).find(p => p.user_id === event.user_id);
+      if (directPlayer) {
+        result.push({
+          player_profile_id: directPlayer.id,
+          player_name: directPlayer.name,
+          point_id: event.point_id,
+          point_title: point.title,
+          game_id: game.id,
+          team_id: game.team_id,
+          completion_percentage: event.completion_percentage,
+          created_at: event.created_at,
+          view_source: 'direct'
+        });
+        return;
+      }
+
+      // Check if this is a guardian view
+      for (const [playerId, guardianIds] of guardianMap.entries()) {
+        if (guardianIds.includes(event.user_id)) {
+          const player = playersWithoutUser.find(p => p.id === playerId);
+          if (player) {
+            result.push({
+              player_profile_id: player.id,
+              player_name: player.name,
+              point_id: event.point_id,
+              point_title: point.title,
+              game_id: game.id,
+              team_id: game.team_id,
+              completion_percentage: event.completion_percentage,
+              created_at: event.created_at,
+              view_source: 'guardian',
+              guardian_id: event.user_id
+            });
+          }
+          break;
+        }
+      }
+    });
+
+    // Sort by players with the most views (group by player and count views)
+    const playerViewCounts = new Map<string, number>();
+    result.forEach(view => {
+      const currentCount = playerViewCounts.get(view.player_profile_id) || 0;
+      playerViewCounts.set(view.player_profile_id, currentCount + 1);
+    });
+
+    // Sort result by player view count (descending), then by player name, then by created_at
+    return result.sort((a, b) => {
+      const aViewCount = playerViewCounts.get(a.player_profile_id) || 0;
+      const bViewCount = playerViewCounts.get(b.player_profile_id) || 0;
+      
+      // First, sort by view count (descending)
+      if (aViewCount !== bViewCount) {
+        return bViewCount - aViewCount;
+      }
+      
+      // Then by player name (ascending)
+      if (a.player_name !== b.player_name) {
+        return a.player_name.localeCompare(b.player_name);
+      }
+      
+      // Finally by created_at (descending - most recent first)
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  } catch (error) {
+    console.error('Error in getViewsWithGuardianSupport:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get guardian user IDs for players who don't have user accounts
+ */
+async function getGuardianViewsForPlayers(
+  playerProfiles: Array<{ id: string; user_id: string | null; }>,
+): Promise<Map<string, string[]>>
+{
+  const playersWithoutUser = playerProfiles.filter(p => !p.user_id);
+  if (playersWithoutUser.length === 0) return new Map();
+
+  const { data: guardianRelationships, error } = await supabase
+    .from('guardian_player_relationships')
+    .select('guardian_id, player_profile_id')
+    .in('player_profile_id', playersWithoutUser.map(p => p.id));
+
+  if (error) {
+    console.error('Error fetching guardian relationships:', error);
+    return new Map();
+  }
+
+  const guardianMap = new Map<string, string[]>();
+  (guardianRelationships || []).forEach(rel => {
+    const existing = guardianMap.get(rel.player_profile_id) || [];
+    existing.push(rel.guardian_id);
+    guardianMap.set(rel.player_profile_id, existing);
+  });
+
+  return guardianMap;
+}
+
+/**
+ * Get all view events including guardian views for players without user accounts
+ */
+async function getViewEventsWithGuardianViews(
+  pointIds: string[],
+  playerProfiles: Array<{ id: string; user_id: string | null; }>,
+  dateFilter?: { startISO: string; endISO: string; }
+): Promise<Array<{ point_id: string; user_id: string; completion_percentage: number | null; created_at: string; player_id?: string; }>>
+{
+  if (pointIds.length === 0) return [];
+
+  // Get guardian mappings
+  const guardianMap = await getGuardianViewsForPlayers(playerProfiles);
+
+  // Build query for direct user views (players with user_id)
+  const playersWithUser = playerProfiles.filter(p => p.user_id);
+  const directUserIds = playersWithUser.map(p => p.user_id!);
+
+  // Build query for guardian views (guardians of players without user_id)
+  const guardianUserIds = Array.from(new Set(
+    Array.from(guardianMap.values()).flat()
+  ));
+
+  // Get all relevant user IDs
+  const allUserIds = [...directUserIds, ...guardianUserIds];
+  if (allUserIds.length === 0) return [];
+
+  // Fetch view events
+  let query = supabase
+    .from('coaching_point_view_events')
+    .select('point_id, user_id, completion_percentage, created_at')
+    .in('point_id', pointIds)
+    .in('user_id', allUserIds);
+
+  if (dateFilter) {
+    query = query.gte('created_at', dateFilter.startISO).lte('created_at', dateFilter.endISO);
+  }
+
+  const { data: viewEvents, error } = await query;
+
+  if (error) {
+    console.error('Error fetching view events:', error);
+    return [];
+  }
+
+  // Map guardian views to their respective players
+  const result: Array<{ point_id: string; user_id: string; completion_percentage: number | null; created_at: string; player_id?: string; }> = [];
+
+  (viewEvents || []).forEach(event => {
+    // Check if this is a direct player view
+    const directPlayer = playersWithUser.find(p => p.user_id === event.user_id);
+    if (directPlayer) {
+      result.push({ ...event, player_id: directPlayer.id });
+      return;
+    }
+
+    // Check if this is a guardian view
+    for (const [playerId, guardianIds] of guardianMap.entries()) {
+      if (guardianIds.includes(event.user_id)) {
+        result.push({ ...event, player_id: playerId });
+        break; // A guardian can only be mapped to one player per event
+      }
+    }
+  });
+
+  return result;
+}
+
+/**
+ * Build per (point,player) max completion map from view events, including guardian views.
+ * This tracks the highest completion percentage achieved for each player for each coaching point,
+ * using either their own views (if they have a user account) or their guardians' views.
+ */
+function buildPerPlayerPointMaxMap(
+  viewEvents: Array<{ point_id: string; user_id: string; completion_percentage: number | null; player_id?: string; }>,
+  playerProfiles: Array<{ id: string; user_id: string | null; }>
+): Map<string, number>
+{
+  const perPlayerPointMax = new Map<string, number>();
+  
+  (viewEvents || []).forEach(ev =>
+  {
+    // For events that include player_id (from guardian views), use that
+    // For direct player views, find the player by user_id
+    let playerId = ev.player_id;
+    if (!playerId) {
+      const player = playerProfiles.find(p => p.user_id === ev.user_id);
+      playerId = player?.id;
+    }
+
+    if (!playerId) return;
+
+    const key = `${ev.point_id}__${playerId}`;
+    const val = typeof ev.completion_percentage === 'number' ? ev.completion_percentage : 0;
+    const prev = perPlayerPointMax.get(key);
+    if (prev === undefined || val > prev)
+    {
+      perPlayerPointMax.set(key, val);
+    }
+  });
+  return perPlayerPointMax;
+}
+
+/**
  * Build per (point,user) max completion map from view events.
  * This tracks the highest completion percentage achieved by each user for each coaching point.
+ * @deprecated Use buildPerPlayerPointMaxMap for analytics that should include guardian views
  */
 function buildPerUserPointMaxMap(
   viewEvents: Array<{ point_id: string; user_id: string; completion_percentage: number | null; }>,
@@ -24,6 +527,128 @@ function buildPerUserPointMaxMap(
     }
   });
   return perUserPointMax;
+}
+
+/**
+ * Calculate engagement over time from guardian-supported view data.
+ * @param viewData - Array of view data from getViewsWithGuardianSupport
+ * @param granularity - 'daily' or 'hourly'
+ * @returns Array of {date, views} or {date, hour, views} objects
+ */
+function calculateEngagementOverTimeFromGuardianViews(
+  viewData: Array<{ created_at: string; }>,
+  granularity: 'daily' | 'hourly' = 'daily',
+): Array<{ date: string; views: number; hour?: number; }>
+{
+  return calculateEngagementOverTime(viewData, granularity);
+}
+
+/**
+ * Calculate views by entity from guardian-supported view data.
+ * @param viewData - Array of view data from getViewsWithGuardianSupport
+ * @param entityKey - The key to group by ('point_id', 'game_id', etc.)
+ * @returns Map of entity ID to view count
+ */
+function calculateViewsByEntityFromGuardianViews<T extends Record<string, any>>(
+  viewData: Array<T>,
+  entityKey: keyof T,
+): Map<string, number>
+{
+  const viewsByEntity = new Map<string, number>();
+  (viewData || []).forEach(ev =>
+  {
+    const entityId = ev[entityKey] as string;
+    if (entityId)
+    {
+      viewsByEntity.set(entityId, (viewsByEntity.get(entityId) || 0) + 1);
+    }
+  });
+  return viewsByEntity;
+}
+
+/**
+ * Calculate average completion percentage from guardian-supported view data.
+ * This ensures that players who haven't viewed a coaching point contribute 0% to the average.
+ * @param viewData - Array of view data from getViewsWithGuardianSupport
+ * @param pointIds - All point IDs to include in calculation
+ * @param playerIds - All player IDs to include in calculation
+ * @returns Average completion percentage
+ */
+function calculateAvgCompletionFromGuardianViews(
+  viewData: Array<{ point_id: string; player_profile_id: string; completion_percentage: number | null; }>,
+  pointIds: string[],
+  playerIds: string[],
+): number
+{
+  // Build per-player-point max completion map
+  const perPlayerPointMax = new Map<string, number>();
+  (viewData || []).forEach(ev =>
+  {
+    const key = `${ev.point_id}__${ev.player_profile_id}`;
+    const val = typeof ev.completion_percentage === 'number' ? ev.completion_percentage : 0;
+    const prev = perPlayerPointMax.get(key);
+    if (prev === undefined || val > prev)
+    {
+      perPlayerPointMax.set(key, val);
+    }
+  });
+
+  // Create complete matrix: for each point × player combination, get max completion or 0
+  const allPlayerPointMaxValues: number[] = [];
+  pointIds.forEach(pointId =>
+  {
+    playerIds.forEach(playerId =>
+    {
+      const key = `${pointId}__${playerId}`;
+      const maxCompletion = perPlayerPointMax.get(key) || 0; // Default to 0 if no views
+      allPlayerPointMaxValues.push(maxCompletion);
+    });
+  });
+
+  return allPlayerPointMaxValues.length > 0 ?
+    Math.round(allPlayerPointMaxValues.reduce((s, v) => s + v, 0) / allPlayerPointMaxValues.length * 10) / 10 :
+    0;
+}
+
+/**
+ * Calculate per-point aggregates from guardian-supported view data.
+ * @param viewData - Array of view data from getViewsWithGuardianSupport
+ * @returns Map of point ID to average completion percentage
+ */
+function calculatePerPointAggregatesFromGuardianViews(
+  viewData: Array<{ point_id: string; player_profile_id: string; completion_percentage: number | null; }>,
+): Map<string, number>
+{
+  // Build per-player-point max completion map
+  const perPlayerPointMax = new Map<string, number>();
+  (viewData || []).forEach(ev =>
+  {
+    const key = `${ev.point_id}__${ev.player_profile_id}`;
+    const val = typeof ev.completion_percentage === 'number' ? ev.completion_percentage : 0;
+    const prev = perPlayerPointMax.get(key);
+    if (prev === undefined || val > prev)
+    {
+      perPlayerPointMax.set(key, val);
+    }
+  });
+
+  // Aggregate by point
+  const perPointAgg: Record<string, { sum: number; count: number; }> = {};
+  perPlayerPointMax.forEach((v, key) =>
+  {
+    const [pid] = key.split('__');
+    if (!perPointAgg[pid]) perPointAgg[pid] = { sum: 0, count: 0 };
+    perPointAgg[pid].sum += v || 0;
+    perPointAgg[pid].count += 1;
+  });
+
+  const avgCompletionByPoint = new Map<string, number>();
+  Object.entries(perPointAgg).forEach(([pid, agg]) =>
+  {
+    if (agg.count > 0) avgCompletionByPoint.set(pid, Math.round(agg.sum / agg.count));
+  });
+
+  return avgCompletionByPoint;
 }
 
 /**
@@ -142,14 +767,15 @@ function calculatePlayerScore(ackRate: number, completionRate: number): number
 /**
  * Calculate comprehensive player engagement scores including both overall and tagged-specific metrics.
  * This provides a complete view of player engagement across all coaching points and tagged points specifically.
+ * Updated to support guardian views for players without user accounts.
  */
-function calculatePlayerEngagementScores(
-  players: Array<{ id: string; name: string; user_id: string; }>,
+async function calculatePlayerEngagementScores(
+  players: Array<{ id: string; name: string; user_id: string | null; }>,
   pointIds: string[],
   tagsByPlayer: Map<string, string[]>,
   ackCountByPlayer: Map<string, number>,
-  perUserPointMax: Map<string, number>,
-): Array<{
+  playerViewEvents: Array<{ point_id: string; user_id: string; completion_percentage: number | null; player_id?: string; }>,
+): Promise<Array<{
   player_profile_id: string;
   name: string;
   // Overall engagement (ALL points)
@@ -160,8 +786,11 @@ function calculatePlayerEngagementScores(
   taggedAckRate: number; // 0..1
   taggedCompletionRate: number; // 0..1
   taggedScore: number; // 0..1
-}>
+}>>
 {
+  // Build per-player-point max completion map from view events that include guardian views
+  const perPlayerPointMax = buildPerPlayerPointMaxMap(playerViewEvents, players);
+
   return players.map(player =>
   {
     const taggedPoints = tagsByPlayer.get(player.id) || [];
@@ -172,12 +801,12 @@ function calculatePlayerEngagementScores(
     // === OVERALL ENGAGEMENT (ALL POINTS) ===
     const ackRate = totalPoints > 0 ? (ackedCount / totalPoints) : 0;
 
-    // Completion across ALL points
+    // Completion across ALL points using player-based max completion
     let allPointsCompSum = 0;
     pointIds.forEach(pointId =>
     {
-      const key = `${pointId}__${player.user_id}`;
-      const maxComp = perUserPointMax.get(key);
+      const key = `${pointId}__${player.id}`;
+      const maxComp = perPlayerPointMax.get(key);
       allPointsCompSum += typeof maxComp === 'number' ? maxComp : 0;
     });
     const completionRate = totalPoints > 0 ? (allPointsCompSum / totalPoints) / 100 : 0;
@@ -185,12 +814,12 @@ function calculatePlayerEngagementScores(
     // === TAGGED-SPECIFIC ENGAGEMENT ===
     const taggedAckRate = totalTagged > 0 ? (ackedCount / totalTagged) : 0;
 
-    // Completion across TAGGED points only
+    // Completion across TAGGED points only using player-based max completion
     let taggedCompSum = 0;
     taggedPoints.forEach(pointId =>
     {
-      const key = `${pointId}__${player.user_id}`;
-      const maxComp = perUserPointMax.get(key);
+      const key = `${pointId}__${player.id}`;
+      const maxComp = perPlayerPointMax.get(key);
       taggedCompSum += typeof maxComp === 'number' ? maxComp : 0;
     });
     const taggedCompletionRate = totalTagged > 0 ? (taggedCompSum / totalTagged) / 100 : 0;
@@ -383,21 +1012,14 @@ router.get('/coach-overview', authenticateUser, async (req: AuthenticatedRequest
       }
     });
 
-    // Views within window
-    const { data: viewEvents, error: viewEventsError } = pointIds.length === 0 ?
-      { data: [], error: null } :
-      await supabase
-        .from('coaching_point_view_events')
-        .select('point_id, user_id, completion_percentage, created_at')
-        .in('point_id', pointIds)
-        .gte('created_at', startISO)
-        .lte('created_at', endISO);
+    // Get comprehensive view data with guardian support for these teams within the date window
+    const allViewData = await getViewsWithGuardianSupport({
+      startDate: startISO,
+      endDate: endISO
+    });
 
-    if (viewEventsError)
-    {
-      res.status(400).json({ error: viewEventsError.message });
-      return;
-    }
+    // Filter view data to only include teams the user has access to
+    const filteredViewData = allViewData.filter(view => teamIds.includes(view.team_id));
 
     // Acknowledgments within window
     const { data: acks, error: acksError } = pointIds.length === 0 ?
@@ -416,21 +1038,17 @@ router.get('/coach-overview', authenticateUser, async (req: AuthenticatedRequest
       return;
     }
 
-    // Aggregate: total views
-    const totalViews = (viewEvents || []).length;
+    // Aggregate: total views (from guardian-supported data)
+    const totalViews = filteredViewData.length;
 
-    // Aggregate: per (point,user) max completion - fixed to include all possible combinations
-    const playersWithUserIds = Array.from(playerProfileById.values())
-      .filter(p => !!p.user_id)
-      .map(p => ({ user_id: p.user_id! }));
-    const avgCompletionPercent = calculateAvgCompletionPercent(viewEvents, pointIds, playersWithUserIds);
+    // Aggregate: per (point,player) max completion using guardian views
+    const allPlayerProfiles = Array.from(playerProfileById.values());
+    const allPlayerIds = allPlayerProfiles.map(p => p.id);
+    const avgCompletionPercent = calculateAvgCompletionFromGuardianViews(filteredViewData, pointIds, allPlayerIds);
 
-    // Build per (point,user) max completion map for other calculations that still need it
-    const perUserPointMax = buildPerUserPointMaxMap(viewEvents);
-
-    // Engagement over time using utility functions
-    const engagementOverTime = calculateEngagementOverTime(viewEvents, 'daily');
-    const engagementHourlyOverTime = calculateEngagementOverTime(viewEvents, 'hourly');
+    // Engagement over time using guardian-supported view data
+    const engagementOverTime = calculateEngagementOverTimeFromGuardianViews(filteredViewData, 'daily');
+    const engagementHourlyOverTime = calculateEngagementOverTimeFromGuardianViews(filteredViewData, 'hourly');
 
     // % Acknowledged = acknowledged_count / total_possible_acks
     // total_possible_acks = sum_over_teams(points_for_team * players_in_team)
@@ -453,9 +1071,9 @@ router.get('/coach-overview', authenticateUser, async (req: AuthenticatedRequest
       Math.round((acknowledgedCount / totalPossibleAcks) * 1000) / 10 :
       0;
 
-    // Top/Bottom points by views with avg completion (per-user max)
-    const viewsByPoint = calculateViewsByEntity(viewEvents, 'point_id');
-    const avgCompletionByPoint = calculatePerPointAggregates(perUserPointMax);
+    // Top/Bottom points by views with avg completion using guardian-supported data
+    const viewsByPoint = calculateViewsByEntityFromGuardianViews(filteredViewData, 'point_id');
+    const avgCompletionByPoint = calculatePerPointAggregatesFromGuardianViews(filteredViewData);
 
     const pointSummaries = (points || []).map(p =>
     {
@@ -478,12 +1096,8 @@ router.get('/coach-overview', authenticateUser, async (req: AuthenticatedRequest
       .sort((a, b) => a.views - b.views)
       .slice(0, 5);
 
-    // Top/Lowest engaged player
-    // Compute based on tagged points within scope, players with linked user accounts
-    const playersWithUser = Array.from(playerProfileById.values()).filter(p => !!p.user_id);
-
-    // Tagged points of those players within our points set
-    const playerIds = playersWithUser.map(p => p.id);
+    // Tagged points of ALL players within our points set
+    const playerIds = allPlayerProfiles.map(p => p.id);
     const { data: tags, error: tagsError } = pointIds.length === 0 || playerIds.length === 0 ?
       { data: [], error: null } :
       await supabase
@@ -514,20 +1128,26 @@ router.get('/coach-overview', authenticateUser, async (req: AuthenticatedRequest
       ackCountByPlayer.set(pid, (ackCountByPlayer.get(pid) || 0) + 1);
     });
 
-    // Map for per-user-point max completion we already computed; need quick lookup by (point, user)
-    const perUserPointMaxMap = perUserPointMax; // alias
+    // Get view events with guardian views for player engagement calculations
+    const playerViewEvents = await getViewEventsWithGuardianViews(
+      pointIds,
+      allPlayerProfiles,
+      { startISO, endISO }
+    );
 
-    // Calculate comprehensive player engagement scores using utility function
-    const playersForScoring = playersWithUser
-      .filter(p => !!p.user_id)
-      .map(p => ({ id: p.id, name: p.name, user_id: p.user_id! }));
+    // Calculate comprehensive player engagement scores using utility function for ALL players
+    const playersForScoring = allPlayerProfiles.map(p => ({ 
+      id: p.id, 
+      name: p.name, 
+      user_id: p.user_id 
+    }));
 
-    const playerScores = calculatePlayerEngagementScores(
+    const playerScores = await calculatePlayerEngagementScores(
       playersForScoring,
       pointIds,
       tagsByPlayer,
       ackCountByPlayer,
-      perUserPointMax,
+      playerViewEvents,
     );
 
     const filteredScores = playerScores.filter(ps => (tagsByPlayer.get(ps.player_profile_id)?.length || 0) > 0);
@@ -682,13 +1302,11 @@ router.get('/team/:teamId', authenticateUser, async (req: AuthenticatedRequest, 
     const gameById = new Map<string, any>();
     (games || []).forEach(g => gameById.set(g.id, g));
 
-    // Coaching points in date range
+    // Coaching points for this team (all time - no date filter)
     const { data: points, error: pointsError } = await supabase
       .from('coaching_points')
       .select('id, game_id, title, created_at')
-      .in('game_id', gameIds.length ? gameIds : ['00000000-0000-0000-0000-000000000000'])
-      .gte('created_at', startISO)
-      .lte('created_at', endISO);
+      .in('game_id', gameIds.length ? gameIds : ['00000000-0000-0000-0000-000000000000']);
 
     if (pointsError)
     {
@@ -700,32 +1318,25 @@ router.get('/team/:teamId', authenticateUser, async (req: AuthenticatedRequest, 
     const pointById = new Map<string, any>();
     (points || []).forEach(p => pointById.set(p.id, p));
 
-    // View events in range (for points in scope)
-    const { data: viewEvents, error: viewEventsError } = pointIds.length === 0 ?
-      { data: [], error: null } :
-      await supabase
-        .from('coaching_point_view_events')
-        .select('point_id, user_id, completion_percentage, created_at')
-        .in('point_id', pointIds)
-        .gte('created_at', startISO)
-        .lte('created_at', endISO);
+    // Get comprehensive view data with guardian support for this team (all time)
+    const allTeamViewData = await getViewsWithGuardianSupport({
+      teamId: teamId
+    });
 
-    if (viewEventsError)
-    {
-      res.status(400).json({ error: viewEventsError.message });
-      return;
-    }
+    // Get view events using the guardian-aware helper for role breakdowns and backward compatibility
+    const teamPlayerViewEvents = await getViewEventsWithGuardianViews(
+      pointIds,
+      Array.from(playerProfileById.values())
+    );
 
-    // Acknowledgments in range (for points in scope)
+    // Acknowledgments for all coaching points (no date filter)
     const { data: acks, error: acksError } = pointIds.length === 0 ?
       { data: [], error: null } :
       await supabase
         .from('coaching_point_acknowledgments')
         .select('id, point_id, player_id, ack_at, acknowledged')
         .in('point_id', pointIds)
-        .eq('acknowledged', true)
-        .gte('ack_at', startISO)
-        .lte('ack_at', endISO);
+        .eq('acknowledged', true);
 
     if (acksError)
     {
@@ -735,17 +1346,14 @@ router.get('/team/:teamId', authenticateUser, async (req: AuthenticatedRequest, 
 
     // Totals
     const totalPoints = (points || []).length;
-    const totalViews = (viewEvents || []).length;
+    const totalViews = allTeamViewData.length;
 
-    // Per (point,user) max completion - fixed to include all possible combinations
-    const playersWithUserIds = (teamPlayers || [])
-      .map(tp => tp.player_profiles)
-      .filter(p => !!p?.user_id)
-      .map(p => ({ user_id: p!.user_id! }));
-    const avgCompletionPercent = calculateAvgCompletionPercent(viewEvents, pointIds, playersWithUserIds);
+    // Avg completion percentage using guardian-supported data
+    const allPlayerIds = Array.from(playerProfileById.values()).map(p => p.id);
+    const avgCompletionPercent = calculateAvgCompletionFromGuardianViews(allTeamViewData, pointIds, allPlayerIds);
 
-    // Build per (point,user) max completion map for other calculations that still need it
-    const perUserPointMax = buildPerUserPointMaxMap(viewEvents);
+    // Build per (point,user) max completion map for backward compatibility with role breakdowns
+    const perUserPointMax = buildPerUserPointMaxMap(teamPlayerViewEvents);
 
     // % Acknowledged: acknowledged_count / (total_points * total_players)
     const totalPossibleAcks = totalPoints * totalPlayers;
@@ -754,9 +1362,16 @@ router.get('/team/:teamId', authenticateUser, async (req: AuthenticatedRequest, 
       Math.round((acknowledgedCount / totalPossibleAcks) * 100) :
       0;
 
-    // Engagement heatmap (UTC day-of-week/hour)
+    // Get heatmap view data filtered by date range using guardian support
+    const heatmapViewData = await getViewsWithGuardianSupport({
+      teamId: teamId,
+      startDate: startISO,
+      endDate: endISO
+    });
+
+    // Engagement heatmap (UTC day-of-week/hour) - uses date-filtered data
     const heatmapMap = new Map<string, number>(); // "dow-hour" -> views
-    (viewEvents || []).forEach(ev =>
+    (heatmapViewData || []).forEach(ev =>
     {
       const d = new Date(ev.created_at);
       const dow = d.getUTCDay(); // 0..6
@@ -772,20 +1387,33 @@ router.get('/team/:teamId', authenticateUser, async (req: AuthenticatedRequest, 
       })
       .sort((a, b) => a.dow - b.dow || a.hour - b.hour);
 
-    // Per-role breakdown (total views & avg % viewed using per-user-point max)
+    // Per-role breakdown using guardian-supported view data
     const roles = ['coach', 'admin', 'player', 'guardian'];
     const roleViewsCount = new Map<string, number>();
-    (viewEvents || []).forEach(ev =>
+    
+    // Get all view events (not date filtered) to calculate role breakdowns
+    const allRoleViewEvents = await getViewEventsWithGuardianViews(
+      pointIds,
+      Array.from(playerProfileById.values())
+    );
+    
+    allRoleViewEvents.forEach(ev =>
     {
       const role = ev.user_id ? userRoleMap.get(ev.user_id) : undefined;
       if (role) roleViewsCount.set(role, (roleViewsCount.get(role) || 0) + 1);
     });
 
+    // Calculate role-based completion averages using per-player-point max
+    const perPlayerPointMaxForRoles = buildPerPlayerPointMaxMap(allRoleViewEvents, Array.from(playerProfileById.values()));
     const roleAgg: Record<string, { sum: number; count: number; }> = {};
-    perUserPointMax.forEach((v, key) =>
+    
+    perPlayerPointMaxForRoles.forEach((v, key) =>
     {
-      const [, uid] = key.split('__');
-      const role = uid ? userRoleMap.get(uid) : undefined;
+      const [, playerId] = key.split('__');
+      const player = Array.from(playerProfileById.values()).find(p => p.id === playerId);
+      if (!player?.user_id) return;
+      
+      const role = userRoleMap.get(player.user_id);
       if (!role) return;
       if (!roleAgg[role]) roleAgg[role] = { sum: 0, count: 0 };
       roleAgg[role].sum += v || 0;
@@ -803,14 +1431,11 @@ router.get('/team/:teamId', authenticateUser, async (req: AuthenticatedRequest, 
       };
     });
 
-    // Views by game (for highest/lowest)
+    // Views by game using guardian-supported data
     const viewsByGame = new Map<string, number>();
-    (viewEvents || []).forEach(ev =>
+    (allTeamViewData || []).forEach(ev =>
     {
-      const p = ev.point_id ? pointById.get(ev.point_id) : null;
-      if (!p) return;
-      const gId = p.game_id as string;
-      viewsByGame.set(gId, (viewsByGame.get(gId) || 0) + 1);
+      viewsByGame.set(ev.game_id, (viewsByGame.get(ev.game_id) || 0) + 1);
     });
 
     const gameSummaries = (games || []).map(g =>
@@ -822,13 +1447,18 @@ router.get('/team/:teamId', authenticateUser, async (req: AuthenticatedRequest, 
     const gamesMostViewed = [...gameSummaries].sort((a, b) => b.views - a.views).slice(0, 5);
     const gamesLeastViewed = [...gameSummaries].sort((a, b) => a.views - b.views).slice(0, 5);
 
-    // Top players by engagement (linked players only)
-    const linkedPlayers = (teamPlayers || [])
-      .map(tp => tp.player_profiles)
-      .filter((p): p is { id: string; name: string; user_id: string; } => !!p?.id && !!p?.user_id);
+    // Top players by engagement (all players including those without user accounts)
+    const allPlayers = Array.from(playerProfileById.values());
+    
+    // Get view events with guardian views for player engagement calculations
+    const playerEngagementViewEvents = await getViewEventsWithGuardianViews(
+      pointIds,
+      allPlayers
+      // Note: No date filter here since we want all-time data for team analytics
+    );
 
     // Tags (points in scope for players on this team)
-    const playerIds = linkedPlayers.map(p => p.id);
+    const playerIds = allPlayers.map(p => p.id);
     const { data: tags, error: tagsError } = pointIds.length === 0 || playerIds.length === 0 ?
       { data: [], error: null } :
       await supabase
@@ -860,15 +1490,16 @@ router.get('/team/:teamId', authenticateUser, async (req: AuthenticatedRequest, 
     });
 
     // Calculate comprehensive player engagement scores using utility function
-    const playerScores = calculatePlayerEngagementScores(
-      linkedPlayers,
+    const playerScores = await calculatePlayerEngagementScores(
+      allPlayers,
       pointIds,
       tagsByPlayer,
       ackCountByPlayer,
-      perUserPointMax,
-    ).filter(ps => (tagsByPlayer.get(ps.player_profile_id)?.length || 0) > 0);
+      playerEngagementViewEvents,
+    );
 
-    const topPlayers = playerScores
+    const filteredPlayerScores = playerScores.filter(ps => (tagsByPlayer.get(ps.player_profile_id)?.length || 0) > 0);
+    const topPlayers = filteredPlayerScores
       .sort((a, b) => b.score - a.score)
       .slice(0, 5)
       .map(p => ({
@@ -882,6 +1513,7 @@ router.get('/team/:teamId', authenticateUser, async (req: AuthenticatedRequest, 
         taggedCompletionPercent: Math.round(p.taggedCompletionRate * 100),
         taggedScorePercent: Math.round(p.taggedScore * 100),
       }));
+
 
     res.json({
       totals: {
@@ -997,7 +1629,25 @@ router.get('/game/:gameId', authenticateUser, async (req: AuthenticatedRequest, 
       return;
     }
 
-    // View summary for unique viewers
+    // Get comprehensive view data with guardian support for this game in the date range
+    const gameViewData = await getViewsWithGuardianSupport({
+      gameId: gameId,
+      startDate: startISO,
+      endDate: endISO
+    });
+
+    // Total views from guardian-supported data
+    const totalViews = gameViewData.length;
+
+    // Unique viewers calculation from guardian-supported data 
+    // (count unique player profiles that have views, not unique user IDs)
+    const uniquePlayerViewers = new Set<string>();
+    gameViewData.forEach(view => {
+      uniquePlayerViewers.add(view.player_profile_id);
+    });
+    const uniqueViewers = uniquePlayerViewers.size;
+
+    // Keep legacy view summary query for backward compatibility with last_viewed_at calculations
     const { data: viewSummaries, error: vsErr } = pointIds.length === 0 ?
       { data: [], error: null } :
       await supabase
@@ -1010,33 +1660,6 @@ router.get('/game/:gameId', authenticateUser, async (req: AuthenticatedRequest, 
       res.status(400).json({ error: vsErr.message });
       return;
     }
-
-    // View events (for avg completion and timeline)
-    const { data: viewEvents, error: veErr } = pointIds.length === 0 ?
-      { data: [], error: null } :
-      await supabase
-        .from('coaching_point_view_events')
-        .select('point_id, user_id, completion_percentage, created_at')
-        .in('point_id', pointIds)
-        .gte('created_at', startISO)
-        .lte('created_at', endISO);
-
-    if (veErr)
-    {
-      res.status(400).json({ error: veErr.message });
-      return;
-    }
-
-    // Unique viewers across the game
-    const uniqUsers = new Set<string>();
-    (viewSummaries || []).forEach(vs =>
-    {
-      if (vs.user_id) uniqUsers.add(vs.user_id);
-    });
-    const uniqueViewers = uniqUsers.size;
-
-    // Total views
-    const totalViews = (viewEvents || []).length;
 
     // Percent points acknowledged: compute over total tags (tags are the denominator)
     const tagsByPoint = new Map<string, number>();
@@ -1054,14 +1677,51 @@ router.get('/game/:gameId', authenticateUser, async (req: AuthenticatedRequest, 
     const totalAcks = (acks || []).length;
     const percentPointsAcknowledged = totalTags > 0 ? Math.round((totalAcks / totalTags) * 100) : 0;
 
-    // Per (point,user) max completion
-    const perUserPointMax = buildPerUserPointMaxMap(viewEvents);
+    // Get tagged players for this game to support guardian views
+    const { data: gameTeamPlayers, error: gameTeamPlayersError } = await supabase
+      .from('team_players')
+      .select(`
+        player_profiles (
+          id,
+          name,
+          user_id
+        )
+      `)
+      .eq('team_id', game.team_id);
 
-    // Avg completion across all views (per-user max)
-    const maxValues = Array.from(perUserPointMax.values());
-    const avgCompletionPercent = maxValues.length > 0 ?
-      Math.round(maxValues.reduce((s, v) => s + (v || 0), 0) / maxValues.length) :
-      0;
+    if (gameTeamPlayersError)
+    {
+      res.status(400).json({ error: gameTeamPlayersError.message });
+      return;
+    }
+
+    const gamePlayerProfiles = (gameTeamPlayers || [])
+      .map(tp => tp.player_profiles)
+      .filter(p => !!p)
+      .map(p => ({ id: p.id, name: p.name, user_id: p.user_id }));
+
+    // Calculate average completion percentage using guardian-supported data
+    const gamePlayerIds = gamePlayerProfiles.map(p => p.id);
+    const avgCompletionPercent = calculateAvgCompletionFromGuardianViews(gameViewData, pointIds, gamePlayerIds);
+
+    // Legacy view events query for backward compatibility (timeline generation)
+    const { data: legacyViewEvents, error: veErr } = pointIds.length === 0 ?
+      { data: [], error: null } :
+      await supabase
+        .from('coaching_point_view_events')
+        .select('point_id, user_id, completion_percentage, created_at')
+        .in('point_id', pointIds)
+        .gte('created_at', startISO)
+        .lte('created_at', endISO);
+
+    if (veErr)
+    {
+      res.status(400).json({ error: veErr.message });
+      return;
+    }
+
+    // Keep the old per-user max for backward compatibility where needed  
+    const perUserPointMax = buildPerUserPointMaxMap(legacyViewEvents);
 
     // Per-point engagement table
     const lastViewedByPoint = new Map<string, string | null>();
@@ -1089,12 +1749,8 @@ router.get('/game/:gameId', authenticateUser, async (req: AuthenticatedRequest, 
       perPointAvgCompletion.set(pid, avg);
     });
 
-    const viewsByPoint = new Map<string, number>();
-    (viewEvents || []).forEach(ev =>
-    {
-      const pid = ev.point_id as string;
-      viewsByPoint.set(pid, (viewsByPoint.get(pid) || 0) + 1);
-    });
+    // Calculate views by point using guardian-supported data
+    const viewsByPoint = calculateViewsByEntityFromGuardianViews(gameViewData, 'point_id');
 
     const perPointEngagement = (points || []).map(p =>
     {
@@ -1112,16 +1768,16 @@ router.get('/game/:gameId', authenticateUser, async (req: AuthenticatedRequest, 
       };
     });
 
-    // View timeline relative to game date (days since game date)
+    // View timeline relative to game date (days since game date) using guardian-supported data
     const gameDate = game.date ? new Date(game.date) : null;
-    const viewTimeline = (viewEvents || []).map(ev =>
+    const viewTimeline = gameViewData.map(ev =>
     {
       const created = new Date(ev.created_at);
       let daysSinceGame = null as number | null;
       if (gameDate) daysSinceGame = Math.floor((created.getTime() - gameDate.getTime()) / (1000 * 60 * 60 * 24));
       return {
         pointId: ev.point_id,
-        created_at: created.toISOString(),
+        created_at: created,
         daysSinceGame,
       };
     });
@@ -1316,9 +1972,27 @@ router.get(
         return;
       }
 
-      // Player's own views (if linked)
+      // Get comprehensive view data for this specific player using guardian support
+      const myPlayerViewData = await getViewsWithGuardianSupport({
+        playerId: playerProfileId
+      });
+
+      // Filter to only tagged points for this specific analysis
+      const myTaggedViewData = myPlayerViewData.filter(view => 
+        taggedPointSet.has(view.point_id)
+      );
+
+      // Convert guardian-supported view data to legacy format for compatibility
+      const myViewEvents = myTaggedViewData.map(view => ({
+        point_id: view.point_id,
+        user_id: view.guardian_id || 'placeholder', // placeholder for guardian views
+        completion_percentage: view.completion_percentage,
+        created_at: view.created_at,
+        player_id: view.player_profile_id
+      }));
+
       let myViewSummaries: any[] = [];
-      let myViewEvents: any[] = [];
+      
       if (playerProfile.user_id)
       {
         const userIdForPlayer = playerProfile.user_id as string;
@@ -1334,19 +2008,57 @@ router.get(
           return;
         }
         myViewSummaries = vs || [];
+      } else {
+        // For players without user accounts, we need to get guardian view summaries
+        const guardianMap = await getGuardianViewsForPlayers([{
+          id: playerProfile.id,
+          user_id: playerProfile.user_id
+        }]);
+        
+        const guardianIds = guardianMap.get(playerProfile.id) || [];
+        if (guardianIds.length > 0) {
+          const { data: guardianViewSummaries, error: gvsErr } = await supabase
+            .from('coaching_point_view_summary')
+            .select('point_id, first_viewed_at, last_viewed_at, user_id')
+            .in('point_id', Array.from(taggedPointSet))
+            .in('user_id', guardianIds);
 
-        const { data: ve, error: veErr } = await supabase
-          .from('coaching_point_view_events')
-          .select('point_id, user_id, completion_percentage, created_at')
-          .in('point_id', Array.from(taggedPointSet))
-          .eq('user_id', userIdForPlayer);
-
-        if (veErr)
-        {
-          res.status(400).json({ error: veErr.message });
-          return;
+          if (gvsErr) {
+            res.status(400).json({ error: gvsErr.message });
+            return;
+          }
+          
+          // Group by point_id and take the earliest first_viewed_at and latest last_viewed_at
+          const summaryMap = new Map<string, {first_viewed_at: string | null, last_viewed_at: string | null}>();
+          (guardianViewSummaries || []).forEach(summary => {
+            const existing = summaryMap.get(summary.point_id);
+            const firstViewed = summary.first_viewed_at;
+            const lastViewed = summary.last_viewed_at;
+            
+            if (!existing) {
+              summaryMap.set(summary.point_id, {
+                first_viewed_at: firstViewed,
+                last_viewed_at: lastViewed
+              });
+            } else {
+              // Take earliest first_viewed_at
+              if (firstViewed && (!existing.first_viewed_at || firstViewed < existing.first_viewed_at)) {
+                existing.first_viewed_at = firstViewed;
+              }
+              // Take latest last_viewed_at  
+              if (lastViewed && (!existing.last_viewed_at || lastViewed > existing.last_viewed_at)) {
+                existing.last_viewed_at = lastViewed;
+              }
+            }
+          });
+          
+          myViewSummaries = Array.from(summaryMap.entries()).map(([point_id, data]) => ({
+            point_id,
+            first_viewed_at: data.first_viewed_at,
+            last_viewed_at: data.last_viewed_at,
+            user_id: null // Since this represents aggregated guardian views
+          }));
         }
-        myViewEvents = ve || [];
       }
 
       // Percent viewed (among tagged points)
@@ -1407,15 +2119,11 @@ router.get(
         Math.round(deltasAck.reduce((s, v) => s + v, 0) / deltasAck.length) :
         null;
 
-      // Engagement over time (player's own views)
-      const engagementOverTime = calculateEngagementOverTime(myViewEvents, 'daily');
+      // Engagement over time using guardian-supported view data
+      const engagementOverTime = calculateEngagementOverTimeFromGuardianViews(myTaggedViewData, 'daily');
 
-      // Rank tagged points by player's own views
-      const myViewsByPoint = new Map<string, number>();
-      (myViewEvents || []).forEach(ev =>
-      {
-        myViewsByPoint.set(ev.point_id, (myViewsByPoint.get(ev.point_id) || 0) + 1);
-      });
+      // Rank tagged points by player's own views using guardian-supported data
+      const myViewsByPoint = calculateViewsByEntityFromGuardianViews(myTaggedViewData, 'point_id');
 
       const taggedPointSummaries = taggedPoints.map(p => ({
         pointId: p.id,
@@ -1594,7 +2302,12 @@ router.get('/point/:pointId', authenticateUser, async (req: AuthenticatedRequest
       return;
     }
 
-    // View events (for completion distribution)
+    // Get comprehensive view data with guardian support for this specific coaching point
+    const pointViewData = await getViewsWithGuardianSupport({
+      coachingPointId: pointId
+    });
+
+    // Legacy view events query for backward compatibility with completion distribution
     const { data: viewEvents, error: veErr } = await supabase
       .from('coaching_point_view_events')
       .select('user_id, completion_percentage, created_at')
@@ -1661,9 +2374,9 @@ router.get('/point/:pointId', authenticateUser, async (req: AuthenticatedRequest
       };
     });
 
-    // Totals
-    const totalViews = (viewEvents || []).length;
-    const uniqueViewers = (viewSummaries || []).length;
+    // Totals using guardian-supported data where appropriate
+    const totalViews = pointViewData.length;
+    const uniqueViewers = new Set(pointViewData.map(view => view.player_profile_id)).size;
 
     // Completion distribution buckets using per-user max
     const buckets = [
@@ -1776,18 +2489,48 @@ router.get(
         return;
       }
 
+      // Get comprehensive view data with guardian support for this coaching point
+      const pointViewData = await getViewsWithGuardianSupport({
+        coachingPointId: pointId
+      });
+
       // Get view/acknowledgment status for each tagged player
       const taggedPlayers = await Promise.all((taggedPlayersData || []).map(async (tp) =>
       {
         const playerId = tp.player_profiles.id;
 
-        // Get view status
+        // Get view count and completion for this player from guardian-supported data
+        const playerViewData = pointViewData.filter(view => view.player_profile_id === playerId);
+        const viewCount = playerViewData.length;
+        
+        // Calculate max completion percentage for this player
+        const maxCompletion = playerViewData.length > 0 
+          ? Math.max(...playerViewData.map(view => view.completion_percentage || 0))
+          : 0;
+
+        // Get first/last viewed times (if player has direct views)
+        let firstViewedAt: string | null = null;
+        let lastViewedAt: string | null = null;
+        
+        // Try to get view summary for direct views
         const { data: viewSummary } = await supabase
           .from('coaching_point_view_summary')
-          .select('view_count, first_viewed_at, last_viewed_at')
+          .select('first_viewed_at, last_viewed_at')
           .eq('point_id', pointId)
           .eq('user_id', playerId)
           .single();
+
+        if (viewSummary) {
+          firstViewedAt = viewSummary.first_viewed_at;
+          lastViewedAt = viewSummary.last_viewed_at;
+        } else if (playerViewData.length > 0) {
+          // For guardian views, calculate from the view data
+          const sortedViews = [...playerViewData].sort((a, b) => 
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          );
+          firstViewedAt = sortedViews[0].created_at;
+          lastViewedAt = sortedViews[sortedViews.length - 1].created_at;
+        }
 
         // Get acknowledgment status
         const { data: ackData } = await supabase
@@ -1797,45 +2540,24 @@ router.get(
           .eq('player_id', playerId)
           .single();
 
-        // Get latest completion percentage
-        const { data: latestView } = await supabase
-          .from('coaching_point_view_events')
-          .select('completion_percentage')
-          .eq('point_id', pointId)
-          .eq('user_id', playerId)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-
         return {
           player_id: playerId,
           name: tp.player_profiles.name,
-          view_count: viewSummary?.view_count || 0,
-          first_viewed_at: viewSummary?.first_viewed_at || null,
-          last_viewed_at: viewSummary?.last_viewed_at || null,
-          latest_completion_percent: latestView?.completion_percentage || 0,
+          view_count: viewCount,
+          first_viewed_at: firstViewedAt,
+          last_viewed_at: lastViewedAt,
+          latest_completion_percent: maxCompletion,
           acknowledged: ackData?.acknowledged || false,
           ack_at: ackData?.ack_at || null,
           ack_notes: ackData?.notes || null,
         };
       }));
 
-      // Get total views and unique viewers
-      const { data: viewStats, error: viewStatsError } = await supabase
-        .from('coaching_point_view_events')
-        .select('user_id, completion_percentage')
-        .eq('point_id', pointId);
+      // Calculate totals from guardian-supported data
+      const totalViews = pointViewData.length;
+      const uniqueViewers = new Set(pointViewData.map(view => view.player_profile_id)).size;
 
-      if (viewStatsError)
-      {
-        res.status(500).json({ error: 'Failed to fetch view statistics' });
-        return;
-      }
-
-      const totalViews = viewStats?.length || 0;
-      const uniqueViewers = new Set(viewStats?.map(v => v.user_id) || []).size;
-
-      // Build completion distribution (histogram)
+      // Build completion distribution (histogram) from guardian-supported data
       const completionBuckets = {
         '0-25%': 0,
         '25-50%': 0,
@@ -1843,9 +2565,19 @@ router.get(
         '75-100%': 0,
       };
 
-      viewStats?.forEach(v =>
-      {
-        const completion = v.completion_percentage || 0;
+      // Calculate max completion per player from guardian-supported view data
+      const playerCompletionMap = new Map<string, number>();
+      pointViewData.forEach(view => {
+        const playerId = view.player_profile_id;
+        const completion = view.completion_percentage || 0;
+        const existing = playerCompletionMap.get(playerId) || 0;
+        if (completion > existing) {
+          playerCompletionMap.set(playerId, completion);
+        }
+      });
+
+      // Build buckets from max completion per player
+      playerCompletionMap.forEach(completion => {
         if (completion < 25) completionBuckets['0-25%']++;
         else if (completion < 50) completionBuckets['25-50%']++;
         else if (completion < 75) completionBuckets['50-75%']++;

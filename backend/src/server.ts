@@ -18,6 +18,7 @@ import gameRoutes from './routes/games.js';
 import playerRoutes from './routes/players.js';
 import teamRoutes from './routes/teams.js';
 import veoRoutes from './routes/veo.js';
+import testRoutes from './routes/test.js';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -65,6 +66,7 @@ app.use('/api/players', playerRoutes);
 app.use('/api/teams', teamRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/veo', veoRoutes);
+app.use('/api/test', testRoutes);
 
 // Error handling
 app.use(errorHandler);
