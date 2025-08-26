@@ -1,6 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { apiRequest } from '../../utils/api';
-import { parseVeoUrl } from '../../utils/veoUtils';
 import { parseVideoInfo } from '../../utils/videoUtils';
 import { Modal } from '../Modal';
 import './GameForm.css';
@@ -91,6 +89,26 @@ export const GameForm: React.FC<GameFormProps> = ({
     setFormData(initialFormData);
   }, [initialFormData]);
 
+  // Reset form when opening in create mode so old values don't persist
+  useEffect(() =>
+  {
+    if (isOpen && !isEditing)
+    {
+      setFormData({
+        opponent: '',
+        date: '',
+        location: null,
+        video_url: null,
+        team_score: null,
+        opp_score: null,
+        game_type: 'regular',
+        home_away: 'home',
+        notes: null,
+      });
+      setValidationMessage('');
+    }
+  }, [isOpen, isEditing]);
+
   const handleSubmit = async (e: React.FormEvent) =>
   {
     e.preventDefault();
@@ -122,40 +140,14 @@ export const GameForm: React.FC<GameFormProps> = ({
 
     try
     {
-      let finalVideoUrl = formData.video_url.trim();
+      setValidationMessage('Validating video...');
 
-      // If it's a VEO URL, parse it to get the actual video URL
-      if (videoInfo.type === 'veo')
-      {
-        setValidationMessage('Processing VEO URL...');
-
-        try
-        {
-          const veoResult = await parseVeoUrl(finalVideoUrl, apiRequest);
-          finalVideoUrl = veoResult.videoUrl;
-          setValidationMessage('VEO URL processed successfully. Validating video...');
-        }
-        catch (veoError)
-        {
-          console.error('VEO parsing error:', veoError);
-          setValidationMessage(
-            veoError instanceof Error ?
-              `VEO parsing failed: ${veoError.message}` :
-              'Failed to process VEO URL. Please try again or use a direct video URL.',
-          );
-          return;
-        }
-      }
-      else
-      {
-        setValidationMessage('Validating video...');
-      }
-
-      // Convert empty strings to null for API and use the final video URL
+      // Convert empty strings to null for API and send the original video URL
+      // Let the backend handle VEO parsing
       const apiData = {
         ...formData,
         location: formData.location?.trim() || null,
-        video_url: finalVideoUrl,
+        video_url: formData.video_url.trim(),
         notes: formData.notes?.trim() || null,
         team_id: teamId,
       };

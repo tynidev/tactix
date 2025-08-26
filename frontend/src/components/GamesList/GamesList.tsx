@@ -87,6 +87,8 @@ interface Game
   location: string | null;
   video_id: string | null;
   video_url: string | null;
+  thumbnail_url: string | null;
+  thumbnail_file_path: string | null;
   team_score: number | null;
   opp_score: number | null;
   game_type: 'regular' | 'tournament' | 'scrimmage';
@@ -595,11 +597,13 @@ export const GamesList = memo(forwardRef<GamesListRef, GamesListProps>(({
                   </div>
                 )}
 
-                {game.video_id && (
+                {(game.video_id || game.video_url) && (
                   <div className='game-thumbnail'>
                     <div className='thumbnail-loading-placeholder'></div>
                     <img
-                      src={getYouTubeThumbnailUrl(game.video_id)}
+                      src={game.thumbnail_file_path ||
+                        game.thumbnail_url ||
+                        (game.video_id ? getYouTubeThumbnailUrl(game.video_id) : '')}
                       alt={`Thumbnail for ${game.opponent} game`}
                       className='thumbnail-image'
                       loading='lazy'
@@ -620,7 +624,16 @@ export const GamesList = memo(forwardRef<GamesListRef, GamesListProps>(({
                         {
                           placeholder.style.display = 'none';
                         }
-                        target.src = getYouTubeThumbnailFallback(game.video_id!);
+                        // For YouTube videos, try fallback thumbnail
+                        if (game.video_id && target.src !== getYouTubeThumbnailFallback(game.video_id))
+                        {
+                          target.src = getYouTubeThumbnailFallback(game.video_id);
+                        }
+                        else
+                        {
+                          // Hide thumbnail if no fallback available
+                          target.style.display = 'none';
+                        }
                       }}
                     />
                     {game.teams?.name && (

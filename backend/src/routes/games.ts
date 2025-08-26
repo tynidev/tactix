@@ -3,6 +3,8 @@ import { AuthenticatedRequest, authenticateUser } from '../middleware/auth.js';
 import { TeamRole } from '../types/database.js';
 import { requireTeamRole } from '../utils/roleAuth.js';
 import { supabase } from '../utils/supabase.js';
+import { deleteThumbnail, extractAndStoreThumbnail } from '../utils/thumbnailUtils.js';
+import { parseVeoVideo } from '../utils/veoParser.js';
 import { extractYouTubeId, parseVideoInfo } from '../utils/videoUtils.js';
 import { validateYouTubeVideo } from '../utils/youtubeValidator.js';
 
@@ -55,6 +57,8 @@ router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> 
         location,
         video_id,
         video_url,
+        thumbnail_url,
+        thumbnail_file_path,
         team_score,
         opp_score,
         game_type,
@@ -177,7 +181,38 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
       }
     }
 
-    // Create the game
+    let finalVideoUrl = videoInfo.url;
+    let posterUrl: string | undefined;
+    console.log('Final video URL:', finalVideoUrl);
+
+    // If it's a VEO URL, parse it to get the actual video URL and poster
+    if (videoInfo.type === 'veo')
+    {
+      try
+      {
+        const veoResult = await parseVeoVideo(video_url.trim());
+        console.log('VEO parsing result:', veoResult);
+        if ('error' in veoResult)
+        {
+          res.status(400).json({ error: `VEO parsing failed: ${veoResult.error}` });
+          return;
+        }
+        finalVideoUrl = veoResult.videoUrl;
+        posterUrl = veoResult.posterUrl;
+        console.log('Parsed VEO video URL:', finalVideoUrl);
+        console.log('Parsed VEO poster URL:', posterUrl);
+      }
+      catch (veoError)
+      {
+        console.error('VEO parsing error:', veoError);
+        res.status(400).json({
+          error: 'Failed to process VEO URL. Please try again or use a direct video URL.',
+        });
+        return;
+      }
+    }
+
+    // Create the game first
     const { data: gameData, error: gameError } = await supabase
       .from('games')
       .insert({
@@ -185,7 +220,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
         opponent,
         date,
         location: location || null,
-        video_url: videoInfo.url,
+        video_url: finalVideoUrl,
         video_id: videoInfo.type === 'youtube' ? videoInfo.id : null, // Keep for backward compatibility
         team_score: team_score !== undefined ? team_score : null,
         opp_score: opp_score !== undefined ? opp_score : null,
@@ -200,6 +235,38 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
     {
       res.status(400).json({ error: gameError.message });
       return;
+    }
+
+    // Extract and store thumbnail (don't fail the game creation if this fails)
+    try
+    {
+      const thumbnailResult = await extractAndStoreThumbnail(
+        finalVideoUrl,
+        videoInfo.type,
+        gameData.id,
+        posterUrl,
+      );
+
+      if ('error' in thumbnailResult)
+      {
+        console.warn('Thumbnail extraction failed:', thumbnailResult.error);
+      }
+      else
+      {
+        // Update game with thumbnail information
+        await supabase
+          .from('games')
+          .update({
+            thumbnail_url: thumbnailResult.thumbnailUrl,
+            thumbnail_file_path: thumbnailResult.thumbnailFilePath,
+          })
+          .eq('id', gameData.id);
+      }
+    }
+    catch (thumbnailError)
+    {
+      console.warn('Thumbnail processing failed:', thumbnailError);
+      // Don't fail the game creation, just log the error
     }
 
     res.status(201).json({
@@ -252,6 +319,8 @@ router.get('/team/:teamId', async (req: AuthenticatedRequest, res: Response): Pr
         location,
         video_id,
         video_url,
+        thumbnail_url,
+        thumbnail_file_path,
         team_score,
         opp_score,
         game_type,
@@ -397,7 +466,7 @@ router.put('/:gameId', async (req: AuthenticatedRequest, res: Response): Promise
     // Get the game and verify permissions
     const { data: game, error: gameError } = await supabase
       .from('games')
-      .select('team_id')
+      .select('team_id, video_url, thumbnail_file_path')
       .eq('id', gameId)
       .single();
 
@@ -452,6 +521,36 @@ router.put('/:gameId', async (req: AuthenticatedRequest, res: Response): Promise
       }
     }
 
+    let finalVideoUrl = videoInfo.url;
+    let posterUrl: string | undefined;
+
+    // If it's a VEO URL, parse it to get the actual video URL and poster
+    if (videoInfo.type === 'veo')
+    {
+      try
+      {
+        const veoResult = await parseVeoVideo(video_url.trim());
+        if ('error' in veoResult)
+        {
+          res.status(400).json({ error: `VEO parsing failed: ${veoResult.error}` });
+          return;
+        }
+        finalVideoUrl = veoResult.videoUrl;
+        posterUrl = veoResult.posterUrl;
+      }
+      catch (veoError)
+      {
+        console.error('VEO parsing error:', veoError);
+        res.status(400).json({
+          error: 'Failed to process VEO URL. Please try again or use a direct video URL.',
+        });
+        return;
+      }
+    }
+
+    // Check if video URL changed to determine if we need to regenerate thumbnail
+    const videoUrlChanged = game.video_url !== finalVideoUrl;
+
     // Update the game
     const { data: updatedGame, error: updateError } = await supabase
       .from('games')
@@ -459,7 +558,7 @@ router.put('/:gameId', async (req: AuthenticatedRequest, res: Response): Promise
         opponent,
         date,
         location: location || null,
-        video_url: videoInfo.url,
+        video_url: finalVideoUrl,
         video_id: videoInfo.type === 'youtube' ? videoInfo.id : null, // Keep for backward compatibility
         team_score: team_score !== undefined ? team_score : null,
         opp_score: opp_score !== undefined ? opp_score : null,
@@ -475,6 +574,56 @@ router.put('/:gameId', async (req: AuthenticatedRequest, res: Response): Promise
     {
       res.status(400).json({ error: updateError.message });
       return;
+    }
+
+    // If video URL changed, regenerate thumbnail
+    if (videoUrlChanged)
+    {
+      try
+      {
+        // Delete old thumbnail if it exists
+        if (game.thumbnail_file_path)
+        {
+          await deleteThumbnail(game.thumbnail_file_path);
+        }
+
+        // Extract and store new thumbnail
+        const thumbnailResult = await extractAndStoreThumbnail(
+          finalVideoUrl,
+          videoInfo.type,
+          gameId,
+          posterUrl,
+        );
+
+        if ('error' in thumbnailResult)
+        {
+          console.warn('Thumbnail extraction failed:', thumbnailResult.error);
+          // Clear thumbnail fields since generation failed
+          await supabase
+            .from('games')
+            .update({
+              thumbnail_url: null,
+              thumbnail_file_path: null,
+            })
+            .eq('id', gameId);
+        }
+        else
+        {
+          // Update game with new thumbnail information
+          await supabase
+            .from('games')
+            .update({
+              thumbnail_url: thumbnailResult.thumbnailUrl,
+              thumbnail_file_path: thumbnailResult.thumbnailFilePath,
+            })
+            .eq('id', gameId);
+        }
+      }
+      catch (thumbnailError)
+      {
+        console.warn('Thumbnail processing failed:', thumbnailError);
+        // Don't fail the game update, just log the error
+      }
     }
 
     res.json({
@@ -506,7 +655,7 @@ router.delete('/:gameId', async (req: AuthenticatedRequest, res: Response): Prom
     // Get the game and verify permissions
     const { data: game, error: gameError } = await supabase
       .from('games')
-      .select('team_id')
+      .select('team_id, thumbnail_file_path')
       .eq('id', gameId)
       .single();
 
@@ -534,6 +683,20 @@ router.delete('/:gameId', async (req: AuthenticatedRequest, res: Response): Prom
     {
       res.status(403).json({ error: 'Only coaches and admins can delete games' });
       return;
+    }
+
+    // Delete thumbnail from storage if it exists
+    if (game.thumbnail_file_path)
+    {
+      try
+      {
+        await deleteThumbnail(game.thumbnail_file_path);
+      }
+      catch (thumbnailError)
+      {
+        console.warn('Failed to delete thumbnail:', thumbnailError);
+        // Don't fail the game deletion, just log the error
+      }
     }
 
     // Delete the game (coaching points will be deleted by cascade)

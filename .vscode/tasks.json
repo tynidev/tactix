@@ -38,6 +38,12 @@
 			"command": "npm run setup",
 			"group": "build",
 			"problemMatcher": []
+		},
+		{
+			"label": "Typecheck Frontend",
+			"type": "shell",
+			"command": "cd frontend && npm run type-check",
+			"group": "build"
 		}
 	]
 }

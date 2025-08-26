@@ -78,7 +78,6 @@ async function parseVeoVideoWithPuppeteer(url: string): Promise<VeoParseResult |
   let page;
   try
   {
-    console.log('Using Puppeteer to parse VEO page...');
     const browser = await getBrowser();
     page = await browser.newPage();
 
@@ -161,7 +160,6 @@ async function parseVeoVideoWithPuppeteer(url: string): Promise<VeoParseResult |
 
     if (videoData)
     {
-      console.log('Puppeteer successfully found video data:', videoData);
       return videoData;
     }
 
@@ -203,8 +201,6 @@ export async function parseVeoVideo(url: string): Promise<VeoParseResult | VeoPa
 
   try
   {
-    console.log('Starting VEO video parsing for:', url);
-
     // Step 1: Try fast regex-based parsing first
     const response = await fetch(url, {
       headers: {
@@ -228,11 +224,8 @@ export async function parseVeoVideo(url: string): Promise<VeoParseResult | VeoPa
 
     if (!('error' in regexResult))
     {
-      console.log('Regex parsing successful:', regexResult);
       return regexResult;
     }
-
-    console.log('Regex parsing failed, falling back to Puppeteer...');
 
     // Step 2: If regex parsing fails, use Puppeteer
     const puppeteerResult = await parseVeoVideoWithPuppeteer(url);
@@ -389,16 +382,6 @@ function parseVideoFromHtml(html: string): VeoParseResult | VeoParseError
       posterUrl,
     };
   }
-
-  // Debug: Log some information about what we found in the HTML
-  console.log('VEO Parser Debug Info:');
-  console.log(`HTML length: ${html.length} characters`);
-  console.log(`Contains "veocdn": ${html.includes('veocdn')}`);
-  console.log(`Contains ".mp4": ${html.includes('.mp4')}`);
-  console.log(`Contains "video": ${html.includes('video')}`);
-
-  // Show a snippet of HTML content for debugging (first 500 chars)
-  console.log(`HTML snippet: ${html.substring(0, 500)}...`);
 
   return {
     error: 'Could not extract video URL from VEO page',

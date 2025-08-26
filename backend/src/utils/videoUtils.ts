@@ -2,9 +2,10 @@
 
 export interface VideoInfo
 {
-  type: 'youtube' | 'mp4';
+  type: 'youtube' | 'html5' | 'veo';
   id?: string; // For YouTube videos
   url: string; // Full URL
+  originalUrl?: string; // For VEO URLs, store the original VEO URL
 }
 
 /**
@@ -27,7 +28,26 @@ export function isYouTubeUrl(url: string): boolean
 }
 
 /**
- * Detects if a URL is an MP4 video
+ * Detects if a URL is an HTML5 video file
+ */
+export function isHTML5VideoUrl(url: string): boolean
+{
+  if (!url) return false;
+
+  try
+  {
+    const urlObj = new URL(url);
+    const pathname = urlObj.pathname.toLowerCase();
+    return /\.(mp4|webm|ogg|avi|mov)$/i.test(pathname);
+  }
+  catch
+  {
+    return false;
+  }
+}
+
+/**
+ * Detects if a URL is an MP4 video (legacy function for backward compatibility)
  */
 export function isMp4Url(url: string): boolean
 {
@@ -37,6 +57,24 @@ export function isMp4Url(url: string): boolean
   {
     const urlObj = new URL(url);
     return urlObj.pathname.toLowerCase().endsWith('.mp4');
+  }
+  catch
+  {
+    return false;
+  }
+}
+
+/**
+ * Detects if a URL is a VEO match URL
+ */
+export function isVeoUrl(url: string): boolean
+{
+  if (!url) return false;
+
+  try
+  {
+    const urlObj = new URL(url);
+    return urlObj.hostname === 'app.veo.co' && urlObj.pathname.includes('/matches/');
   }
   catch
   {
@@ -115,11 +153,20 @@ export function parseVideoInfo(input: string): VideoInfo | null
     };
   }
 
-  if (isMp4Url(input))
+  if (isHTML5VideoUrl(input))
   {
     return {
-      type: 'mp4',
+      type: 'html5',
       url: input,
+    };
+  }
+
+  if (isVeoUrl(input))
+  {
+    return {
+      type: 'veo',
+      url: input, // Initially use the VEO URL, will be replaced after parsing
+      originalUrl: input,
     };
   }
 

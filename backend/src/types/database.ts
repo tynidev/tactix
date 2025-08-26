@@ -360,6 +360,8 @@ export type Database = {
           opponent: string;
           team_id: string;
           team_score: number | null;
+          thumbnail_file_path: string | null;
+          thumbnail_url: string | null;
           video_id: string | null;
           video_url: string | null;
         };
@@ -375,6 +377,8 @@ export type Database = {
           opponent: string;
           team_id: string;
           team_score?: number | null;
+          thumbnail_file_path?: string | null;
+          thumbnail_url?: string | null;
           video_id?: string | null;
           video_url?: string | null;
         };
@@ -390,6 +394,8 @@ export type Database = {
           opponent?: string;
           team_id?: string;
           team_score?: number | null;
+          thumbnail_file_path?: string | null;
+          thumbnail_url?: string | null;
           video_id?: string | null;
           video_url?: string | null;
         };

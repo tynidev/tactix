@@ -232,6 +232,7 @@ export const GamesPage: React.FC = () =>
     <main className='dashboard-main'>
       {/* Game Form Modal */}
       <GameForm
+        key={editingGame ? `edit-${editingGame.id}` : 'create'}
         isOpen={showGameForm && !!(selectedTeam || editingGame)}
         teamId={editingGame?.teams?.id || selectedTeam?.teams.id || ''}
         onSubmit={handleGameFormSubmit}
