@@ -192,57 +192,269 @@ async function safePageOperation<T>(
 }
 
 /**
- * Wait for page stability by monitoring network activity and DOM changes
+ * Wait for video content using MutationObserver and network monitoring
  */
-async function waitForPageStability(page: Page, timeoutMs = 10000): Promise<void>
+async function waitForVideoContent(page: Page, timeoutMs = 15000): Promise<boolean>
+{
+  console.log('🔍 [VEO Parser] Setting up dynamic video content detection...');
+
+  return page.evaluate((timeout) =>
+  {
+    return new Promise<boolean>((resolve) =>
+    {
+      const startTime = Date.now();
+      const timer = setTimeout(() =>
+      {
+        console.log('⏰ [VEO Parser] Video content detection timeout reached');
+        resolve(false);
+      }, timeout);
+
+      const cleanup = () =>
+      {
+        clearTimeout(timer);
+        if (observer) observer.disconnect();
+      };
+
+      // Check if video content already exists
+      const checkVideoContent = () =>
+      {
+        // Method 1: Check for video element with veocdn source
+        const video = document.querySelector('video');
+        if (video)
+        {
+          const source = video.querySelector('source');
+          if (source?.src?.includes('veocdn') && source.src.includes('.mp4'))
+          {
+            console.log('✅ [VEO Parser] Found video element with veocdn source');
+            cleanup();
+            resolve(true);
+            return true;
+          }
+        }
+
+        // Method 2: Check for veocdn URLs in page content
+        const pageContent = document.body.innerHTML;
+        const veocdnMatch = /https:\/\/[a-z]\.veocdn\.com\/[^"'\s]+\.mp4/i.test(pageContent);
+        if (veocdnMatch)
+        {
+          console.log('✅ [VEO Parser] Found veocdn URL in page content');
+          cleanup();
+          resolve(true);
+          return true;
+        }
+
+        return false;
+      };
+
+      // Initial check
+      if (checkVideoContent()) return;
+
+      // Set up MutationObserver to watch for DOM changes
+      let observer: MutationObserver | null = null;
+
+      try
+      {
+        observer = new MutationObserver((mutations) =>
+        {
+          // Throttle checks to avoid excessive processing
+          const now = Date.now();
+          if (now - startTime > timeout)
+          {
+            cleanup();
+            resolve(false);
+            return;
+          }
+
+          // Check if any mutations involve video-related elements
+          const hasVideoMutation = mutations.some(mutation =>
+          {
+            if (mutation.type === 'childList')
+            {
+              return Array.from(mutation.addedNodes).some(node =>
+              {
+                if (node.nodeType === Node.ELEMENT_NODE)
+                {
+                  const element = node as Element;
+                  return element.tagName === 'VIDEO' ||
+                    element.tagName === 'SOURCE' ||
+                    element.querySelector?.('video, source') ||
+                    element.innerHTML?.includes('veocdn');
+                }
+                return false;
+              });
+            }
+            return false;
+          });
+
+          if (hasVideoMutation)
+          {
+            console.log('🔄 [VEO Parser] Video-related DOM change detected, checking content...');
+            checkVideoContent();
+          }
+        });
+
+        observer.observe(document.body, {
+          childList: true,
+          subtree: true,
+          attributes: false, // Don't watch attributes to reduce noise
+          characterData: false, // Don't watch text changes
+        });
+
+        console.log('👀 [VEO Parser] MutationObserver active, watching for video content...');
+      }
+      catch (error)
+      {
+        console.warn('⚠️ [VEO Parser] Could not set up MutationObserver:', error);
+        // Fallback to polling if MutationObserver fails
+        const pollInterval = setInterval(() =>
+        {
+          if (checkVideoContent() || Date.now() - startTime > timeout)
+          {
+            clearInterval(pollInterval);
+            cleanup();
+            resolve(checkVideoContent());
+          }
+        }, 500);
+      }
+    });
+  }, timeoutMs);
+}
+
+/**
+ * Wait for video response from network
+ */
+async function waitForVideoResponse(page: Page, timeoutMs = 10000): Promise<string | null>
 {
   return new Promise((resolve) =>
   {
-    let networkIdleTimer: NodeJS.Timeout;
-    let requestCount = 0;
-    let responseCount = 0;
-    const startTime = Date.now();
+    const timer = setTimeout(() => resolve(null), timeoutMs);
+    let resolved = false;
 
-    const checkStability = () =>
+    const responseHandler = async (response: any) =>
     {
-      if (Date.now() - startTime > timeoutMs)
-      {
-        console.log('Page stability timeout reached');
-        resolve();
-        return;
-      }
+      if (resolved) return;
 
-      if (requestCount === responseCount)
+      const url = response.url();
+      if (url.includes('veocdn.com') && url.endsWith('.mp4'))
       {
-        clearTimeout(networkIdleTimer);
-        networkIdleTimer = setTimeout(() =>
-        {
-          console.log('Page appears stable (network idle)');
-          resolve();
-        }, 1000);
+        console.log(`🎯 [VEO Parser] Detected video response: ${url.substring(0, 80)}...`);
+        resolved = true;
+        clearTimeout(timer);
+        page.off('response', responseHandler);
+        resolve(url);
       }
     };
 
-    page.on('request', () =>
-    {
-      requestCount++;
-      clearTimeout(networkIdleTimer);
-    });
+    page.on('response', responseHandler);
 
-    page.on('response', () =>
+    // Cleanup if timeout
+    setTimeout(() =>
     {
-      responseCount++;
-      checkStability();
-    });
+      if (!resolved)
+      {
+        page.off('response', responseHandler);
+      }
+    }, timeoutMs);
+  });
+}
 
-    page.on('requestfailed', () =>
+/**
+ * Smart interaction that waits for actual content changes
+ */
+async function performSmartInteraction(page: Page): Promise<boolean>
+{
+  console.log('🎯 [VEO Parser] Performing smart user interaction...');
+
+  return page.evaluate(() =>
+  {
+    return new Promise<boolean>((resolve) =>
     {
-      responseCount++;
-      checkStability();
-    });
+      const timeout = setTimeout(() => resolve(false), 5000);
 
-    // Initial check in case there are no pending requests
-    setTimeout(checkStability, 100);
+      // Get initial page state
+      const initialContentLength = document.body.innerHTML.length;
+      const initialVideoCount = document.querySelectorAll('video').length;
+
+      // Look for and click play buttons
+      const playSelectors = [
+        'button[aria-label*="play"]',
+        'button[title*="play"]',
+        '.play-button',
+        '.video-play',
+        '[data-testid*="play"]',
+        'button:has(svg)',
+        '.video-container button',
+      ];
+
+      let clicked = false;
+      for (const selector of playSelectors)
+      {
+        const elements = document.querySelectorAll(selector);
+        for (const element of elements)
+        {
+          try
+          {
+            (element as HTMLElement).click();
+            clicked = true;
+            console.log(`🎯 [VEO Parser] Clicked play button: ${selector}`);
+            break;
+          }
+          catch (error)
+          {
+            console.warn(`⚠️ [VEO Parser] Failed to click ${selector}:`, error);
+          }
+        }
+        if (clicked) break;
+      }
+
+      // If no play button found, try clicking video elements
+      if (!clicked)
+      {
+        const videos = document.querySelectorAll('video, .video-player, [class*="video"]');
+        for (const video of videos)
+        {
+          try
+          {
+            (video as HTMLElement).click();
+            clicked = true;
+            console.log('🎯 [VEO Parser] Clicked video element');
+            break;
+          }
+          catch (error)
+          {
+            console.warn('⚠️ [VEO Parser] Failed to click video element:', error);
+          }
+        }
+      }
+
+      if (!clicked)
+      {
+        console.log('ℹ️ [VEO Parser] No interactive elements found to click');
+        clearTimeout(timeout);
+        resolve(false);
+        return;
+      }
+
+      // Watch for changes after interaction
+      const checkForChanges = () =>
+      {
+        const newContentLength = document.body.innerHTML.length;
+        const newVideoCount = document.querySelectorAll('video').length;
+
+        if (newContentLength !== initialContentLength || newVideoCount !== initialVideoCount)
+        {
+          console.log('✅ [VEO Parser] Content changed after interaction');
+          clearTimeout(timeout);
+          resolve(true);
+        }
+      };
+
+      // Check immediately and then periodically
+      setTimeout(checkForChanges, 100);
+      setTimeout(checkForChanges, 500);
+      setTimeout(checkForChanges, 1000);
+      setTimeout(checkForChanges, 2000);
+    });
   });
 }
 
@@ -300,34 +512,46 @@ async function parseVeoVideoWithPuppeteer(url: string, retryCount = 0): Promise<
     logMemoryUsage('after Puppeteer launch');
 
     page = await browser.newPage();
-    
+
     logMemoryUsage('after new page');
 
     // Enable request interception to block heavy resources while preserving URL extraction
     await page.setRequestInterception(true);
-    page.on('request', (request) => {
+    page.on('request', (request) =>
+    {
       const url = request.url();
       const resourceType = request.resourceType();
-      
+
       // Block heavy resources to save memory and bandwidth
-      if (resourceType === 'media' || 
-          resourceType === 'font' ||
-          resourceType === 'image' ||
-          (resourceType === 'other' && (url.includes('.mp4') || url.includes('.webm') || url.includes('.mov') || url.includes('.avi')))) {
+      if (
+        resourceType === 'media' ||
+        resourceType === 'font' ||
+        resourceType === 'image' ||
+        (resourceType === 'other' &&
+          (url.includes('.mp4') || url.includes('.webm') || url.includes('.mov') || url.includes('.avi')))
+      )
+      {
         console.log(`🚫 [VEO Parser] Blocking ${resourceType}: ${url.substring(0, 80)}...`);
         request.abort();
-      } 
+      }
       // Allow veocdn URLs that might contain video metadata but block actual video files
-      else if (url.includes('veocdn.com') && (url.includes('.mp4') || url.includes('.webm') || url.includes('.mov'))) {
+      else if (url.includes('veocdn.com') && (url.includes('.mp4') || url.includes('.webm') || url.includes('.mov')))
+      {
         console.log(`🚫 [VEO Parser] Blocking veocdn video: ${url.substring(0, 80)}...`);
         request.abort();
       }
       // Block analytics and tracking to reduce noise
-      else if (resourceType === 'other' && (url.includes('analytics') || url.includes('tracking') || url.includes('gtm') || url.includes('facebook') || url.includes('google-analytics'))) {
+      else if (
+        resourceType === 'other' &&
+        (url.includes('analytics') || url.includes('tracking') || url.includes('gtm') || url.includes('facebook') ||
+          url.includes('google-analytics'))
+      )
+      {
         console.log(`🚫 [VEO Parser] Blocking tracking: ${url.substring(0, 60)}...`);
         request.abort();
       }
-      else {
+      else
+      {
         request.continue();
       }
     });
@@ -345,83 +569,47 @@ async function parseVeoVideoWithPuppeteer(url: string, retryCount = 0): Promise<
       timeout: 30000,
     });
 
-    console.log('⏳ [VEO Parser] Waiting for page stability...');
-    await waitForPageStability(page, 15000);
+    // Start multiple detection strategies in parallel
+    console.log('🔍 [VEO Parser] Starting dynamic content detection...');
+    const detectionPromises = [
+      waitForVideoContent(page, 15000),
+      waitForVideoResponse(page, 12000),
+    ];
 
-    // Wait for essential elements with safe operation wrapper
-    console.log('🔍 [VEO Parser] Waiting for essential elements...');
-    await safePageOperation(
-      page,
-      () =>
-        Promise.race([
-          page!.waitForSelector('video', { timeout: 10000 }).catch(() =>
-          {}),
-          page!.waitForSelector('source', { timeout: 10000 }).catch(() =>
-          {}),
-          page!.waitForSelector('[src*="veocdn"]', { timeout: 10000 }).catch(() =>
-          {}),
-          new Promise(resolve => setTimeout(resolve, 10000)),
-        ]),
-      'waiting for video elements',
-    );
+    // Race the detection methods
+    const detectionResults = await Promise.allSettled(detectionPromises);
+    const videoContentFound = detectionResults[0].status === 'fulfilled' && detectionResults[0].value;
+    const videoResponseFound = detectionResults[1].status === 'fulfilled' && detectionResults[1].value;
 
-    // Try to simulate user interaction safely
-    console.log('🎯 [VEO Parser] Attempting user interaction...');
-    const interactionResult = await safePageOperation(
-      page,
-      () =>
-        page!.evaluate(() =>
-        {
-          // Look for common play button selectors
-          const playSelectors = [
-            'button[aria-label*="play"]',
-            'button[title*="play"]',
-            '.play-button',
-            '.video-play',
-            '[data-testid*="play"]',
-            'button:has(svg)',
-            '.video-container button',
-          ];
-
-          for (const selector of playSelectors)
-          {
-            const elements = document.querySelectorAll(selector);
-            for (const element of elements)
-            {
-              try
-              {
-                (element as HTMLElement).click();
-                return true;
-              }
-              catch
-              {
-              }
-            }
-          }
-
-          // Try clicking on video elements themselves
-          const videos = document.querySelectorAll('video, .video-player, [class*="video"]');
-          for (const video of videos)
-          {
-            try
-            {
-              (video as HTMLElement).click();
-            }
-            catch
-            {
-            }
-          }
-
-          return false;
-        }),
-      'user interaction simulation',
-    );
-
-    if (interactionResult)
+    if (videoContentFound)
     {
-      console.log('✅ [VEO Parser] User interaction successful');
-      // Wait for potential content changes after interaction
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      console.log('✅ [VEO Parser] Video content detected via DOM monitoring');
+    }
+    else if (videoResponseFound)
+    {
+      console.log(`✅ [VEO Parser] Video response detected: ${videoResponseFound}`);
+    }
+    else
+    {
+      console.log('⚠️ [VEO Parser] No video content detected, attempting user interaction...');
+
+      // Try smart interaction as fallback
+      const interactionResult = await safePageOperation(
+        page,
+        () => performSmartInteraction(page!),
+        'smart user interaction',
+      );
+
+      if (interactionResult)
+      {
+        console.log('✅ [VEO Parser] User interaction triggered content changes');
+        // Give a moment for content to load after interaction
+        const postInteractionDetection = await waitForVideoContent(page, 5000);
+        if (postInteractionDetection)
+        {
+          console.log('✅ [VEO Parser] Video content appeared after interaction');
+        }
+      }
     }
 
     // Try multiple approaches to find video data with safe operations
