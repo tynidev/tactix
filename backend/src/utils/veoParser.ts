@@ -203,9 +203,14 @@ async function waitForVideoContent(page: Page, timeoutMs = 15000): Promise<boole
     return new Promise<boolean>((resolve) =>
     {
       const startTime = Date.now();
+      
+      // Declare observer variable first, before cleanup function
+      let observer: MutationObserver | null = null;
+      
       const timer = setTimeout(() =>
       {
         console.log('⏰ [VEO Parser] Video content detection timeout reached');
+        cleanup();
         resolve(false);
       }, timeout);
 
@@ -250,7 +255,6 @@ async function waitForVideoContent(page: Page, timeoutMs = 15000): Promise<boole
       if (checkVideoContent()) return;
 
       // Set up MutationObserver to watch for DOM changes
-      let observer: MutationObserver | null = null;
 
       try
       {
@@ -568,6 +572,13 @@ async function parseVeoVideoWithPuppeteer(url: string, retryCount = 0): Promise<
       waitUntil: 'networkidle2',
       timeout: 30000,
     });
+
+    // Ensure page is stable before proceeding
+    console.log('⏳ [VEO Parser] Waiting for page to stabilize...');
+    await page.waitForFunction(() => document.readyState === 'complete', { timeout: 10000 });
+    
+    // Additional stability check - wait for body to be available
+    await page.waitForSelector('body', { timeout: 5000 });
 
     // Start multiple detection strategies in parallel
     console.log('🔍 [VEO Parser] Starting dynamic content detection...');
