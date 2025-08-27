@@ -147,12 +147,11 @@ export function parseVideoInfo(input: string): VideoInfo | null
   // VEO support temporarily disabled due to server dependency issues
   if (isVeoUrl(input))
   {
-    return null;
-    // return {
-    //   type: 'veo',
-    //   url: input, // Initially use the VEO URL, will be replaced after parsing
-    //   originalUrl: input,
-    // };
+    return {
+      type: 'veo',
+      url: input, // Initially use the VEO URL, will be replaced after parsing
+      originalUrl: input,
+    };
   }
 
   return null;

@@ -166,7 +166,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
     const videoInfo = parseVideoInfo(video_url.trim());
     if (!videoInfo)
     {
-      res.status(400).json({ error: 'Please provide a valid YouTube or HTML5 video URL' });
+      res.status(400).json({ error: 'Please provide a valid YouTube, VEO, or HTML5 video URL' });
       return;
     }
 
@@ -506,7 +506,7 @@ router.put('/:gameId', async (req: AuthenticatedRequest, res: Response): Promise
     const videoInfo = parseVideoInfo(video_url.trim());
     if (!videoInfo)
     {
-      res.status(400).json({ error: 'Please provide a valid YouTube or HTML5 video URL' });
+      res.status(400).json({ error: 'Please provide a valid YouTube, VEO, or HTML5 video URL' });
       return;
     }
 

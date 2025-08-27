@@ -132,7 +132,7 @@ export const GameForm: React.FC<GameFormProps> = ({
     if (!videoInfo)
     {
       // If videoInfo is null, it means no patterns matched
-      setValidationMessage('Please provide a valid YouTube or HTML5 video URL');
+      setValidationMessage('Please provide a valid YouTube, VEO, or HTML5 video URL');
       return;
     }
 
@@ -140,7 +140,7 @@ export const GameForm: React.FC<GameFormProps> = ({
 
     try
     {
-      setValidationMessage('Validating video...');
+      setValidationMessage('Validating video, if this is a VEO link this may take a minute...');
 
       // Convert empty strings to null for API and send the original video URL
       // Let the backend handle VEO parsing
@@ -332,11 +332,12 @@ export const GameForm: React.FC<GameFormProps> = ({
             value={formData.video_url || ''}
             onChange={handleInputChange}
             className='form-input'
-            placeholder='https://www.youtube.com/watch?v=... or https://example.com/video.mp4'
+            placeholder='https://www.youtube.com/watch?v=... or https://app.veo.co/matches/... or https://example.com/video.mp4'
             required
           />
           <div className='form-help'>
-            Paste a YouTube URL or direct link to an HTML5 video file (MP4, WebM, OGG, AVI, MOV).
+            Paste a YouTube URL, VEO match URL (app.veo.co), or direct link to an HTML5 video file (MP4, WebM, OGG, AVI,
+            MOV).
           </div>
         </div>
 
