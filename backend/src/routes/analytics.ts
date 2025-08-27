@@ -7,7 +7,7 @@ const router = express.Router();
 /**
  * Options for filtering views in getViewsWithGuardianSupport
  */
-interface ViewsQueryOptions
+export interface ViewsQueryOptions
 {
   teamId?: string;
   playerId?: string;
@@ -23,7 +23,7 @@ interface ViewsQueryOptions
  * Handles both direct player views (when player has user_profile) and
  * guardian views (when player doesn't have user_profile).
  */
-async function getViewsWithGuardianSupport(options: ViewsQueryOptions): Promise<
+export async function getViewsWithGuardianSupport(options: ViewsQueryOptions): Promise<
   Array<{
     player_profile_id: string;
     player_name: string;

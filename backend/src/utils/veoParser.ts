@@ -203,10 +203,10 @@ async function waitForVideoContent(page: Page, timeoutMs = 15000): Promise<boole
     return new Promise<boolean>((resolve) =>
     {
       const startTime = Date.now();
-      
+
       // Declare observer variable first, before cleanup function
       let observer: MutationObserver | null = null;
-      
+
       const timer = setTimeout(() =>
       {
         console.log('⏰ [VEO Parser] Video content detection timeout reached');
@@ -371,13 +371,17 @@ async function performSmartInteraction(page: Page): Promise<boolean>
 
   return page.evaluate((): Promise<boolean> =>
   {
-    return new Promise<boolean>(function(resolve) {
-      var timeout = setTimeout(function() { resolve(false); }, 5000);
-      
+    return new Promise<boolean>(function(resolve)
+    {
+      var timeout = setTimeout(function()
+      {
+        resolve(false);
+      }, 5000);
+
       // Get initial page state
       var initialContentLength = document.body.innerHTML.length;
       var initialVideoCount = document.querySelectorAll('video').length;
-      
+
       // Look for and click play buttons
       var playSelectors = [
         'button[aria-label*="play"]',
@@ -386,60 +390,73 @@ async function performSmartInteraction(page: Page): Promise<boolean>
         '.video-play',
         '[data-testid*="play"]',
         'button:has(svg)',
-        '.video-container button'
+        '.video-container button',
       ];
-      
+
       var clicked = false;
-      for (var i = 0; i < playSelectors.length; i++) {
+      for (var i = 0; i < playSelectors.length; i++)
+      {
         var selector = playSelectors[i];
         var elements = document.querySelectorAll(selector);
-        for (var j = 0; j < elements.length; j++) {
-          try {
+        for (var j = 0; j < elements.length; j++)
+        {
+          try
+          {
             (elements[j] as HTMLElement).click();
             clicked = true;
             console.log('🎯 [VEO Parser] Clicked play button: ' + selector);
             break;
-          } catch (error) {
+          }
+          catch (error)
+          {
             console.warn('⚠️ [VEO Parser] Failed to click ' + selector + ':', error);
           }
         }
         if (clicked) break;
       }
-      
+
       // If no play button found, try clicking video elements
-      if (!clicked) {
+      if (!clicked)
+      {
         var videos = document.querySelectorAll('video, .video-player, [class*="video"]');
-        for (var k = 0; k < videos.length; k++) {
-          try {
+        for (var k = 0; k < videos.length; k++)
+        {
+          try
+          {
             (videos[k] as HTMLElement).click();
             clicked = true;
             console.log('🎯 [VEO Parser] Clicked video element');
             break;
-          } catch (error) {
+          }
+          catch (error)
+          {
             console.warn('⚠️ [VEO Parser] Failed to click video element:', error);
           }
         }
       }
-      
-      if (!clicked) {
+
+      if (!clicked)
+      {
         console.log('ℹ️ [VEO Parser] No interactive elements found to click');
         clearTimeout(timeout);
         resolve(false);
         return;
       }
-      
+
       // Watch for changes after interaction
-      var checkForChanges = function() {
+      var checkForChanges = function()
+      {
         var newContentLength = document.body.innerHTML.length;
         var newVideoCount = document.querySelectorAll('video').length;
-        
-        if (newContentLength !== initialContentLength || newVideoCount !== initialVideoCount) {
+
+        if (newContentLength !== initialContentLength || newVideoCount !== initialVideoCount)
+        {
           console.log('✅ [VEO Parser] Content changed after interaction');
           clearTimeout(timeout);
           resolve(true);
         }
       };
-      
+
       // Check immediately and then periodically
       setTimeout(checkForChanges, 100);
       setTimeout(checkForChanges, 500);
@@ -563,7 +580,7 @@ async function parseVeoVideoWithPuppeteer(url: string, retryCount = 0): Promise<
     // Ensure page is stable before proceeding
     console.log('⏳ [VEO Parser] Waiting for page to stabilize...');
     await page.waitForFunction(() => document.readyState === 'complete', { timeout: 10000 });
-    
+
     // Additional stability check - wait for body to be available
     await page.waitForSelector('body', { timeout: 5000 });
 
