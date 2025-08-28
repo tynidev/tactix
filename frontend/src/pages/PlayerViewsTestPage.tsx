@@ -37,7 +37,7 @@ interface TestSummary
   averageCompletion: number;
 }
 
-export const TestPage: React.FC = () =>
+export const PlayerViewsTestPage: React.FC = () =>
 {
   const [lookupData, setLookupData] = useState<LookupData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -143,7 +143,7 @@ export const TestPage: React.FC = () =>
       if (coachId) requestBody.coachId = coachId;
 
       const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/api/test/guardian-views`, {
+      const response = await fetch(`${apiUrl}/api/players/views`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -200,7 +200,7 @@ export const TestPage: React.FC = () =>
     return (
       <main className='dashboard-main'>
         <div className='section-header'>
-          <h1 className='section-title'>Guardian Views Test Page</h1>
+          <h1 className='section-title'>Player Views Test Page</h1>
         </div>
         <div className='loading'>Loading test data...</div>
       </main>
@@ -212,7 +212,7 @@ export const TestPage: React.FC = () =>
     return (
       <main className='dashboard-main'>
         <div className='section-header'>
-          <h1 className='section-title'>Guardian Views Test Page</h1>
+          <h1 className='section-title'>Player Views Test Page</h1>
         </div>
         <div className='alert alert-error'>
           <h3>Error Loading Test Page</h3>
@@ -233,7 +233,7 @@ export const TestPage: React.FC = () =>
     return (
       <main className='dashboard-main'>
         <div className='section-header'>
-          <h1 className='section-title'>Guardian Views Test Page</h1>
+          <h1 className='section-title'>Player Views Test Page</h1>
         </div>
         <div className='card'>
           <h3>No Test Data Available</h3>
@@ -246,7 +246,7 @@ export const TestPage: React.FC = () =>
   return (
     <main className='dashboard-main'>
       <div className='section-header'>
-        <h1 className='section-title'>Guardian Views Test Page</h1>
+        <h1 className='section-title'>Player Views Test Page</h1>
       </div>
 
       <div className='card intro-card'>
@@ -451,4 +451,4 @@ export const TestPage: React.FC = () =>
   );
 };
 
-export default TestPage;
+export default PlayerViewsTestPage;

@@ -1,6 +1,7 @@
 import { Request, Response, Router } from 'express';
 import { AuthenticatedRequest, authenticateUser } from '../middleware/auth.js';
 import { supabase } from '../utils/supabase.js';
+import { getViewsWithGuardianSupport, ViewsQueryOptions } from './analytics.js';
 
 const router = Router();
 
@@ -376,6 +377,122 @@ router.get('/guardian/team/:teamId', async (req: AuthenticatedRequest, res: Resp
   {
     console.error('Error in GET /players/guardian/team/:teamId:', error);
     res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// POST /api/players/views
+// How views are attributed to a player in this endpoint
+//
+// This route delegates to getViewsWithGuardianSupport(options), which fetches
+// coaching_point_view_events and attributes each event to a specific
+// player_profile_id. It merges two possible sources of attribution:
+//
+// 1) Direct player views (view_source = 'direct')
+//    - Applies when a player profile is claimed (player_profiles.user_id is set).
+//    - If coaching_point_view_events.user_id === player_profiles.user_id, the
+//      view is attributed to that player.
+//
+// 2) Guardian views (view_source = 'guardian')
+//    - Applies only when a player profile is unclaimed (player_profiles.user_id IS NULL).
+//    - If the viewer's user_id appears in guardian_player_relationships.guardian_id
+//      for that player_profile_id, the view is attributed to that player and the
+//      event includes guardian_id.
+//
+// Important behaviors:
+// - Guardian views are NOT counted for claimed players. Once a player has a
+//   user_id, only their own (direct) views are attributed to them.
+// - Each view event is attributed to at most one player. Direct mapping is
+//   checked first; if not matched, guardian relationships are checked for
+//   unclaimed players.
+// - completion_percentage on each event is passed through so downstream
+//   analytics can compute per-(player,point) max completion and averages.
+//
+// Filters applied (from request body options):
+// - Date range: startDate/endDate -> coaching_point_view_events.created_at
+// - teamId/gameId: via coaching_points -> games (games.team_id, games.id)
+// - coachingPointId: coaching_points.id
+// - coachId: coaching_points.author_id
+// - playerId: restricts attribution to a specific player_profile_id
+//
+// Returned fields per event include: player_profile_id, player_name, point_id,
+// point_title, game_id, team_id, completion_percentage, created_at, view_source
+// ('direct' | 'guardian'), and guardian_id (when view_source = 'guardian').
+//
+// Sorting (performed in the helper) prioritizes players with more views,
+// then player_name, then most recent created_at.
+//
+// In short: a "view for a player" is any coaching_point_view_events row that
+// either matches the player's own user_id (claimed profile) or, when the
+// profile is unclaimed, was performed by one of that player's guardians.
+router.post('/views', async (req: AuthenticatedRequest, res: Response): Promise<void> =>
+{
+  try
+  {
+    const userId = req.user?.id;
+    if (!userId)
+    {
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
+    }
+
+    // Extract test parameters from request body
+    const {
+      teamId,
+      playerId,
+      startDate,
+      endDate,
+      coachingPointId,
+      gameId,
+      coachId,
+    } = req.body;
+
+    // Validate date formats if provided
+    if (startDate && isNaN(Date.parse(startDate)))
+    {
+      res.status(400).json({ error: 'Invalid startDate format. Use ISO string format.' });
+      return;
+    }
+    if (endDate && isNaN(Date.parse(endDate)))
+    {
+      res.status(400).json({ error: 'Invalid endDate format. Use ISO string format.' });
+      return;
+    }
+
+    const options: ViewsQueryOptions = {};
+    if (teamId) options.teamId = teamId;
+    if (playerId) options.playerId = playerId;
+    if (startDate) options.startDate = startDate;
+    if (endDate) options.endDate = endDate;
+    if (coachingPointId) options.coachingPointId = coachingPointId;
+    if (gameId) options.gameId = gameId;
+    if (coachId) options.coachId = coachId;
+
+    console.log('Testing getViewsWithGuardianSupport with options:', options);
+
+    const result = await getViewsWithGuardianSupport(options);
+
+    res.json({
+      success: true,
+      options: options,
+      resultCount: result.length,
+      results: result,
+      summary: {
+        directViews: result.filter(r => r.view_source === 'direct').length,
+        guardianViews: result.filter(r => r.view_source === 'guardian').length,
+        uniquePlayers: new Set(result.map(r => r.player_profile_id)).size,
+        uniquePoints: new Set(result.map(r => r.point_id)).size,
+        uniqueGames: new Set(result.map(r => r.game_id)).size,
+        uniqueTeams: new Set(result.map(r => r.team_id)).size,
+      },
+    });
+  }
+  catch (error)
+  {
+    console.error('Error in POST /players/views:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
   }
 });
 

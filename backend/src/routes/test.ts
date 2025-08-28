@@ -1,82 +1,8 @@
 import express, { Response } from 'express';
 import { type AuthenticatedRequest, authenticateUser } from '../middleware/auth.js';
 import { supabase } from '../utils/supabase.js';
-import { getViewsWithGuardianSupport, type ViewsQueryOptions } from './analytics.js';
 
 const router = express.Router();
-
-// POST /api/test/guardian-views - Test the getViewsWithGuardianSupport function
-router.post('/guardian-views', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> =>
-{
-  try
-  {
-    const userId = req.user?.id;
-    if (!userId)
-    {
-      res.status(401).json({ error: 'User not authenticated' });
-      return;
-    }
-
-    // Extract test parameters from request body
-    const {
-      teamId,
-      playerId,
-      startDate,
-      endDate,
-      coachingPointId,
-      gameId,
-      coachId,
-    } = req.body;
-
-    // Validate date formats if provided
-    if (startDate && isNaN(Date.parse(startDate)))
-    {
-      res.status(400).json({ error: 'Invalid startDate format. Use ISO string format.' });
-      return;
-    }
-    if (endDate && isNaN(Date.parse(endDate)))
-    {
-      res.status(400).json({ error: 'Invalid endDate format. Use ISO string format.' });
-      return;
-    }
-
-    const options: ViewsQueryOptions = {};
-    if (teamId) options.teamId = teamId;
-    if (playerId) options.playerId = playerId;
-    if (startDate) options.startDate = startDate;
-    if (endDate) options.endDate = endDate;
-    if (coachingPointId) options.coachingPointId = coachingPointId;
-    if (gameId) options.gameId = gameId;
-    if (coachId) options.coachId = coachId;
-
-    console.log('Testing getViewsWithGuardianSupport with options:', options);
-
-    const result = await getViewsWithGuardianSupport(options);
-
-    res.json({
-      success: true,
-      options: options,
-      resultCount: result.length,
-      results: result,
-      summary: {
-        directViews: result.filter(r => r.view_source === 'direct').length,
-        guardianViews: result.filter(r => r.view_source === 'guardian').length,
-        uniquePlayers: new Set(result.map(r => r.player_profile_id)).size,
-        uniquePoints: new Set(result.map(r => r.point_id)).size,
-        uniqueGames: new Set(result.map(r => r.game_id)).size,
-        uniqueTeams: new Set(result.map(r => r.team_id)).size,
-      },
-    });
-  }
-  catch (error)
-  {
-    console.error('Error in POST /test/guardian-views:', error);
-    res.status(500).json({
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error',
-    });
-  }
-});
 
 // GET /api/test/lookup-data - Get reference data for testing
 router.get('/lookup-data', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> =>
