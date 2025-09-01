@@ -426,78 +426,76 @@ router.post('/join', async (req: AuthenticatedRequest, res: Response): Promise<v
   // Validate Guardian role requirements
     if (roleToAssign === TeamRole.Guardian)
     {
-      if (!playerData)
+      // Player data is now optional for guardians - they can join without player associations
+      if (playerData)
       {
-        res.status(400).json({ error: 'Player data is required for guardian role' });
-        return;
-      }
-
-      if (playerData.isNewPlayer === undefined || playerData.isNewPlayer === null)
-      {
-        res.status(400).json({
-          error: 'playerData.isNewPlayer must be specified (true for new player, false for existing)',
-        });
-        return;
-      }
-
-      if (playerData.isNewPlayer)
-      {
-        if (typeof playerData.name !== 'string' || playerData.name.trim() === '')
+        if (playerData.isNewPlayer === undefined || playerData.isNewPlayer === null)
         {
-          res.status(400).json({ error: 'Player name is required for new player' });
+          res.status(400).json({
+            error: 'playerData.isNewPlayer must be specified (true for new player, false for existing)',
+          });
           return;
         }
-        playerData.name = playerData.name.trim();
 
-        // Validate jersey number if provided
-        if (playerData.jerseyNumber !== undefined && playerData.jerseyNumber !== null && playerData.jerseyNumber !== '')
+        if (playerData.isNewPlayer)
         {
-          const jerseyNumber = String(playerData.jerseyNumber).trim();
-          if (!/^\d{1,2}$/.test(jerseyNumber))
+          if (typeof playerData.name !== 'string' || playerData.name.trim() === '')
           {
-            res.status(400).json({ error: 'Jersey number must be 1-2 digits only' });
+            res.status(400).json({ error: 'Player name is required for new player' });
             return;
           }
-        }
-      }
-      else
-      {
-        if (!playerData.id || typeof playerData.id !== 'string')
-        {
-          res.status(400).json({ error: 'Player ID is required and must be a string when linking to existing player' });
-          return;
-        }
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        if (!uuidRegex.test(playerData.id))
-        {
-          res.status(400).json({ error: 'Player ID must be a valid UUID format' });
-          return;
-        }
+          playerData.name = playerData.name.trim();
 
-        // Verify user has permission to link to this player
-        const { data: existingPlayer, error: playerCheckError } = await supabase
-          .from('player_profiles')
-          .select('id, user_id')
-          .eq('id', playerData.id)
-          .single();
-
-        if (playerCheckError || !existingPlayer)
-        {
-          res.status(404).json({ error: 'Player profile not found' });
-          return;
-        }
-
-        if (playerData.user_id !== null && playerData.user_id !== undefined)
-        {
-          if (typeof playerData.user_id !== 'string' || playerData.user_id.trim() === '')
+          // Validate jersey number if provided
+          if (playerData.jerseyNumber !== undefined && playerData.jerseyNumber !== null && playerData.jerseyNumber !== '')
           {
-            res.status(400).json({ error: 'User ID must be a non-empty string if provided' });
+            const jerseyNumber = String(playerData.jerseyNumber).trim();
+            if (!/^\d{1,2}$/.test(jerseyNumber))
+            {
+              res.status(400).json({ error: 'Jersey number must be 1-2 digits only' });
+              return;
+            }
+          }
+        }
+        else
+        {
+          if (!playerData.id || typeof playerData.id !== 'string')
+          {
+            res.status(400).json({ error: 'Player ID is required and must be a string when linking to existing player' });
             return;
           }
-          if (!uuidRegex.test(playerData.user_id))
+          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          if (!uuidRegex.test(playerData.id))
           {
-            res.status(400).json({ error: 'User ID must be a valid UUID format' });
+            res.status(400).json({ error: 'Player ID must be a valid UUID format' });
             return;
+          }
+
+          // Verify user has permission to link to this player
+          const { data: existingPlayer, error: playerCheckError } = await supabase
+            .from('player_profiles')
+            .select('id, user_id')
+            .eq('id', playerData.id)
+            .single();
+
+          if (playerCheckError || !existingPlayer)
+          {
+            res.status(404).json({ error: 'Player profile not found' });
+            return;
+          }
+
+          if (playerData.user_id !== null && playerData.user_id !== undefined)
+          {
+            if (typeof playerData.user_id !== 'string' || playerData.user_id.trim() === '')
+            {
+              res.status(400).json({ error: 'User ID must be a non-empty string if provided' });
+              return;
+            }
+            if (!uuidRegex.test(playerData.user_id))
+            {
+              res.status(400).json({ error: 'User ID must be a valid UUID format' });
+              return;
+            }
           }
         }
       }

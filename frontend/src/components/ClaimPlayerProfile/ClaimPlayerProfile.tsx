@@ -32,6 +32,7 @@ interface ClaimPlayerProfileProps
   joinCode?: string;
   onPlayerSelected: (player: Player | null, isNewPlayer: boolean) => void;
   onBack: () => void;
+  onSkipPlayerSelection?: () => void; // For guardians to join without player associations
   skipToCreate?: boolean; // For players without existing profiles
 }
 
@@ -42,6 +43,7 @@ export const ClaimPlayerProfile: React.FC<ClaimPlayerProfileProps> = ({
   joinCode,
   onPlayerSelected,
   onBack,
+  onSkipPlayerSelection,
   skipToCreate = false,
 }) =>
 {
@@ -233,7 +235,7 @@ export const ClaimPlayerProfile: React.FC<ClaimPlayerProfileProps> = ({
         <p className='claim-player-description'>
           {isPlayer ?
             `Search for your existing player profile in ${teamName} or create a new one.` :
-            `Search for your child's existing player profile in ${teamName} or create a new one.`}
+            `Search for your child's existing player profile in ${teamName}, create a new one, or join without linking to a specific player.`}
         </p>
       </div>
 
@@ -343,6 +345,22 @@ export const ClaimPlayerProfile: React.FC<ClaimPlayerProfileProps> = ({
             >
               Create New Player Profile
             </button>
+            {!isPlayer && onSkipPlayerSelection && (
+              <>
+                <div className='divider'>
+                  <span>OR</span>
+                </div>
+                <button
+                  onClick={onSkipPlayerSelection}
+                  className='btn btn-secondary btn-block'
+                >
+                  Join Without a Player
+                </button>
+                <div className='form-help'>
+                  Join a team without linking to a specific player.
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

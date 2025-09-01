@@ -374,6 +374,11 @@ export const JoinTeamModal: React.FC<JoinTeamModalProps> = ({ isOpen, onClose, o
             joinCode={joinCode}
             onPlayerSelected={handlePlayerSelected}
             onBack={handleBackToTeamInfo}
+            onSkipPlayerSelection={validatedTeam.team_role === 'guardian' ? () => {
+              setSelectedPlayer(null);
+              setIsNewPlayer(false);
+              setCurrentStep('confirm');
+            } : undefined}
             skipToCreate={validatedTeam.team_role === 'player'}
           />
         )}
@@ -445,7 +450,7 @@ export const JoinTeamModal: React.FC<JoinTeamModalProps> = ({ isOpen, onClose, o
                 onClick={handleJoinTeam}
                 className='btn btn-success'
                 disabled={loading ||
-                  ((validatedTeam.team_role === 'player' || validatedTeam.team_role === 'guardian') && !selectedPlayer)}
+                  (validatedTeam.team_role === 'player' && !selectedPlayer)}
               >
                 {loading ? 'Joining...' : 'Join Team'}
               </button>
