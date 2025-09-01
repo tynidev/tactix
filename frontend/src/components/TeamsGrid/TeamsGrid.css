@@ -1,0 +1,22 @@
+/* Action container */
+.floating-actions {
+  position: absolute;
+  display: flex;
+  gap: var(--space-xs);
+  z-index: 10;
+}
+
+.team-card .floating-actions {
+  top: var(--space-lg);
+  right: var(--space-lg);
+}
+
+/* Team-specific overrides */
+.team .floating-action-btn {
+  background: var(--color-bg-secondary);
+  color: var(--color-accent-primary);
+}
+
+.team .floating-action-btn:hover {
+  color: white;
+}
