@@ -18,6 +18,7 @@ DECLARE
   v_player_profile_id UUID;
   v_team_membership_id UUID;
   v_jersey_number TEXT;
+  v_player_user_id UUID;
   v_result JSONB;
 BEGIN
   -- Validate role parameter
@@ -141,28 +142,17 @@ BEGIN
         IF NOT EXISTS (SELECT 1 FROM player_profiles WHERE id = v_player_profile_id) THEN
           RAISE EXCEPTION 'Player profile with ID % does not exist', v_player_profile_id;
         END IF;
-        
-        -- Update user_id if provided
-        IF p_player_data->>'user_id' IS NOT NULL THEN
-          UPDATE player_profiles 
-          SET user_id = (p_player_data->>'user_id')::UUID
-          WHERE id = v_player_profile_id;
-        END IF;
       END IF;
-      
-      -- Create guardian relationship if it doesn't exist
+
+      -- Create guardian relationship only if this specific guardian-player-user mapping doesn't exist
       IF NOT EXISTS (
         SELECT 1 FROM guardian_player_relationships 
-        WHERE guardian_id = p_user_id AND player_profile_id = v_player_profile_id
+        WHERE guardian_id = p_user_id 
+          AND player_profile_id = v_player_profile_id
       ) THEN
-        INSERT INTO guardian_player_relationships (guardian_id, player_user_id, player_profile_id)
+        INSERT INTO guardian_player_relationships (guardian_id, player_profile_id)
         VALUES (
           p_user_id,
-          CASE 
-            WHEN p_player_data->>'user_id' IS NOT NULL 
-            THEN (p_player_data->>'user_id')::UUID 
-            ELSE NULL 
-          END,
           v_player_profile_id
         );
       END IF;

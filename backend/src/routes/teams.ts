@@ -398,7 +398,32 @@ router.post('/join', async (req: AuthenticatedRequest, res: Response): Promise<v
       return;
     }
 
-    // Validate Guardian role requirements
+  /**
+   * Guardian role validation
+   *
+   * Validates the request payload when a user joins a team as a Guardian using a join code.
+   *
+   * Expected input (req.body.playerData):
+   * - isNewPlayer: boolean (required)
+   *   - true  => creating a new player profile:
+   *       - name: string (required, trimmed, non-empty)
+   *       - jerseyNumber?: string|number (optional; if provided must be 1–2 digits)
+   *   - false => linking to an existing player profile:
+   *       - id: string UUID (required)
+   *       - user_id?: string UUID (optional; if provided must be a valid UUID)
+   *
+   * Additional checks when linking to existing player (isNewPlayer === false):
+   * - Ensure the player profile exists (404 if not found)
+   * - Permission constraint: if player_profiles.user_id is set to another user,
+   *   this guardian must already have a guardian_player_relationships link to that player
+   *   (403 if not permitted)
+   *
+   * Error responses:
+   * - 400: missing/invalid fields or formats (e.g., name empty, bad UUID, jersey format)
+   * - 404: player profile not found
+   * - 403: guardian does not have permission to link to the player profile
+   */
+  // Validate Guardian role requirements
     if (roleToAssign === TeamRole.Guardian)
     {
       if (!playerData)
@@ -460,23 +485,6 @@ router.post('/join', async (req: AuthenticatedRequest, res: Response): Promise<v
         {
           res.status(404).json({ error: 'Player profile not found' });
           return;
-        }
-
-        // Check if user has permission (must be unlinked or user is already a guardian)
-        if (existingPlayer.user_id && existingPlayer.user_id !== userId)
-        {
-          const { data: guardianRel } = await supabase
-            .from('guardian_player_relationships')
-            .select('id')
-            .eq('guardian_id', userId)
-            .eq('player_profile_id', playerData.id)
-            .single();
-
-          if (!guardianRel)
-          {
-            res.status(403).json({ error: 'You do not have permission to link to this player profile' });
-            return;
-          }
         }
 
         if (playerData.user_id !== null && playerData.user_id !== undefined)
