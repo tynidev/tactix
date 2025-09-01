@@ -179,14 +179,14 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
     const flyoutRef = useRef<HTMLDivElement>(null);
 
     // Helper function to check if a coaching point has guardian-related players
-    const isGuardianRelatedPoint = useCallback((point: CoachingPoint): boolean =>
-    {
-      if (!guardianPlayerIds.length) return false;
+    // const isGuardianRelatedPoint = useCallback((point: CoachingPoint): boolean =>
+    // {
+    //   if (!guardianPlayerIds.length) return false;
 
-      return point.coaching_point_tagged_players?.some(
-        taggedPlayer => guardianPlayerIds.includes(taggedPlayer.player_profiles.id),
-      ) || false;
-    }, [guardianPlayerIds]);
+    //   return point.coaching_point_tagged_players?.some(
+    //     taggedPlayer => guardianPlayerIds.includes(taggedPlayer.player_profiles.id),
+    //   ) || false;
+    // }, [guardianPlayerIds]);
 
     // Memoize guardianPlayerIds to prevent infinite loops
     const memoizedGuardianPlayerIds = useMemo(() => guardianPlayerIds, [guardianPlayerIds.join(',')]);
@@ -951,21 +951,24 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
                 {groups.map((g) => (
                   g.items.length > 0 && (
                     <div key={g.key} className={`cp-section ${g.key}`}>
-                      <div className='cp-section-header'>
+                      {
+                        /* <div className='cp-section-header'>
                         <div className='cp-section-title'>{g.title}</div>
                         <div className='cp-section-count'>{g.items.length}</div>
-                      </div>
+                      </div> */
+                      }
 
                       {g.items.map((point) =>
                       {
-                        const isTagged =
-                          !!(point.coaching_point_tagged_players && point.coaching_point_tagged_players.length > 0);
+                        // const isTagged =
+                        //   !!(point.coaching_point_tagged_players && point.coaching_point_tagged_players.length > 0);
                         const classNames = [
                           'coaching-point-item',
-                          isGuardianRelatedPoint(point) ? 'guardian-related' : '',
-                          point.isViewed ? 'viewed' : 'unviewed',
-                          isTagged ? 'tagged' : 'untagged',
-                          point.isAcknowledged ? 'acknowledged' : '',
+                          'viewed',
+                          // isGuardianRelatedPoint(point) ? 'guardian-related' : '',
+                          // point.isViewed ? 'viewed' : 'unviewed',
+                          // isTagged ? 'tagged' : 'untagged',
+                          // point.isAcknowledged ? 'acknowledged' : '',
                         ].filter(Boolean);
 
                         return (
@@ -1069,7 +1072,8 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
                               <div className='point-date'>{formatDate(point.created_at)}</div>
                             </div>
 
-                            <span
+                            {
+                              /* <span
                               className='ack-checkbox'
                               title={point.isAcknowledged && point.acknowledgmentDate ?
                                 `Acknowledged on ${formatDate(point.acknowledgmentDate)}` :
@@ -1088,7 +1092,8 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
                                 onClick={(e) => e.stopPropagation()}
                                 onMouseDown={(e) => e.stopPropagation()}
                               />
-                            </span>
+                            </span> */
+                            }
                           </div>
                         );
                       })}
