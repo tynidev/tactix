@@ -374,11 +374,14 @@ export const JoinTeamModal: React.FC<JoinTeamModalProps> = ({ isOpen, onClose, o
             joinCode={joinCode}
             onPlayerSelected={handlePlayerSelected}
             onBack={handleBackToTeamInfo}
-            onSkipPlayerSelection={validatedTeam.team_role === 'guardian' ? () => {
-              setSelectedPlayer(null);
-              setIsNewPlayer(false);
-              setCurrentStep('confirm');
-            } : undefined}
+            onSkipPlayerSelection={validatedTeam.team_role === 'guardian' ?
+              () =>
+              {
+                setSelectedPlayer(null);
+                setIsNewPlayer(false);
+                setCurrentStep('confirm');
+              } :
+              undefined}
             skipToCreate={validatedTeam.team_role === 'player'}
           />
         )}

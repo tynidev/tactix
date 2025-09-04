@@ -398,32 +398,32 @@ router.post('/join', async (req: AuthenticatedRequest, res: Response): Promise<v
       return;
     }
 
-  /**
-   * Guardian role validation
-   *
-   * Validates the request payload when a user joins a team as a Guardian using a join code.
-   *
-   * Expected input (req.body.playerData):
-   * - isNewPlayer: boolean (required)
-   *   - true  => creating a new player profile:
-   *       - name: string (required, trimmed, non-empty)
-   *       - jerseyNumber?: string|number (optional; if provided must be 1–2 digits)
-   *   - false => linking to an existing player profile:
-   *       - id: string UUID (required)
-   *       - user_id?: string UUID (optional; if provided must be a valid UUID)
-   *
-   * Additional checks when linking to existing player (isNewPlayer === false):
-   * - Ensure the player profile exists (404 if not found)
-   * - Permission constraint: if player_profiles.user_id is set to another user,
-   *   this guardian must already have a guardian_player_relationships link to that player
-   *   (403 if not permitted)
-   *
-   * Error responses:
-   * - 400: missing/invalid fields or formats (e.g., name empty, bad UUID, jersey format)
-   * - 404: player profile not found
-   * - 403: guardian does not have permission to link to the player profile
-   */
-  // Validate Guardian role requirements
+    /**
+     * Guardian role validation
+     *
+     * Validates the request payload when a user joins a team as a Guardian using a join code.
+     *
+     * Expected input (req.body.playerData):
+     * - isNewPlayer: boolean (required)
+     *   - true  => creating a new player profile:
+     *       - name: string (required, trimmed, non-empty)
+     *       - jerseyNumber?: string|number (optional; if provided must be 1–2 digits)
+     *   - false => linking to an existing player profile:
+     *       - id: string UUID (required)
+     *       - user_id?: string UUID (optional; if provided must be a valid UUID)
+     *
+     * Additional checks when linking to existing player (isNewPlayer === false):
+     * - Ensure the player profile exists (404 if not found)
+     * - Permission constraint: if player_profiles.user_id is set to another user,
+     *   this guardian must already have a guardian_player_relationships link to that player
+     *   (403 if not permitted)
+     *
+     * Error responses:
+     * - 400: missing/invalid fields or formats (e.g., name empty, bad UUID, jersey format)
+     * - 404: player profile not found
+     * - 403: guardian does not have permission to link to the player profile
+     */
+    // Validate Guardian role requirements
     if (roleToAssign === TeamRole.Guardian)
     {
       // Player data is now optional for guardians - they can join without player associations
@@ -447,7 +447,9 @@ router.post('/join', async (req: AuthenticatedRequest, res: Response): Promise<v
           playerData.name = playerData.name.trim();
 
           // Validate jersey number if provided
-          if (playerData.jerseyNumber !== undefined && playerData.jerseyNumber !== null && playerData.jerseyNumber !== '')
+          if (
+            playerData.jerseyNumber !== undefined && playerData.jerseyNumber !== null && playerData.jerseyNumber !== ''
+          )
           {
             const jerseyNumber = String(playerData.jerseyNumber).trim();
             if (!/^\d{1,2}$/.test(jerseyNumber))
@@ -461,7 +463,9 @@ router.post('/join', async (req: AuthenticatedRequest, res: Response): Promise<v
         {
           if (!playerData.id || typeof playerData.id !== 'string')
           {
-            res.status(400).json({ error: 'Player ID is required and must be a string when linking to existing player' });
+            res.status(400).json({
+              error: 'Player ID is required and must be a string when linking to existing player',
+            });
             return;
           }
           const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

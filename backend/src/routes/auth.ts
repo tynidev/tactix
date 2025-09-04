@@ -178,9 +178,34 @@ router.post('/signup', async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
+    // Normalize email (trim + lowercase) to avoid duplicate variants
+    const normalizedEmail = String(email).trim().toLowerCase();
+
+    // Pre-check: attempt to detect existing confirmed user via user_profiles (those rows are created post-confirmation)
+    try
+    {
+      const { data: existingProfile, error: profileLookupError } = await supabase
+        .from('user_profiles')
+        .select('id')
+        .ilike('email', normalizedEmail) // case-insensitive match
+        .single();
+
+      if (!profileLookupError && existingProfile)
+      {
+        // If a user_profile row exists we treat it as a confirmed account (since trigger runs after confirmation)
+        res.status(400).json({ error: 'An account with this email address already exists. Please sign in instead.' });
+        return;
+      }
+      // If no row found (PGRST116), proceed. Any unconfirmed user (without a profile yet) will be caught by signUp error messages below.
+    }
+    catch (precheckErr)
+    {
+      console.warn('Signup pre-check (user_profiles) failed, proceeding to signUp:', precheckErr);
+    }
+
     // Create user in Supabase Auth using signUp with anon key client
     const { data: authData, error: authError } = await supabaseAuth.auth.signUp({
-      email,
+      email: normalizedEmail,
       password,
       options: {
         data: {
