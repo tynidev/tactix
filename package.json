@@ -10,6 +10,7 @@
   ],
   "scripts": {
     "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "frontend:lan": "npm run -w frontend dev:lan",
     "dev:frontend": "npm run -w frontend dev",
     "dev:backend": "npm run -w backend dev",
     "build": "npm run build:frontend && npm run build:backend",

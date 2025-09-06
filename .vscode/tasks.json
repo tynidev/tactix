@@ -12,7 +12,7 @@
 		{
 			"label": "Start Frontend Only",
 			"type": "shell",
-			"command": "npm run dev:frontend",
+			"command": "npm run frontend:lan",
 			"group": "build",
 			"isBackground": true,
 			"problemMatcher": []
