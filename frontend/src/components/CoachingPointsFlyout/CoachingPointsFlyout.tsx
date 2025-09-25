@@ -142,6 +142,11 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
     selectedPlayerId = null,
   }) =>
   {
+    // INTERNAL VIEW MODE FLAG
+    // Set SHOW_GROUPED to true to restore legacy grouped rendering (tagged/unviewed buckets).
+    // Flat mode is now the default: pure chronological ordering (earliest timestamp first).
+    const SHOW_GROUPED = false;
+
     const { user } = useAuth();
     const [isExpanded, setIsExpanded] = useState(false);
     const [coachingPoints, setCoachingPoints] = useState<CoachingPoint[]>([]);
@@ -667,7 +672,7 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
         return true;
       });
 
-      // Apply the same two-section sorting to filtered results
+      // Keep original rank-based ordering only for grouped mode pathway.
       return filtered.sort((a: CoachingPoint, b: CoachingPoint) =>
       {
         const getRank = (p: CoachingPoint): number =>
@@ -679,7 +684,6 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
           if (tagged && !unviewed) return 2; // tagged + viewed
           return 3; // viewed
         };
-
         const ra = getRank(a);
         const rb = getRank(b);
         if (ra !== rb) return ra - rb;
@@ -687,16 +691,19 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
       });
     }, [coachingPoints, titleFilter, selectedPlayerFilter, selectedLabelFilter, guardianPlayerIds]);
 
-    // Filter coaching points based on active filters
-    const filteredCoachingPoints = useCallback(() =>
+    // Flat list (pure chronological) independent of grouping rank logic
+    const flatPoints = useMemo(() =>
     {
-      return filteredPoints;
+      return [...filteredPoints].sort((a, b) => parseInt(a.timestamp) - parseInt(b.timestamp));
     }, [filteredPoints]);
 
-    // Group points into sections for rendering with headers
-    const pointsForRender = filteredCoachingPoints();
+    // Grouping preserved for potential future reactivation
     const groups = useMemo(() =>
     {
+      if (!SHOW_GROUPED)
+      {
+        return [] as { key: 'tagged-unviewed' | 'untagged-unviewed' | 'tagged-viewed' | 'viewed-untagged'; title: string; items: CoachingPoint[] }[];
+      }
       const res: {
         key: 'tagged-unviewed' | 'untagged-unviewed' | 'tagged-viewed' | 'viewed-untagged';
         title: string;
@@ -707,7 +714,7 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
         { key: 'tagged-viewed', title: 'Tagged • Viewed', items: [] },
         { key: 'viewed-untagged', title: 'Viewed (Not Tagged)', items: [] },
       ];
-      for (const p of pointsForRender)
+      for (const p of filteredPoints)
       {
         const tagged = !!(p.coaching_point_tagged_players && p.coaching_point_tagged_players.length > 0);
         const viewed = !!p.isViewed;
@@ -717,7 +724,92 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
         else res[3].items.push(p);
       }
       return res;
-    }, [pointsForRender]);
+    }, [filteredPoints, SHOW_GROUPED]);
+
+    // Reusable point renderer to minimize diff surface
+    const renderPoint = useCallback((point: CoachingPoint) =>
+    {
+      const classNames = [
+        'coaching-point-item',
+        'viewed', // retaining existing class usage; adjust if future state classes restored
+      ].filter(Boolean);
+
+      return (
+        <div
+          key={point.id}
+            className={classNames.join(' ')}
+            onClick={() => handlePointClick(point)}
+            onTouchStart={(e) => handleTouchStart(e)}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={(e) => handleTouchEnd(point, e)}
+        >
+          {canDeletePoint(point) && (
+            <button
+              className='delete-point-btn'
+              onClick={(e) => handleDeletePoint(point.id, e)}
+              onTouchEnd={(e) => handleDeletePoint(point.id, e)}
+              title='Delete coaching point'
+              aria-label='Delete coaching point'
+            >
+              ✕
+            </button>
+          )}
+          <div className='point-header'>
+            <div className='point-timestamp'>{formatTimestamp(point.timestamp)}</div>
+          </div>
+          <div className='point-content'>
+            <h4 className='point-title'>{point.title}</h4>
+            <p className='point-feedback'>{point.feedback}</p>
+            {((point.coaching_point_tagged_players && point.coaching_point_tagged_players.length > 0) ||
+              (point.coaching_point_labels && point.coaching_point_labels.length > 0)) && (
+              <div className='point-tags-container'>
+                {point.coaching_point_tagged_players && point.coaching_point_tagged_players.length > 0 && (
+                  <div className='point-tagged-players'>
+                    {point.coaching_point_tagged_players
+                      .slice()
+                      .sort((a, b) =>
+                      {
+                        const aSelected = !!selectedPlayerId && a.player_profiles.id === selectedPlayerId;
+                        const bSelected = !!selectedPlayerId && b.player_profiles.id === selectedPlayerId;
+                        if (aSelected && !bSelected) return -1;
+                        if (!aSelected && bSelected) return 1;
+                        const aGuardian = isGuardianPlayer(a.player_profiles.id);
+                        const bGuardian = isGuardianPlayer(b.player_profiles.id);
+                        if (aGuardian && !bGuardian) return -1;
+                        if (!aGuardian && bGuardian) return 1;
+                        return a.player_profiles.name.localeCompare(b.player_profiles.name);
+                      })
+                      .map((taggedPlayer) => (
+                        <span
+                          key={taggedPlayer.id}
+                          className={`player-tag ${
+                            isGuardianPlayer(taggedPlayer.player_profiles.id) ? 'guardian-player' : ''
+                          }`}
+                        >
+                          {taggedPlayer.player_profiles.name}
+                        </span>
+                      ))}
+                  </div>
+                )}
+                {point.coaching_point_labels && point.coaching_point_labels.length > 0 && (
+                  <div className='point-labels'>
+                    {point.coaching_point_labels.map((labelAssignment) => (
+                      <span key={labelAssignment.id} className='label-tag'>
+                        {labelAssignment.labels.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          <div className='point-footer'>
+            <span className='point-author'>by {point.author?.name || 'Unknown'}</span>
+            <div className='point-date'>{formatDate(point.created_at)}</div>
+          </div>
+        </div>
+      );
+    }, [handlePointClick, handleTouchStart, handleTouchMove, handleTouchEnd, canDeletePoint, handleDeletePoint, formatTimestamp, formatDate, selectedPlayerId, isGuardianPlayer]);
 
     // Clear all filters
     const clearFilters = useCallback(() =>
@@ -777,7 +869,7 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
     return (
       <div
         ref={flyoutRef}
-        className={`coaching-points-flyout ${isExpanded ? 'expanded' : 'collapsed'}`}
+        className={`coaching-points-flyout ${isExpanded ? 'expanded' : 'collapsed'} ${!SHOW_GROUPED ? 'flat-mode' : ''}`}
       >
         <div className='flyout-header'>
           <div className='header-content'>
@@ -935,7 +1027,7 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
               </div>
             )}
 
-            {!loading && !error && pointsForRender.length === 0 && (
+            {!loading && !error && filteredPoints.length === 0 && (
               <div className='empty-state'>
                 <p>No coaching points match the current filters.</p>
                 {hasActiveFilters && (
@@ -946,160 +1038,20 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
               </div>
             )}
 
-            {!loading && !error && pointsForRender.length > 0 && (
+            {!loading && !error && filteredPoints.length > 0 && (
               <div className='coaching-points-list'>
-                {groups.map((g) => (
-                  g.items.length > 0 && (
-                    <div key={g.key} className={`cp-section ${g.key}`}>
-                      {
-                        /* <div className='cp-section-header'>
-                        <div className='cp-section-title'>{g.title}</div>
-                        <div className='cp-section-count'>{g.items.length}</div>
-                      </div> */
-                      }
-
-                      {g.items.map((point) =>
-                      {
-                        // const isTagged =
-                        //   !!(point.coaching_point_tagged_players && point.coaching_point_tagged_players.length > 0);
-                        const classNames = [
-                          'coaching-point-item',
-                          'viewed',
-                          // isGuardianRelatedPoint(point) ? 'guardian-related' : '',
-                          // point.isViewed ? 'viewed' : 'unviewed',
-                          // isTagged ? 'tagged' : 'untagged',
-                          // point.isAcknowledged ? 'acknowledged' : '',
-                        ].filter(Boolean);
-
-                        return (
-                          <div
-                            key={point.id}
-                            className={classNames.join(' ')}
-                            onClick={() => handlePointClick(point)}
-                            onTouchStart={(e) => handleTouchStart(e)}
-                            onTouchMove={handleTouchMove}
-                            onTouchEnd={(e) => handleTouchEnd(point, e)}
-                          >
-                            {canDeletePoint(point) && (
-                              <button
-                                className='delete-point-btn'
-                                onClick={(e) => handleDeletePoint(point.id, e)}
-                                onTouchEnd={(e) => handleDeletePoint(point.id, e)}
-                                title='Delete coaching point'
-                                aria-label='Delete coaching point'
-                              >
-                                ✕
-                              </button>
-                            )}
-                            <div className='point-header'>
-                              <div className='point-timestamp'>{formatTimestamp(point.timestamp)}</div>
-                            </div>
-
-                            <div className='point-content'>
-                              <h4 className='point-title'>{point.title}</h4>
-                              <p className='point-feedback'>{point.feedback}</p>
-
-                              {/* Combined Players and Labels Container */}
-                              {((point.coaching_point_tagged_players &&
-                                point.coaching_point_tagged_players.length > 0) ||
-                                (point.coaching_point_labels && point.coaching_point_labels.length > 0)) && (
-                                <div className='point-tags-container'>
-                                  {/* Tagged Players */}
-                                  {point.coaching_point_tagged_players &&
-                                    point.coaching_point_tagged_players.length > 0 && (
-                                    <div className='point-tagged-players'>
-                                      {point.coaching_point_tagged_players
-                                        .slice()
-                                        .sort((a, b) =>
-                                        {
-                                          const aSelected = !!selectedPlayerId &&
-                                            a.player_profiles.id === selectedPlayerId;
-                                          const bSelected = !!selectedPlayerId &&
-                                            b.player_profiles.id === selectedPlayerId;
-                                          if (aSelected && !bSelected)
-                                          {
-                                            return -1;
-                                          }
-                                          if (!aSelected && bSelected)
-                                          {
-                                            return 1;
-                                          }
-
-                                          // Next, prioritize guardian players
-                                          const aGuardian = isGuardianPlayer(a.player_profiles.id);
-                                          const bGuardian = isGuardianPlayer(b.player_profiles.id);
-                                          if (aGuardian && !bGuardian)
-                                          {
-                                            return -1;
-                                          }
-                                          if (!aGuardian && bGuardian)
-                                          {
-                                            return 1;
-                                          }
-
-                                          // Finally, sort by name
-                                          return a.player_profiles.name.localeCompare(b.player_profiles.name);
-                                        })
-                                        .map((taggedPlayer) => (
-                                          <span
-                                            key={taggedPlayer.id}
-                                            className={`player-tag ${
-                                              isGuardianPlayer(taggedPlayer.player_profiles.id) ? 'guardian-player' : ''
-                                            }`}
-                                          >
-                                            {taggedPlayer.player_profiles.name}
-                                          </span>
-                                        ))}
-                                    </div>
-                                  )}
-
-                                  {/* Labels */}
-                                  {point.coaching_point_labels && point.coaching_point_labels.length > 0 && (
-                                    <div className='point-labels'>
-                                      {point.coaching_point_labels.map((labelAssignment) => (
-                                        <span key={labelAssignment.id} className='label-tag'>
-                                          {labelAssignment.labels.name}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-
-                            <div className='point-footer'>
-                              <span className='point-author'>by {point.author?.name || 'Unknown'}</span>
-                              <div className='point-date'>{formatDate(point.created_at)}</div>
-                            </div>
-
-                            {
-                              /* <span
-                              className='ack-checkbox'
-                              title={point.isAcknowledged && point.acknowledgmentDate ?
-                                `Acknowledged on ${formatDate(point.acknowledgmentDate)}` :
-                                'Not Acknowledged'}
-                              onClick={(e) => e.stopPropagation()}
-                              onMouseDown={(e) => e.stopPropagation()}
-                            >
-                              <input
-                                type='checkbox'
-                                checked={point.isAcknowledged}
-                                readOnly
-                                aria-label={point.isAcknowledged ? 'Acknowledged' : 'Not Acknowledged'}
-                                title={point.isAcknowledged && point.acknowledgmentDate ?
-                                  `Acknowledged on ${formatDate(point.acknowledgmentDate)}` :
-                                  'Not Acknowledged'}
-                                onClick={(e) => e.stopPropagation()}
-                                onMouseDown={(e) => e.stopPropagation()}
-                              />
-                            </span> */
-                            }
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )
-                ))}
+                {SHOW_GROUPED ? (
+                  groups.map((g) => (
+                    g.items.length > 0 && (
+                      <div key={g.key} className={`cp-section ${g.key}`}>
+                        {/* Group headers intentionally hidden but preserved */}
+                        {g.items.map(renderPoint)}
+                      </div>
+                    )
+                  ))
+                ) : (
+                  flatPoints.map(renderPoint)
+                )}
               </div>
             )}
           </div>
