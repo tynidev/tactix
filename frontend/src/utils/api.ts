@@ -314,7 +314,13 @@ export const createCoachingPointWithRecording = async (
     // Upload audio if provided
     if (audioBlob)
     {
-      audioUrl = await uploadAudioFile(audioBlob) || '';
+      let result = await uploadAudioFile(audioBlob);
+      if (!result)
+      {
+        console.error('❌ Audio upload failed, aborting coaching point creation');
+        throw new Error('Audio upload failed');
+      }
+      audioUrl = result;
     }
 
     // Create the main coaching point record
@@ -388,7 +394,7 @@ export const createCoachingPointWithRecording = async (
           statusText: batchResponse.statusText,
           error: errorText,
         });
-        console.warn('⚠️ Recording events not saved, but coaching point was created');
+        throw new Error('Failed to save recording events');
       }
     }
 

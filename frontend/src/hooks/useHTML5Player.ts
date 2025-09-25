@@ -20,6 +20,10 @@ export const useHTML5Player = (videoUrl: string) =>
     { width: number; height: number; top: number; left: number; } | null
   >(null);
   const [error, setError] = useState<string | undefined>(undefined);
+  // Track whether we've already performed the initial auto-play. This prevents
+  // subsequent `canplay` events (triggered by seeks) from restarting playback
+  // after the user intentionally paused the video (e.g. when opening a static coaching point).
+  const hasAutoPlayedRef = useRef(false);
 
   /**
    * Updates the video dimensions state based on the current video element size
@@ -172,17 +176,26 @@ export const useHTML5Player = (videoUrl: string) =>
 
     const handleCanPlay = () =>
     {
-      // Auto-play the video when it's ready (if muted)
-      try
+      // Auto-play only once (initial load). Do NOT auto-play again after seeks,
+      // since selecting a static coaching point performs a seek and should leave
+      // the video paused if the user paused it.
+      if (!hasAutoPlayedRef.current)
       {
-        video.play().catch(err =>
+        try
         {
-          console.warn('Auto-play prevented:', err);
-        });
-      }
-      catch (err)
-      {
-        console.warn('Auto-play failed:', err);
+          video.play().catch(err =>
+          {
+            console.warn('Auto-play prevented:', err);
+          });
+        }
+        catch (err)
+        {
+          console.warn('Auto-play failed:', err);
+        }
+        finally
+        {
+          hasAutoPlayedRef.current = true;
+        }
       }
     };
 

@@ -571,7 +571,8 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
 
           if (!eventResponse.ok)
           {
-            console.warn('Failed to save drawing data, but coaching point was created');
+            console.error('Failed to save drawing data, but coaching point was created');
+            throw new Error('Failed to create coaching point events (pause/draw etc...)');
           }
         }
 
@@ -596,7 +597,8 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
             }
             catch (err)
             {
-              console.warn('Failed to tag player:', playerId, err);
+              console.error('Failed to tag player:', playerId, err);
+              throw new Error('Failed to tag players');
             }
           }
         }
@@ -622,7 +624,8 @@ export const CoachingPointModal: React.FC<CoachingPointModalProps> = ({
             }
             catch (err)
             {
-              console.warn('Failed to assign label:', labelId, err);
+              console.error('Failed to assign label:', labelId, err);
+              throw new Error('Failed to assign labels');
             }
           }
         }
