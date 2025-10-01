@@ -56,9 +56,11 @@ router.get('/join-codes/:code/validate', async (req: Request, res: Response): Pr
 
     if (!code)
     {
-      res.status(400).json({ error: 'Join code is required' });
+      res.status(400).json({ error: `Join code is required: ${code}` });
       return;
     }
+
+    const filteredCode = code.toUpperCase().trim();
 
     // Find active join code
     const { data: joinCodeData, error: findError } = await supabase
@@ -70,20 +72,21 @@ router.get('/join-codes/:code/validate', async (req: Request, res: Response): Pr
         expires_at,
         teams!inner(id, name)
       `)
-      .eq('code', code)
+      .eq('code', filteredCode)
       .eq('is_active', true)
       .single();
 
     if (findError || !joinCodeData)
     {
-      res.status(404).json({ error: 'Invalid or inactive join code' });
+      console.error(findError);
+      res.status(404).json({ error: `Invalid or inactive join code (${filteredCode}): ${findError.message}` });
       return;
     }
 
     // Check if code is expired
     if (joinCodeData.expires_at && new Date(joinCodeData.expires_at) < new Date())
     {
-      res.status(400).json({ error: 'Join code has expired' });
+      res.status(400).json({ error: `Join code (${filteredCode}) has expired at ${joinCodeData.expires_at}` });
       return;
     }
 
