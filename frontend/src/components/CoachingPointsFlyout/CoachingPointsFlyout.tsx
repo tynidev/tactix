@@ -702,7 +702,11 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
     {
       if (!SHOW_GROUPED)
       {
-        return [] as { key: 'tagged-unviewed' | 'untagged-unviewed' | 'tagged-viewed' | 'viewed-untagged'; title: string; items: CoachingPoint[] }[];
+        return [] as {
+          key: 'tagged-unviewed' | 'untagged-unviewed' | 'tagged-viewed' | 'viewed-untagged';
+          title: string;
+          items: CoachingPoint[];
+        }[];
       }
       const res: {
         key: 'tagged-unviewed' | 'untagged-unviewed' | 'tagged-viewed' | 'viewed-untagged';
@@ -737,11 +741,11 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
       return (
         <div
           key={point.id}
-            className={classNames.join(' ')}
-            onClick={() => handlePointClick(point)}
-            onTouchStart={(e) => handleTouchStart(e)}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={(e) => handleTouchEnd(point, e)}
+          className={classNames.join(' ')}
+          onClick={() => handlePointClick(point)}
+          onTouchStart={(e) => handleTouchStart(e)}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={(e) => handleTouchEnd(point, e)}
         >
           {canDeletePoint(point) && (
             <button
@@ -809,7 +813,18 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
           </div>
         </div>
       );
-    }, [handlePointClick, handleTouchStart, handleTouchMove, handleTouchEnd, canDeletePoint, handleDeletePoint, formatTimestamp, formatDate, selectedPlayerId, isGuardianPlayer]);
+    }, [
+      handlePointClick,
+      handleTouchStart,
+      handleTouchMove,
+      handleTouchEnd,
+      canDeletePoint,
+      handleDeletePoint,
+      formatTimestamp,
+      formatDate,
+      selectedPlayerId,
+      isGuardianPlayer,
+    ]);
 
     // Clear all filters
     const clearFilters = useCallback(() =>
@@ -869,7 +884,9 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
     return (
       <div
         ref={flyoutRef}
-        className={`coaching-points-flyout ${isExpanded ? 'expanded' : 'collapsed'} ${!SHOW_GROUPED ? 'flat-mode' : ''}`}
+        className={`coaching-points-flyout ${isExpanded ? 'expanded' : 'collapsed'} ${
+          !SHOW_GROUPED ? 'flat-mode' : ''
+        }`}
       >
         <div className='flyout-header'>
           <div className='header-content'>
@@ -1040,18 +1057,20 @@ export const CoachingPointsFlyout = React.memo<CoachingPointsFlyoutProps>(
 
             {!loading && !error && filteredPoints.length > 0 && (
               <div className='coaching-points-list'>
-                {SHOW_GROUPED ? (
-                  groups.map((g) => (
-                    g.items.length > 0 && (
-                      <div key={g.key} className={`cp-section ${g.key}`}>
-                        {/* Group headers intentionally hidden but preserved */}
-                        {g.items.map(renderPoint)}
-                      </div>
-                    )
-                  ))
-                ) : (
-                  flatPoints.map(renderPoint)
-                )}
+                {SHOW_GROUPED ?
+                  (
+                    groups.map((g) => (
+                      g.items.length > 0 && (
+                        <div key={g.key} className={`cp-section ${g.key}`}>
+                          {/* Group headers intentionally hidden but preserved */}
+                          {g.items.map(renderPoint)}
+                        </div>
+                      )
+                    ))
+                  ) :
+                  (
+                    flatPoints.map(renderPoint)
+                  )}
               </div>
             )}
           </div>

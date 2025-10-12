@@ -2549,15 +2549,29 @@ router.get(
         return;
       }
 
-      // Get tagged players with their view/acknowledgment status
-      const { data: taggedPlayersData, error: taggedError } = await supabase
-        .from('coaching_point_tagged_players')
+      const teamId = accessCheck.games.teams.id;
+
+      // Get ALL players from the team (not just tagged ones)
+      const { data: allTeamPlayersData, error: playersError } = await supabase
+        .from('team_players')
         .select(`
         player_profiles!inner(
           id,
           name
         )
       `)
+        .eq('team_id', teamId);
+
+      if (playersError)
+      {
+        res.status(500).json({ error: 'Failed to fetch team players' });
+        return;
+      }
+
+      // Get tagged player IDs for this coaching point
+      const { data: taggedPlayersData, error: taggedError } = await supabase
+        .from('coaching_point_tagged_players')
+        .select('player_id')
         .eq('point_id', pointId);
 
       if (taggedError)
@@ -2566,13 +2580,15 @@ router.get(
         return;
       }
 
+      const taggedPlayerIds = new Set((taggedPlayersData || []).map(tp => tp.player_id));
+
       // Get comprehensive view data with guardian support for this coaching point
       const pointViewData = await getViewsWithGuardianSupport({
         coachingPointId: pointId,
       });
 
-      // Get view/acknowledgment status for each tagged player
-      const taggedPlayers = await Promise.all((taggedPlayersData || []).map(async (tp) =>
+      // Get view/acknowledgment status for ALL team players
+      const players = await Promise.all((allTeamPlayersData || []).map(async (tp) =>
       {
         const playerId = tp.player_profiles.id;
 
@@ -2623,64 +2639,62 @@ router.get(
         return {
           player_id: playerId,
           name: tp.player_profiles.name,
-          view_count: viewCount,
+          views: viewCount,
+          completion_percent: maxCompletion,
           first_viewed_at: firstViewedAt,
           last_viewed_at: lastViewedAt,
-          latest_completion_percent: maxCompletion,
           acknowledged: ackData?.acknowledged || false,
           ack_at: ackData?.ack_at || null,
           ack_notes: ackData?.notes || null,
+          tagged: taggedPlayerIds.has(playerId),
         };
       }));
+
+      // Sort players by: Completion %, Acknowledged, Has Notes, Views, Tagged
+      // Priority order (descending): completion_percent, acknowledged, has notes, views, tagged
+      players.sort((a, b) =>
+      {
+        // 1. Sort by completion percentage (highest first)
+        if (b.completion_percent !== a.completion_percent)
+        {
+          return b.completion_percent - a.completion_percent;
+        }
+
+        // 2. Sort by acknowledged status (acknowledged first)
+        if (b.acknowledged !== a.acknowledged)
+        {
+          return (b.acknowledged ? 1 : 0) - (a.acknowledged ? 1 : 0);
+        }
+
+        // 3. Sort by whether they have notes (has notes first)
+        const aHasNotes = a.ack_notes !== null && a.ack_notes.trim().length > 0;
+        const bHasNotes = b.ack_notes !== null && b.ack_notes.trim().length > 0;
+        if (bHasNotes !== aHasNotes)
+        {
+          return (bHasNotes ? 1 : 0) - (aHasNotes ? 1 : 0);
+        }
+
+        // 4. Sort by view count (highest first)
+        if (b.views !== a.views)
+        {
+          return b.views - a.views;
+        }
+
+        // 5. Sort by tagged status (tagged first)
+        if (b.tagged !== a.tagged)
+        {
+          return (b.tagged ? 1 : 0) - (a.tagged ? 1 : 0);
+        }
+
+        // 6. Finally, sort alphabetically by name as tiebreaker
+        return a.name.localeCompare(b.name);
+      });
 
       // Calculate totals from guardian-supported data
       const totalViews = pointViewData.length;
       const uniqueViewers = new Set(pointViewData.map(view => view.player_profile_id)).size;
 
-      // Build completion distribution (histogram) from guardian-supported data
-      const completionBuckets = {
-        '0-25%': 0,
-        '25-50%': 0,
-        '50-75%': 0,
-        '75-100%': 0,
-      };
-
-      // Calculate max completion per player from guardian-supported view data
-      const playerCompletionMap = new Map<string, number>();
-      pointViewData.forEach(view =>
-      {
-        const playerId = view.player_profile_id;
-        const completion = view.completion_percentage || 0;
-        const existing = playerCompletionMap.get(playerId) || 0;
-        if (completion > existing)
-        {
-          playerCompletionMap.set(playerId, completion);
-        }
-      });
-
-      // Build buckets from max completion per player
-      playerCompletionMap.forEach(completion =>
-      {
-        if (completion < 25) completionBuckets['0-25%']++;
-        else if (completion < 50) completionBuckets['25-50%']++;
-        else if (completion < 75) completionBuckets['50-75%']++;
-        else completionBuckets['75-100%']++;
-      });
-
-      // Get view events timeline from coaching_point_events
-      const { data: viewEvents, error: eventsError } = await supabase
-        .from('coaching_point_events')
-        .select('event_type, timestamp, event_data, created_at')
-        .eq('point_id', pointId)
-        .order('timestamp', { ascending: true });
-
-      if (eventsError)
-      {
-        res.status(500).json({ error: 'Failed to fetch view events' });
-        return;
-      }
-
-      // Get acknowledgment notes (avoid FK join which can fail due to RLS; map names from taggedPlayers instead)
+      // Get acknowledgment notes (avoid FK join which can fail due to RLS; map names from players instead)
       const { data: ackNotes, error: notesError } = await supabase
         .from('coaching_point_acknowledgments')
         .select('player_id, notes, ack_at')
@@ -2711,13 +2725,11 @@ router.get(
             team_name: accessCheck.games.teams.name,
           },
         },
-        taggedPlayers,
+        players,
         totalViews,
         uniqueViewers,
-        completionDistribution: completionBuckets,
-        viewEventsTimeline: viewEvents || [],
         acknowledgmentNotes: (ackNotes || []).map(note => ({
-          player_name: taggedPlayers.find(tp => tp.player_id === (note as any).player_id)?.name || 'Unknown',
+          player_name: players.find(p => p.player_id === (note as any).player_id)?.name || 'Unknown',
           notes: (note as any).notes,
           ack_at: (note as any).ack_at,
         })),

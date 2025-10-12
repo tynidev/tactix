@@ -165,31 +165,20 @@ type CoachingPointDetail = {
       team_name: string;
     };
   };
-  taggedPlayers: {
+  players: {
     player_id: string;
     name: string;
-    view_count: number;
+    views: number;
+    completion_percent: number;
     first_viewed_at: string | null;
     last_viewed_at: string | null;
-    latest_completion_percent: number;
     acknowledged: boolean;
     ack_at: string | null;
     ack_notes: string | null;
+    tagged: boolean;
   }[];
   totalViews: number;
   uniqueViewers: number;
-  completionDistribution: {
-    '0-25%': number;
-    '25-50%': number;
-    '50-75%': number;
-    '75-100%': number;
-  };
-  viewEventsTimeline: {
-    event_type: string;
-    timestamp: number;
-    event_data: any;
-    created_at: string;
-  }[];
   acknowledgmentNotes: {
     player_name: string;
     notes: string;
@@ -1090,9 +1079,9 @@ export const CoachAnalyticsPage: React.FC = () =>
   const pointAckPercent = useMemo(() =>
   {
     if (!pointDetail) return 0;
-    const total = pointDetail.taggedPlayers.length;
-    if (!total) return 0;
-    return Math.round(pointDetail.taggedPlayers.filter(tp => tp.acknowledged).length / total * 100);
+    const taggedPlayers = pointDetail.players.filter(p => p.tagged);
+    if (!taggedPlayers.length) return 0;
+    return Math.round(taggedPlayers.filter(tp => tp.acknowledged).length / taggedPlayers.length * 100);
   }, [pointDetail]);
 
   // Player tab derived lists for team filtering
@@ -1960,7 +1949,13 @@ export const CoachAnalyticsPage: React.FC = () =>
                 <div className='subcard-header'>
                   <span>{pointDetail.coachingPoint.title}</span>
                 </div>
-                <div className='kpi-grid'>
+                {pointDetail.coachingPoint.feedback && (
+                  <div className='feedback-block' style={{ marginTop: 0 }}>
+                    <div className='mini-heading'>Feedback</div>
+                    <div className='feedback-text'>{pointDetail.coachingPoint.feedback}</div>
+                  </div>
+                )}
+                <div className='kpi-grid' style={{ marginBottom: 0 }}>
                   <div className='kpi-card'>
                     <div className='kpi-label'>Total Views</div>
                     <div className='kpi-value'>{pointDetail.totalViews}</div>
@@ -1971,7 +1966,7 @@ export const CoachAnalyticsPage: React.FC = () =>
                   </div>
                   <div className='kpi-card'>
                     <div className='kpi-label'>Tagged Players</div>
-                    <div className='kpi-value'>{pointDetail.taggedPlayers.length}</div>
+                    <div className='kpi-value'>{pointDetail.players.filter(p => p.tagged).length}</div>
                   </div>
                   <div className='kpi-card'>
                     <div className='kpi-label'>% Ack'd</div>
@@ -1986,84 +1981,35 @@ export const CoachAnalyticsPage: React.FC = () =>
                     <div className='kpi-value'>{Math.floor(pointDetail.coachingPoint.duration / 1000)}</div>
                   </div>
                 </div>
-                <div className='point-meta-grid'>
-                  <div>
-                    <span className='mini-heading'>Game</span>
-                    <div>{pointDetail.coachingPoint.game.team_name} vs {pointDetail.coachingPoint.game.opponent}</div>
-                  </div>
-                  <div>
-                    <span className='mini-heading'>Date</span>
-                    <div>{new Date(pointDetail.coachingPoint.game.date).toLocaleDateString()}</div>
-                  </div>
-                  <div>
-                    <span className='mini-heading'>Author</span>
-                    <div>{pointDetail.coachingPoint.author}</div>
-                  </div>
-                  <div>
-                    <span className='mini-heading'>Created</span>
-                    <div>{new Date(pointDetail.coachingPoint.created_at).toLocaleString()}</div>
-                  </div>
-                </div>
-                {pointDetail.coachingPoint.feedback && (
-                  <div className='feedback-block'>
-                    <div className='mini-heading'>Feedback</div>
-                    <div className='feedback-text'>{pointDetail.coachingPoint.feedback}</div>
-                  </div>
-                )}
               </div>
               <div className='section-grid point-sections'>
-                <div className='subcard wide'>
+                <div className='subcard'>
                   <div className='subcard-header'>
-                    <span>Tagged Players</span>
+                    <span>Players</span>
                   </div>
-                  <div className='tagged-table-head'>
+                  <div className='players-table-head'>
                     <span>Player</span>
                     <span>Views</span>
-                    <span>Completion</span>
-                    <span>First</span>
-                    <span>Last</span>
+                    <span>Completion %</span>
                     <span>Ack</span>
+                    <span>Note</span>
+                    <span>Tagged</span>
                   </div>
-                  <div className='tagged-table-body scrollable'>
-                    {pointDetail.taggedPlayers.length === 0 && <div className='empty-block'>No tagged players</div>}
-                    {pointDetail.taggedPlayers.map(tp => (
-                      <div key={tp.player_id} className='tagged-row'>
-                        <div className='tp-name clamp-1'>{tp.name}</div>
-                        <div>{tp.view_count}</div>
-                        <div className='tp-comp'>{tp.latest_completion_percent}%</div>
-                        <div className='tp-date'>
-                          {tp.first_viewed_at ? new Date(tp.first_viewed_at).toLocaleDateString() : '—'}
+                  <div className='players-table-body scrollable'>
+                    {pointDetail.players.length === 0 && <div className='empty-block'>No players</div>}
+                    {pointDetail.players.map(player => (
+                      <div key={player.player_id} className='player-row'>
+                        <div className='player-name clamp-1'>{player.name}</div>
+                        <div>{player.views}</div>
+                        <div className='player-comp'>{player.completion_percent}%</div>
+                        <div className='player-ack'>{player.acknowledged ? '✓' : '—'}</div>
+                        <div className='player-note clamp-1' title={player.ack_notes || ''}>
+                          {player.ack_notes || '—'}
                         </div>
-                        <div className='tp-date'>
-                          {tp.last_viewed_at ? new Date(tp.last_viewed_at).toLocaleDateString() : '—'}
-                        </div>
-                        <div className='tp-ack'>{tp.acknowledged ? '✓' : '—'}</div>
+                        <div className='player-tagged'>{player.tagged ? '✓' : '—'}</div>
                       </div>
                     ))}
                   </div>
-                </div>
-                <div className='subcard'>
-                  <div className='subcard-header'>
-                    <span>Completion Distribution</span>
-                  </div>
-                  <ul className='dist-list'>
-                    <li>
-                      <span>0-25%</span>
-                      <strong>{pointDetail.completionDistribution['0-25%']}</strong>
-                    </li>
-                    <li>
-                      <span>25-50%</span>
-                      <strong>{pointDetail.completionDistribution['25-50%']}</strong>
-                    </li>
-                    <li>
-                      <span>50-75%</span>
-                      <strong>{pointDetail.completionDistribution['50-75%']}</strong>
-                    </li>
-                    <li>
-                      <span>75-100%</span>
-                      <strong>{pointDetail.completionDistribution['75-100%']}</strong>
-                    </li>
-                  </ul>
                 </div>
                 <div className='subcard'>
                   <div className='subcard-header'>
