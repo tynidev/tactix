@@ -16,6 +16,8 @@ interface AuthContextType
   ) => Promise<{ error?: string; success?: boolean; teamJoin?: any; }>;
   signIn: (email: string, password: string) => Promise<{ error?: string; }>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<{ error?: string; success?: boolean; }>;
+  updatePassword: (newPassword: string) => Promise<{ error?: string; success?: boolean; }>;
   isSessionValid: () => boolean;
 }
 
@@ -242,6 +244,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; }> = ({ childre
     }
   };
 
+  const resetPassword = async (email: string) =>
+  {
+    try
+    {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth?mode=password-reset`,
+      });
+
+      if (error)
+      {
+        return { error: error.message };
+      }
+
+      return { success: true };
+    }
+    catch (error)
+    {
+      return { error: 'An unexpected error occurred' };
+    }
+  };
+
+  const updatePassword = async (newPassword: string) =>
+  {
+    try
+    {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error)
+      {
+        return { error: error.message };
+      }
+
+      return { success: true };
+    }
+    catch (error)
+    {
+      return { error: 'An unexpected error occurred' };
+    }
+  };
+
   const isSessionValid = (sessionToCheck?: Session | null): boolean =>
   {
     const sessionObj = sessionToCheck || session;
@@ -270,6 +314,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; }> = ({ childre
         signUp,
         signIn,
         signOut,
+        resetPassword,
+        updatePassword,
         isSessionValid,
       }}
     >

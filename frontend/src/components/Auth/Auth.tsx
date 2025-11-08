@@ -11,7 +11,7 @@ interface AuthProps
 
 export const Auth: React.FC<AuthProps> = ({ redirectUrl }) =>
 {
-  const { signIn, signUp, user, session, loading: authLoading } = useAuth();
+  const { signIn, signUp, resetPassword, updatePassword, user, session, loading: authLoading } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -19,6 +19,17 @@ export const Auth: React.FC<AuthProps> = ({ redirectUrl }) =>
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+
+  // Forgot password state
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
+
+  // Password reset state
+  const [isPasswordReset, setIsPasswordReset] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordResetLoading, setPasswordResetLoading] = useState(false);
 
   // Team code related state
   const [teamCode, setTeamCode] = useState<string | null>(null);
@@ -42,9 +53,13 @@ export const Auth: React.FC<AuthProps> = ({ redirectUrl }) =>
     );
   }
 
-  // If user is authenticated, redirect to intended destination or root
+  // Check for password reset mode first - this needs to happen before redirect logic
+  const mode = searchParams.get('mode');
+  const isInPasswordResetMode = mode === 'password-reset';
+
+  // If user is authenticated AND not in password reset mode (check URL param OR component state), redirect to intended destination
   // We trust Supabase to handle token refresh automatically
-  if (user && session)
+  if (user && session && !isInPasswordResetMode && !isPasswordReset)
   {
     if (redirectUrl)
     {
@@ -52,8 +67,18 @@ export const Auth: React.FC<AuthProps> = ({ redirectUrl }) =>
     }
     else
     {
-      const currentSearch = window.location.search;
-      navigate(`/${currentSearch}`);
+      // Check if we have a teamCode to preserve
+      const teamCodeParam = searchParams.get('teamCode');
+
+      if (teamCodeParam)
+      {
+        const currentSearch = window.location.search;
+        navigate(`/${currentSearch}`);
+      }
+      else
+      {
+        navigate('/games');
+      }
     }
     return null;
   }
@@ -91,11 +116,25 @@ export const Auth: React.FC<AuthProps> = ({ redirectUrl }) =>
     }
   };
 
-  // Check for team code in URL on component mount
+  // Check for team code and password reset mode in URL on component mount
   useEffect(() =>
   {
     const code = searchParams.get('teamCode');
     const verified = searchParams.get('verified');
+    const mode = searchParams.get('mode');
+
+    // Handle password reset mode
+    if (mode === 'password-reset')
+    {
+      setIsPasswordReset(true);
+      setSuccessMessage('Please enter your new password below.');
+
+      // Clear the mode parameter
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('mode');
+      setSearchParams(newParams, { replace: true });
+      return;
+    }
 
     // Handle verified parameter (email verification success)
     if (verified === 'true')
@@ -209,6 +248,154 @@ export const Auth: React.FC<AuthProps> = ({ redirectUrl }) =>
       setLoading(false);
     }
   };
+
+  const handleForgotPasswordSubmit = async (e: React.FormEvent) =>
+  {
+    e.preventDefault();
+    setForgotPasswordLoading(true);
+    setError('');
+    setSuccessMessage('');
+
+    try
+    {
+      const result = await resetPassword(forgotPasswordEmail);
+      if (result.error)
+      {
+        setError(result.error);
+      }
+      else
+      {
+        setSuccessMessage('Password reset email sent! Check your inbox and follow the instructions.');
+        setShowForgotPassword(false);
+        setForgotPasswordEmail('');
+      }
+    }
+    catch (err)
+    {
+      setError('An unexpected error occurred');
+    }
+    finally
+    {
+      setForgotPasswordLoading(false);
+    }
+  };
+
+  const handlePasswordResetSubmit = async (e: React.FormEvent) =>
+  {
+    e.preventDefault();
+    setPasswordResetLoading(true);
+    setError('');
+    setSuccessMessage('');
+
+    if (newPassword !== confirmPassword)
+    {
+      setError('Passwords do not match');
+      setPasswordResetLoading(false);
+      return;
+    }
+
+    if (newPassword.length < 6)
+    {
+      setError('Password must be at least 6 characters long');
+      setPasswordResetLoading(false);
+      return;
+    }
+
+    try
+    {
+      const result = await updatePassword(newPassword);
+      if (result.error)
+      {
+        setError(result.error);
+      }
+      else
+      {
+        setSuccessMessage('Password updated successfully! You can now sign in with your new password.');
+        setIsPasswordReset(false);
+        setNewPassword('');
+        setConfirmPassword('');
+        // Switch back to sign in form
+        setIsLogin(true);
+      }
+    }
+    catch (err)
+    {
+      setError('An unexpected error occurred');
+    }
+    finally
+    {
+      setPasswordResetLoading(false);
+    }
+  };
+
+  // Render password reset form if in password reset mode
+  if (isPasswordReset)
+  {
+    return (
+      <div className='auth-container'>
+        <div className='auth-theme-toggle'>
+          <ThemeToggle />
+        </div>
+        <div className='auth-card'>
+          <div className='auth-header'>
+            <img src='/tactix-logo.png' alt='TACTIX' style={{ height: '120px' }} />
+            <p>Reset Your Password</p>
+          </div>
+
+          {error && <div className='alert alert-error'>{error}</div>}
+          {successMessage && <div className='alert alert-success'>{successMessage}</div>}
+
+          <form onSubmit={handlePasswordResetSubmit} className='auth-form'>
+            <div className='form-group'>
+              <label htmlFor='newPassword' className='form-label'>New Password</label>
+              <input
+                type='password'
+                id='newPassword'
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+                placeholder='Enter your new password'
+                minLength={6}
+                className='form-input'
+              />
+            </div>
+
+            <div className='form-group'>
+              <label htmlFor='confirmPassword' className='form-label'>Confirm New Password</label>
+              <input
+                type='password'
+                id='confirmPassword'
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                placeholder='Confirm your new password'
+                minLength={6}
+                className='form-input'
+              />
+            </div>
+
+            <button
+              type='submit'
+              className='btn btn-primary btn-full'
+              disabled={passwordResetLoading}
+            >
+              {passwordResetLoading ? 'Updating Password...' : 'Update Password'}
+            </button>
+          </form>
+
+          <div style={{ textAlign: 'center', marginTop: 'var(--space-lg)' }}>
+            <button
+              type='button'
+              className='btn btn-link'
+              onClick={() => setIsPasswordReset(false)}
+            >
+              Back to Sign In
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className='auth-container'>
@@ -328,6 +515,19 @@ export const Auth: React.FC<AuthProps> = ({ redirectUrl }) =>
           </button>
         </form>
 
+        {isLogin && (
+          <div style={{ textAlign: 'center', marginTop: 'var(--space-md)' }}>
+            <button
+              type='button'
+              className='btn btn-link'
+              onClick={() => setShowForgotPassword(true)}
+              style={{ fontSize: '14px' }}
+            >
+              Forgot your password?
+            </button>
+          </div>
+        )}
+
         <div style={{ textAlign: 'center', marginTop: 'var(--space-lg)' }}>
           <p style={{ color: 'var(--color-text-secondary)', margin: 0 }}>
             {isLogin ? "Don't have an account? " : 'Already have an account? '}
@@ -341,6 +541,77 @@ export const Auth: React.FC<AuthProps> = ({ redirectUrl }) =>
           </p>
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      {showForgotPassword && (
+        <div
+          className='auth-container'
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div className='auth-card' style={{ width: '90%', maxWidth: '400px', margin: 0 }}>
+            <div className='auth-header'>
+              <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '700' }}>Reset Password</h3>
+              <p style={{ margin: 'var(--space-sm) 0 0 0', fontSize: '14px' }}>
+                Enter your email address and we'll send you a link to reset your password.
+              </p>
+            </div>
+
+            {error && <div className='alert alert-error'>{error}</div>}
+            {successMessage && <div className='alert alert-success'>{successMessage}</div>}
+
+            <form onSubmit={handleForgotPasswordSubmit} className='auth-form'>
+              <div className='form-group'>
+                <label htmlFor='forgotPasswordEmail' className='form-label'>Email</label>
+                <input
+                  type='email'
+                  id='forgotPasswordEmail'
+                  value={forgotPasswordEmail}
+                  onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                  required
+                  placeholder='Enter your email'
+                  className='form-input'
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+                <button
+                  type='button'
+                  className='btn btn-secondary'
+                  onClick={() =>
+                  {
+                    setShowForgotPassword(false);
+                    setForgotPasswordEmail('');
+                    setError('');
+                    setSuccessMessage('');
+                  }}
+                  style={{ flex: 1 }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type='submit'
+                  className='btn btn-primary'
+                  disabled={forgotPasswordLoading}
+                  style={{ flex: 1 }}
+                >
+                  {forgotPasswordLoading ? 'Sending...' : 'Send Reset Email'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
