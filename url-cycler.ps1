@@ -34,7 +34,9 @@ $userJourneys = @{
     "analysis_flow" = @(
         @{ url = "/games"; weight = 100; description = "Games List" },
         @{ url = "/review"; weight = 70; description = "Review Selection" },
-        @{ url = "/games/570f0489-19b2-40d1-9305-a012e9d26470"; weight = 90; description = "Team Games" }
+        @{ url = "/games/570f0489-19b2-40d1-9305-a012e9d26470"; weight = 90; description = "Team Games" },
+        @{ url = "/analytics"; weight = 100; description = "Team Analytics" }
+
     )
     
     # Profile management
@@ -161,8 +163,11 @@ while ($true) {
     $seconds = $breakTime % 60
     $formattedTime = "{0:00}:{1:00}" -f $minutes, $seconds
     
+    # Calculate the next session start time
+    $nextSessionTime = (Get-Date).AddSeconds($breakTime).ToString("hh:mm:ss tt")
+    
     Write-Host ""
-    Write-Host "💤 User break - waiting $formattedTime until next session..." -ForegroundColor DarkGray
+    Write-Host "💤 User break - waiting $formattedTime until next session (starts at $nextSessionTime)..." -ForegroundColor DarkGray
     Start-Sleep -Seconds $breakTime
     
     # Start next session
