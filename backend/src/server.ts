@@ -7,6 +7,7 @@ import express, { Request, Response } from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import { errorHandler } from './middleware/errorHandler.js';
+import { getSupabase } from './utils/supabase.js';
 import analyticsRoutes from './routes/analytics.js';
 import authRoutes from './routes/auth.js';
 import coachingPointEventRoutes from './routes/coachingPointEvents.js';
@@ -48,10 +49,44 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Health check
-app.get('/health', (req: Request, res: Response) =>
+// Health check with optional database ping
+app.get('/health', async (req: Request, res: Response) =>
 {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+  const checkDb = req.query.db === 'true';
+  
+  const response: any = {
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  };
+
+  // Optional database check to keep Supabase active
+  if (checkDb) {
+    try {
+      const supabase = getSupabase();
+      
+      // Simple query to keep connection active - just count teams
+      const { data, error } = await supabase
+        .from('teams')
+        .select('id', { count: 'exact', head: true });
+      
+      if (error) throw error;
+      
+      response.database = {
+        status: 'connected',
+        recordCount: data || 0,
+      };
+    } catch (error) {
+      console.error('Database health check failed:', error);
+      response.database = {
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      };
+      return res.status(503).json(response);
+    }
+  }
+
+  return res.json(response);
 });
 
 // Root route for platform health checks
