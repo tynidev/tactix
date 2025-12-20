@@ -77,6 +77,7 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
   const animationFrameRef = useRef<number | null>(null);
   const executedEventsRef = useRef<Set<string>>(new Set());
   const isCleaningUpRef = useRef<boolean>(false);
+  const isAttemptingFallbackRef = useRef<boolean>(false);
 
   /**
    * Processes events that should be executed at the current audio time
@@ -226,6 +227,13 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
       // Pause the audio first
       audio.pause();
 
+      // Revoke blob URL if it exists
+      if ((audio as any)._blobUrl)
+      {
+        URL.revokeObjectURL((audio as any)._blobUrl);
+        (audio as any)._blobUrl = null;
+      }
+
       // Clear the source safely without triggering errors
       audio.removeAttribute('src');
       audio.load(); // Reset the audio element
@@ -249,6 +257,7 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
     setError(null);
     setActiveEventIndex(null);
     setTotalEvents(0);
+    isAttemptingFallbackRef.current = false;
 
     // Clear refs
     eventsRef.current = [];
@@ -358,7 +367,9 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
     }
 
     // Create and configure audio element
-    const audio = new Audio(coachingPoint.audio_url);
+    const audio = new Audio();
+    audio.crossOrigin = 'anonymous';
+    audio.src = coachingPoint.audio_url;
     audioRef.current = audio;
 
     audio.addEventListener('loadedmetadata', async () =>
@@ -472,8 +483,8 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
 
     audio.addEventListener('error', (e) =>
     {
-      // Ignore errors during cleanup to prevent spurious error messages
-      if (isCleaningUpRef.current)
+      // Ignore errors during cleanup or fallback attempts
+      if (isCleaningUpRef.current || isAttemptingFallbackRef.current)
       {
         return;
       }
@@ -491,9 +502,152 @@ export const useCoachingPointPlayback = (): UseCoachingPointPlaybackReturn =>
     });
 
     // Start playing
-    audio.play().catch(err =>
+    audio.play().catch(async err =>
     {
       console.error('❌ Failed to start playback:', err);
+
+      // Fallback: Try fetching as blob if streaming fails
+      // This handles cases where the browser rejects the stream (NotSupportedError)
+      if ((err.name === 'NotSupportedError' || err.name === 'MediaError') && !audio.src.startsWith('blob:'))
+      {
+        isAttemptingFallbackRef.current = true;
+        console.log('🔄 Attempting fallback: Fetching audio as blob...');
+
+        let finalBlob: Blob | null = null;
+
+        try
+        {
+          const response = await fetch(coachingPoint.audio_url);
+          if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
+
+          const blob = await response.blob();
+          finalBlob = blob;
+          console.log('📦 Audio Blob:', { type: blob.type, size: blob.size });
+
+          // Diagnostic & Repair: Check file header
+          try
+          {
+            // Read the first 4KB to check for signatures and offsets
+            const headerSize = Math.min(4096, blob.size);
+            const headerBuffer = await blob.slice(0, headerSize).arrayBuffer();
+            const headerView = new Uint8Array(headerBuffer);
+            const headerHex = Array.from(headerView.slice(0, 16)).map(b => b.toString(16).padStart(2, '0')).join(' ');
+            console.log('🔮 File Header (first 16 bytes):', headerHex);
+
+            // Helper to find sequence in buffer
+            const findSequence = (buffer: Uint8Array, sequence: number[]) =>
+            {
+              for (let i = 0; i < buffer.length - sequence.length; i++)
+              {
+                let match = true;
+                for (let j = 0; j < sequence.length; j++)
+                {
+                  if (buffer[i + j] !== sequence[j])
+                  {
+                    match = false;
+                    break;
+                  }
+                }
+                if (match) return i;
+              }
+              return -1;
+            };
+
+            // Signatures
+            const webmSig = [0x1A, 0x45, 0xDF, 0xA3];
+            const webmSigMissingFirst = [0x45, 0xDF, 0xA3];
+            const mp4Sig = [0x66, 0x74, 0x79, 0x70]; // ftyp
+            const oggSig = [0x4F, 0x67, 0x67, 0x53]; // OggS
+
+            const webmOffset = findSequence(headerView, webmSig);
+
+            if (webmOffset === 0)
+            {
+              console.log('✅ File has valid WebM signature at start');
+            }
+            else if (webmOffset > 0)
+            {
+              console.warn(`⚠️ WebM signature found at offset ${webmOffset}. Slicing garbage...`);
+              finalBlob = blob.slice(webmOffset);
+            }
+            else
+            {
+              // Check for missing first byte
+              const missingByteOffset = findSequence(headerView, webmSigMissingFirst);
+              if (missingByteOffset === 0)
+              {
+                console.warn('⚠️ Detected missing EBML header byte (1A). Attempting to repair...');
+                const missingByte = new Uint8Array([0x1A]);
+                finalBlob = new Blob([missingByte, blob], { type: 'audio/webm' });
+              }
+              else if (findSequence(headerView, mp4Sig) !== -1)
+              {
+                console.log('💡 File appears to be MP4/M4A. Adjusting MIME type...');
+                finalBlob = new Blob([blob], { type: 'audio/mp4' });
+              }
+              else if (findSequence(headerView, oggSig) !== -1)
+              {
+                console.log('💡 File appears to be Ogg. Adjusting MIME type...');
+                finalBlob = new Blob([blob], { type: 'audio/ogg' });
+              }
+              else
+              {
+                console.warn('⚠️ Warning: No valid WebM signature found in first 4KB');
+              }
+            }
+          }
+          catch (e)
+          {
+            console.error('Error checking file header:', e);
+          }
+
+          const blobUrl = URL.createObjectURL(finalBlob);
+
+          // Store blob URL for cleanup
+          (audio as any)._blobUrl = blobUrl;
+
+          // Update audio source
+          audio.removeAttribute('crossorigin'); // Blob is local, no CORS needed
+          audio.src = blobUrl;
+          audio.load(); // Force reload of the media element
+
+          // Try playing again
+          await audio.play();
+
+          // Fallback succeeded
+          isAttemptingFallbackRef.current = false;
+          return;
+        }
+        catch (fallbackErr)
+        {
+          console.error('❌ Fallback failed:', fallbackErr);
+          isAttemptingFallbackRef.current = false;
+
+          // Last resort: Try to diagnose if the file is valid using AudioContext
+          try
+          {
+            if (finalBlob)
+            {
+              const arrayBuffer = await finalBlob.arrayBuffer();
+              const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+              await audioContext.decodeAudioData(arrayBuffer);
+              console.log(
+                '✅ AudioContext successfully decoded the audio data - file is valid but HTMLAudioElement failed.',
+              );
+              audioContext.close();
+            }
+            else
+            {
+              console.log('❌ Cannot attempt AudioContext decode: No blob available.');
+            }
+          }
+          catch (decodeErr)
+          {
+            console.error('❌ AudioContext also failed to decode:', decodeErr);
+          }
+        }
+      }
+
       setError('Failed to start playback. Please try again.');
       setIsLoading(false);
     });
