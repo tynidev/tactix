@@ -2933,3 +2933,41 @@ router.get('/coaching-points', authenticateUser, async (req: AuthenticatedReques
 });
 
 export default router;
+
+/**
+ * Get engagement report for a specific game
+ */
+router.get('/game-engagement/:gameId', authenticateUser, async (req: AuthenticatedRequest, res: Response) =>
+{
+  try
+  {
+    const { gameId } = req.params;
+    const { teamId } = req.query;
+
+    if (!teamId || typeof teamId !== 'string')
+    {
+      res.status(400).json({ error: 'teamId query parameter is required' });
+      return;
+    }
+
+    const { data, error } = await supabase.rpc('get_game_engagement_report', {
+      p_team_id: teamId,
+      p_game_id: gameId
+    });
+
+    if (error)
+    {
+      console.error('Error fetching game engagement report:', error);
+      res.status(500).json({ error: error.message });
+      return;
+    }
+
+    res.json(data);
+  }
+  catch (error)
+  {
+    console.error('Error fetching game engagement report:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+

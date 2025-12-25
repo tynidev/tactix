@@ -731,6 +731,24 @@ export type Database = {
         Args: { join_code: string; user_id_param?: string; };
         Returns: Json;
       };
+      get_game_engagement_report: {
+        Args: {
+          p_team_id: string;
+          p_game_id: string;
+        };
+        Returns: {
+          player_id: string;
+          player_name: string;
+          points_viewed: number;
+          total_views: number;
+          view_percentage: number;
+          avg_completion_percentage: number;
+          points_ackd: number;
+          points_note_written: number;
+          earliest_view: string | null;
+          latest_view: string | null;
+        }[];
+      };
       get_unviewed_coaching_points: {
         Args: { p_user_id: string; };
         Returns: {

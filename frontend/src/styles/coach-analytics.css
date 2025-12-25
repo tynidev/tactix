@@ -159,6 +159,37 @@
 .events-data { font-size:11px; color:var(--color-text-secondary); }
 .note-text { font-size:12px; color:var(--color-text-secondary); margin-top:4px; }
 
+/* Player engagement report (Games tab) */
+.game-report { display:flex; flex-direction:column; gap:6px; width:100%; overflow-x:auto; }
+.game-report-head {
+  display:grid;
+  grid-template-columns: 1.4fr 0.7fr 0.7fr 0.7fr 0.9fr 0.6fr 0.6fr 1.1fr 1.1fr;
+  gap:10px;
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:0.05em;
+  text-transform:uppercase;
+  color:var(--color-text-muted);
+  padding-bottom:4px;
+  border-bottom:1px solid var(--border-color);
+  min-width:920px;
+}
+.game-report-body { display:flex; flex-direction:column; gap:4px; max-height:420px; overflow-y:auto; overflow-x:hidden; min-width:920px; }
+.game-report-row {
+  display:grid;
+  grid-template-columns: 1.4fr 0.7fr 0.7fr 0.7fr 0.9fr 0.6fr 0.6fr 1.1fr 1.1fr;
+  gap:10px;
+  font-size:12px;
+  padding:6px 0;
+  border-bottom:1px dashed rgba(0,0,0,0.06);
+  align-items:center;
+}
+[data-theme="dark"] .game-report-row { border-color:rgba(255,255,255,0.08); }
+.game-report-row:last-child { border-bottom:none; }
+.gr-player { font-weight:500; }
+.gr-strong { font-weight:600; }
+.gr-date { font-size:11px; color:var(--color-text-secondary); }
+
 /* Engagement table */
 .engagement-table { display:flex; flex-direction:column; overflow:hidden; }
 .engagement-head { display:grid; grid-template-columns:1.8fr 0.6fr 0.6fr 0.9fr 0.9fr 0.9fr; gap:12px; font-size:11px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:var(--color-text-muted); padding-bottom:6px; border-bottom:1px solid var(--border-color); }

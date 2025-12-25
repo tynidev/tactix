@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import GameEngagementReport from '../components/GameEngagementReport';
 import PlayerEngagementSummaryCard from '../components/PlayerEngagementSummaryCard';
 import { getApiUrl } from '../utils/api';
 import '../styles/coach-analytics.css';
@@ -1559,6 +1560,22 @@ export const CoachAnalyticsPage: React.FC = () =>
                   <div className='kpi-value'>{gameAnalytics.avgCompletionPercent}%</div>
                 </div>
               </div>
+
+                {/* Player Engagement Report */}
+                {selectedGameId && (
+                  <div className='section-grid games-sections'>
+                  <div className='subcard engagement-full'>
+                    <div className='subcard-header with-help'>
+                      <span>Player Engagement Report</span>
+                      <span className='subtle-muted'>Detailed player activity</span>
+                    </div>
+                    <GameEngagementReport 
+                      gameId={selectedGameId} 
+                      teamId={filteredGames.find(g => g.id === selectedGameId)?.team_id || ''} 
+                    />
+                  </div>
+                  </div>
+                )}
 
               <div className='section-grid games-sections'>
                 {/* Per point engagement (spans all 3 cols on large screens) */}

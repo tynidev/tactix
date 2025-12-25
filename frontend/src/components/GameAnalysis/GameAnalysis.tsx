@@ -8,6 +8,7 @@ import { useDrawingCanvas } from '../../hooks/useDrawingCanvas';
 import { useRecordingSession } from '../../hooks/useRecordingSession';
 import type { Drawing } from '../../types/drawing';
 import { updateViewCompletion } from '../../utils/api';
+import { validateAudioBlob } from '../../utils/audioValidation';
 import { createVideoPlayer } from '../../utils/videoPlayerFactory';
 import { CoachingPointModal } from '../CoachingPointModal/CoachingPointModal';
 import { CoachingPointsFlyout } from '../CoachingPointsFlyout/CoachingPointsFlyout';
@@ -274,6 +275,24 @@ export const GameAnalysis: React.FC<GameAnalysisProps> = ({ game }) =>
       const data = await stopRecording();
       if (data)
       {
+        // Validate the audio recording
+        if (data.audioBlob)
+        {
+          const validation = await validateAudioBlob(data.audioBlob);
+
+          if (!validation.isValid)
+          {
+            alert(`Recording failed: ${validation.error || 'Unknown error'}. Please try recording again.`);
+            return;
+          }
+
+          if (validation.repairedBlob)
+          {
+            console.log('Using repaired audio blob:', validation.error);
+            data.audioBlob = validation.repairedBlob;
+          }
+        }
+
         setRecordingData(data);
         setShowCoachingPointModal(true);
       }
