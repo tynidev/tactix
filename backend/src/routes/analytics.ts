@@ -296,6 +296,7 @@ export async function getViewsWithGuardianSupport(options: ViewsQueryOptions): P
     // Only get players that are already filtered by team membership
     const playersWithoutUser = (playerProfiles || []).filter(p => !p.user_id);
     let guardianMap = new Map<string, string[]>();
+    const guardianToPlayerIds = new Map<string, string[]>();
 
     if (playersWithoutUser.length > 0)
     {
@@ -315,6 +316,10 @@ export async function getViewsWithGuardianSupport(options: ViewsQueryOptions): P
         const existing = guardianMap.get(rel.player_profile_id) || [];
         existing.push(rel.guardian_id);
         guardianMap.set(rel.player_profile_id, existing);
+
+        const existingPlayers = guardianToPlayerIds.get(rel.guardian_id) || [];
+        existingPlayers.push(rel.player_profile_id);
+        guardianToPlayerIds.set(rel.guardian_id, existingPlayers);
       });
     }
 
@@ -356,28 +361,27 @@ export async function getViewsWithGuardianSupport(options: ViewsQueryOptions): P
       }
 
       // Check if this is a guardian view
-      for (const [playerId, guardianIds] of guardianMap.entries())
+      const relatedPlayerIds = guardianToPlayerIds.get(event.user_id) || [];
+      if (relatedPlayerIds.length > 0)
       {
-        if (guardianIds.includes(event.user_id))
+        relatedPlayerIds.forEach(playerId =>
         {
           const player = playersWithoutUser.find(p => p.id === playerId);
-          if (player)
-          {
-            result.push({
-              player_profile_id: player.id,
-              player_name: player.name,
-              point_id: event.point_id,
-              point_title: point.title,
-              game_id: game.id,
-              team_id: game.team_id,
-              completion_percentage: event.completion_percentage,
-              created_at: event.created_at,
-              view_source: 'guardian',
-              guardian_id: event.user_id,
-            });
-          }
-          break;
-        }
+          if (!player) return;
+
+          result.push({
+            player_profile_id: player.id,
+            player_name: player.name,
+            point_id: event.point_id,
+            point_title: point.title,
+            game_id: game.id,
+            team_id: game.team_id,
+            completion_percentage: event.completion_percentage,
+            created_at: event.created_at,
+            view_source: 'guardian',
+            guardian_id: event.user_id,
+          });
+        });
       }
     });
 
@@ -508,6 +512,18 @@ async function getViewEventsWithGuardianViews(
     { point_id: string; user_id: string; completion_percentage: number | null; created_at: string; player_id?: string; }
   > = [];
 
+  // Reverse map: guardian user_id -> player_profile_ids
+  const guardianToPlayerIds = new Map<string, string[]>();
+  guardianMap.forEach((guardianIds, playerId) =>
+  {
+    guardianIds.forEach(guardianId =>
+    {
+      const existing = guardianToPlayerIds.get(guardianId) || [];
+      existing.push(playerId);
+      guardianToPlayerIds.set(guardianId, existing);
+    });
+  });
+
   (viewEvents || []).forEach(event =>
   {
     // Check if this is a direct player view
@@ -519,14 +535,11 @@ async function getViewEventsWithGuardianViews(
     }
 
     // Check if this is a guardian view
-    for (const [playerId, guardianIds] of guardianMap.entries())
+    const relatedPlayerIds = guardianToPlayerIds.get(event.user_id) || [];
+    relatedPlayerIds.forEach(playerId =>
     {
-      if (guardianIds.includes(event.user_id))
-      {
-        result.push({ ...event, player_id: playerId });
-        break; // A guardian can only be mapped to one player per event
-      }
-    }
+      result.push({ ...event, player_id: playerId });
+    });
   });
 
   return result;
@@ -1607,7 +1620,7 @@ router.get('/team/:teamId', authenticateUser, async (req: AuthenticatedRequest, 
 /**
  * GET /api/analytics/game/:gameId
  * Game-level analytics (coaches/admins)
- * Query: ?start=&end= (ISO strings, optional; defaults to last 30 days based on parseDateRange)
+ * Query: ?start=&end= (ISO strings, optional; defaults to game date -> now)
  */
 router.get('/game/:gameId', authenticateUser, async (req: AuthenticatedRequest, res: Response): Promise<void> =>
 {
@@ -1648,7 +1661,13 @@ router.get('/game/:gameId', authenticateUser, async (req: AuthenticatedRequest, 
       return;
     }
 
-    const { startISO, endISO } = parseDateRange(req.query);
+    const hasExplicitRange = typeof req.query.start === 'string' || typeof req.query.end === 'string';
+    const { startISO, endISO } = hasExplicitRange ?
+      parseDateRange(req.query) :
+      {
+        startISO: game.date ? new Date(game.date).toISOString() : new Date(0).toISOString(),
+        endISO: new Date().toISOString(),
+      };
 
     // Coaching points for this game in range
     const { data: points, error: pointsErr } = await supabase
@@ -1688,8 +1707,7 @@ router.get('/game/:gameId', authenticateUser, async (req: AuthenticatedRequest, 
         .select('point_id, player_id, ack_at, acknowledged')
         .in('point_id', pointIds)
         .eq('acknowledged', true)
-        .gte('ack_at', startISO)
-        .lte('ack_at', endISO);
+        ;
 
     if (acksErr)
     {
@@ -1717,34 +1735,17 @@ router.get('/game/:gameId', authenticateUser, async (req: AuthenticatedRequest, 
     const uniqueViewers = uniquePlayerViewers.size;
 
     // Keep legacy view summary query for backward compatibility with last_viewed_at calculations
-    const { data: viewSummaries, error: vsErr } = pointIds.length === 0 ?
-      { data: [], error: null } :
-      await supabase
-        .from('coaching_point_view_summary')
-        .select('point_id, user_id, last_viewed_at')
-        .in('point_id', pointIds);
+    // (No longer needed for per-point engagement: last_viewed_at removed)
 
-    if (vsErr)
-    {
-      res.status(400).json({ error: vsErr.message });
-      return;
-    }
-
-    // Percent points acknowledged: compute over total tags (tags are the denominator)
-    const tagsByPoint = new Map<string, number>();
-    (tags || []).forEach(t =>
-    {
-      tagsByPoint.set(t.point_id, (tagsByPoint.get(t.point_id) || 0) + 1);
-    });
+    // Percent points acknowledged (game KPI):
+    // (# player acknowledgments) / (total points * total players on team)
+    // This measures overall acknowledgment coverage across all possible player-point pairs.
     const acksByPoint = new Map<string, number>();
     (acks || []).forEach(a =>
     {
       acksByPoint.set(a.point_id, (acksByPoint.get(a.point_id) || 0) + 1);
     });
-
-    const totalTags = (tags || []).length;
     const totalAcks = (acks || []).length;
-    const percentPointsAcknowledged = totalTags > 0 ? Math.round((totalAcks / totalTags) * 100) : 0;
 
     // Get tagged players for this game to support guardian views
     const { data: gameTeamPlayers, error: gameTeamPlayersError } = await supabase
@@ -1769,71 +1770,135 @@ router.get('/game/:gameId', authenticateUser, async (req: AuthenticatedRequest, 
       .filter(p => !!p)
       .map(p => ({ id: p.id, name: p.name, user_id: p.user_id }));
 
-    // Calculate average completion percentage using guardian-supported data
     const gamePlayerIds = gamePlayerProfiles.map(p => p.id);
+    const totalPlayersOnTeam = gamePlayerIds.length;
+
+    const totalPointsInWindow = (points || []).length;
+    const ackDenominator = totalPointsInWindow * totalPlayersOnTeam;
+    const percentPointsAcknowledged = ackDenominator > 0 ? Math.round((totalAcks / ackDenominator) * 100) : 0;
+
+    // Build tag sets (needed for tagged views)
+    const taggedPlayersByPoint = new Map<string, Set<string>>();
+    (tags || []).forEach(t =>
+    {
+      const pid = t.point_id as string;
+      const playerId = t.player_id as string;
+      if (!pid || !playerId) return;
+      const set = taggedPlayersByPoint.get(pid) || new Set<string>();
+      set.add(playerId);
+      taggedPlayersByPoint.set(pid, set);
+    });
+
+    // Build ack sets (needed for correct denominator: all team players)
+    const ackedPlayersByPoint = new Map<string, Set<string>>();
+    (acks || []).forEach(a =>
+    {
+      const pid = a.point_id as string;
+      const playerId = a.player_id as string;
+      if (!pid || !playerId) return;
+      const set = ackedPlayersByPoint.get(pid) || new Set<string>();
+      set.add(playerId);
+      ackedPlayersByPoint.set(pid, set);
+    });
+
+    // Calculate average completion percentage using guardian-supported data
     const avgCompletionPercent = calculateAvgCompletionFromGuardianViews(gameViewData, pointIds, gamePlayerIds);
 
-    // Legacy view events query for backward compatibility (timeline generation)
-    const { data: legacyViewEvents, error: veErr } = pointIds.length === 0 ?
-      { data: [], error: null } :
-      await supabase
-        .from('coaching_point_view_events')
-        .select('point_id, user_id, completion_percentage, created_at')
+    // Per-point engagement metrics (SQL-equivalent concepts)
+    // 1) Players viewed & max completion per (point,player): use guardian-supported view data
+    const perPlayerPointMax = new Map<string, number>();
+    const playersViewedByPoint = new Map<string, Set<string>>();
+    (gameViewData || []).forEach(ev =>
+    {
+      const pointId = ev.point_id;
+      const playerId = ev.player_profile_id;
+      if (!pointId || !playerId) return;
+
+      // Track viewed players
+      const viewedSet = playersViewedByPoint.get(pointId) || new Set<string>();
+      viewedSet.add(playerId);
+      playersViewedByPoint.set(pointId, viewedSet);
+
+      // Track max completion per (point,player)
+      const key = `${pointId}__${playerId}`;
+      const val = typeof ev.completion_percentage === 'number' ? ev.completion_percentage : 0;
+      const prev = perPlayerPointMax.get(key);
+      if (prev === undefined || val > prev)
+      {
+        perPlayerPointMax.set(key, val);
+      }
+    });
+
+    // 2) Total views per point: sum(view_count) across effective users (players + guardians)
+    const guardianMap = await getGuardianViewsForPlayers(gamePlayerProfiles);
+    const directUserIds = gamePlayerProfiles.filter(p => !!p.user_id).map(p => p.user_id!) as string[];
+    const guardianUserIds = Array.from(new Set(Array.from(guardianMap.values()).flat()));
+    const allUserIds = Array.from(new Set([...directUserIds, ...guardianUserIds]));
+
+    const viewsByPoint = new Map<string, number>();
+    if (pointIds.length > 0 && allUserIds.length > 0)
+    {
+      const { data: viewSummaries, error: vsErr } = await supabase
+        .from('coaching_point_view_summary')
+        .select('point_id, user_id, view_count')
         .in('point_id', pointIds)
-        .gte('created_at', startISO)
-        .lte('created_at', endISO);
+        .in('user_id', allUserIds);
 
-    if (veErr)
-    {
-      res.status(400).json({ error: veErr.message });
-      return;
+      if (vsErr)
+      {
+        res.status(400).json({ error: vsErr.message });
+        return;
+      }
+
+      (viewSummaries || []).forEach(vs =>
+      {
+        const pid = vs.point_id as string;
+        const count = (vs.view_count as number) || 0;
+        if (!pid) return;
+        viewsByPoint.set(pid, (viewsByPoint.get(pid) || 0) + count);
+      });
     }
-
-    // Keep the old per-user max for backward compatibility where needed
-    const perUserPointMax = buildPerUserPointMaxMap(legacyViewEvents);
-
-    // Per-point engagement table
-    const lastViewedByPoint = new Map<string, string | null>();
-    (viewSummaries || []).forEach(vs =>
-    {
-      const existing = lastViewedByPoint.get(vs.point_id);
-      const cur = vs.last_viewed_at ? new Date(vs.last_viewed_at).toISOString() : null;
-      if (!existing || (cur && cur > existing)) lastViewedByPoint.set(vs.point_id, cur);
-    });
-
-    // Avg completion per point (per-user max grouped by point)
-    const perPointAgg: Record<string, { sum: number; count: number; }> = {};
-    perUserPointMax.forEach((v, key) =>
-    {
-      const [pid] = key.split('__');
-      if (!perPointAgg[pid]) perPointAgg[pid] = { sum: 0, count: 0 };
-      perPointAgg[pid].sum += v || 0;
-      perPointAgg[pid].count += 1;
-    });
-
-    const perPointAvgCompletion = new Map<string, number>();
-    Object.entries(perPointAgg).forEach(([pid, agg]) =>
-    {
-      const avg = agg.count > 0 ? Math.round(agg.sum / agg.count) : 0;
-      perPointAvgCompletion.set(pid, avg);
-    });
-
-    // Calculate views by point using guardian-supported data
-    const viewsByPoint = calculateViewsByEntityFromGuardianViews(gameViewData, 'point_id');
 
     const perPointEngagement = (points || []).map(p =>
     {
       const pid = p.id as string;
-      const tagged = tagsByPoint.get(pid) || 0;
-      const acked = acksByPoint.get(pid) || 0;
+      const taggedSet = taggedPlayersByPoint.get(pid) || new Set<string>();
+      const tagged = taggedSet.size;
+      const viewedPlayersSet = playersViewedByPoint.get(pid) || new Set<string>();
+      const playersViewed = viewedPlayersSet.size;
+
+      // Tagged views: count tagged players who have viewed
+      let taggedViews = 0;
+      taggedSet.forEach(playerId =>
+      {
+        if (viewedPlayersSet.has(playerId)) taggedViews += 1;
+      });
+
+      // Avg completion for this point across ALL team players (0 for non-viewers)
+      let sumCompletion = 0;
+      gamePlayerIds.forEach(playerId =>
+      {
+        const key = `${pid}__${playerId}`;
+        sumCompletion += perPlayerPointMax.get(key) || 0;
+      });
+      const avgCompletionForPoint = totalPlayersOnTeam > 0 ?
+        Math.round((sumCompletion / totalPlayersOnTeam) * 10) / 10 :
+        0;
+
+      // Ack% for this point across ALL team players
+      const ackedPlayers = (ackedPlayersByPoint.get(pid) || new Set<string>()).size;
+      const percentAckd = totalPlayersOnTeam > 0 ? Math.round((ackedPlayers / totalPlayersOnTeam) * 100) : 0;
+
       return {
         pointId: pid,
         title: p.title,
         taggedPlayers: tagged,
+        taggedViews,
+        playersViewed,
+        ackedPlayers,
         views: viewsByPoint.get(pid) || 0,
-        avgCompletionPercent: perPointAvgCompletion.get(pid) || 0,
-        percentAckd: tagged > 0 ? Math.round((acked / tagged) * 100) : 0,
-        lastViewedAt: lastViewedByPoint.get(pid) || null,
+        avgCompletionPercent: avgCompletionForPoint,
+        percentAckd,
       };
     });
 
@@ -1879,6 +1944,7 @@ router.get('/game/:gameId', authenticateUser, async (req: AuthenticatedRequest, 
 
     res.json({
       game: { id: game.id, opponent: game.opponent, date: game.date },
+      totalPlayers: totalPlayersOnTeam,
       numberOfCoachingPoints: (points || []).length,
       totalViews,
       uniqueViewers,

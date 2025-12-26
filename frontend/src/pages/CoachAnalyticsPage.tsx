@@ -95,6 +95,7 @@ type GameListItem = {
 
 type GameAnalytics = {
   game: { id: string; opponent: string; date: string; };
+  totalPlayers: number;
   numberOfCoachingPoints: number;
   totalViews: number;
   uniqueViewers: number;
@@ -104,10 +105,12 @@ type GameAnalytics = {
     pointId: string;
     title: string;
     taggedPlayers: number;
+    taggedViews: number;
+    playersViewed: number;
+    ackedPlayers: number;
     views: number;
     avgCompletionPercent: number;
     percentAckd: number;
-    lastViewedAt: string | null;
   }[];
   viewTimeline: { pointId: string; created_at: string; daysSinceGame: number | null; }[];
   pointTypeBreakdown: { label: string; points: number; views: number; }[];
@@ -258,8 +261,6 @@ function Heatmap({ data }: { data: { dow: number; hour: number; views: number; }
   );
 }
 
-// (Legacy TimelineBars removed in favor of GameTimelineHeatmap)
-
 // Lightweight spark bar chart for daily engagement
 function EngagementSpark({ data }: { data: { date: string; views: number; }[]; })
 {
@@ -271,76 +272,14 @@ function EngagementSpark({ data }: { data: { date: string; views: number; }[]; }
           <div
             key={d.date}
             className='spark-bar'
-            style={{ height: `${(d.views / max) * 100}%` }}
-            title={`${d.date}: ${d.views} views`}
+            title={`${new Date(d.date).toLocaleDateString()} — ${d.views} views`}
+            style={{ height: `${Math.max(2, (d.views / max) * 100)}%` }}
           />
         ))}
       </div>
       <div className='spark-footer'>
-        <span>{data[0]?.date}</span>
-        <span>{data[data.length - 1]?.date}</span>
-      </div>
-    </div>
-  );
-}
-
-// Hourly heatmap for first 7 days after game (7x24)
-function GameTimelineHeatmap({ data }: { data: { dow: number; hour: number; views: number; }[]; })
-{
-  const tzOffsetHours = -new Date().getTimezoneOffset() / 60;
-  const matrix = useMemo(() =>
-  {
-    const local = Array.from({ length: 7 }, () => Array.from({ length: 24 }, () => 0));
-    data.forEach(d =>
-    {
-      if (d.dow < 0 || d.dow > 6 || d.hour < 0 || d.hour > 23) return;
-      const raw = d.hour + tzOffsetHours;
-      const dayShift = Math.floor(raw / 24) + (raw < 0 && raw % 24 !== 0 ? -1 : 0);
-      const localHour = ((raw % 24) + 24) % 24;
-      const localDow = (d.dow + dayShift + 7) % 7;
-      local[localDow][localHour] += d.views;
-    });
-    return local;
-  }, [data, tzOffsetHours]);
-  const max = useMemo(() =>
-  {
-    let mv = 0;
-    matrix.forEach(r =>
-      r.forEach(v =>
-      {
-        if (v > mv) mv = v;
-      })
-    );
-    return mv || 1;
-  }, [matrix]);
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  return (
-    <div className='timeline-heatmap'>
-      <div className='stat-label' style={{ marginBottom: 8 }}>Hourly Views irst 7 Days</div>
-      <div className='timeline-hourly-grid'>
-        <div></div>
-        {Array.from({ length: 24 }, (_, h) =>
-        {
-          const twelve = ((h + 11) % 12) + 1;
-          return <div key={h} className='hour-hdr'>{twelve}</div>;
-        })}
-        {matrix.map((row, dow) => (
-          <React.Fragment key={dow}>
-            <div className='dow-label'>{dayNames[dow]}</div>
-            {row.map((v, h) =>
-            {
-              const intensity = v === 0 ? 0 : 0.15 + 0.85 * (v / max);
-              return (
-                <div
-                  key={h}
-                  className='hour-cell'
-                  title={`${dayNames[dow]} ${h}:00 — ${v} views`}
-                  style={{ backgroundColor: v ? `rgba(64,132,255,${intensity})` : 'transparent' }}
-                />
-              );
-            })}
-          </React.Fragment>
-        ))}
+        <span>{data[0] ? new Date(data[0].date).toLocaleDateString() : ''}</span>
+        <span>{data[data.length - 1] ? new Date(data[data.length - 1].date).toLocaleDateString() : ''}</span>
       </div>
     </div>
   );
@@ -507,7 +446,20 @@ function Overview30DayHourlyHeatmap(
 
 export const CoachAnalyticsPage: React.FC = () =>
 {
-  const [selectedTab, setSelectedTab] = useState<'overview' | 'teams' | 'games' | 'players' | 'points'>('overview');
+  const showAllAnalyticsTabs = useMemo(() =>
+  {
+    if (typeof window === 'undefined') return false;
+    const params = new URLSearchParams(window.location.search);
+    const raw = (params.get('debugAnalyticsTabs') || '').toLowerCase();
+    return raw === '1' || raw === 'true' || raw === 'yes';
+  }, []);
+
+  const [selectedTab, setSelectedTab] = useState<'overview' | 'teams' | 'games' | 'players' | 'points'>(
+    showAllAnalyticsTabs ? 'overview' : 'games',
+  );
+
+  const effectiveTab: 'overview' | 'teams' | 'games' | 'players' | 'points' = showAllAnalyticsTabs ? selectedTab :
+    'games';
 
   // Coach overview states
   const [coachOverview, setCoachOverview] = useState<CoachOverview | null>(null);
@@ -529,6 +481,12 @@ export const CoachAnalyticsPage: React.FC = () =>
   const [gameAnalytics, setGameAnalytics] = useState<GameAnalytics | null>(null);
   const [gameAnalyticsLoading, setGameAnalyticsLoading] = useState(false);
   const [gameAnalyticsError, setGameAnalyticsError] = useState<string | null>(null);
+
+  // Games tab: selected coaching point details (for slide-in Players card)
+  const [selectedGamePointId, setSelectedGamePointId] = useState<string | null>(null);
+  const [gamePointDetail, setGamePointDetail] = useState<CoachingPointDetail | null>(null);
+  const [gamePointDetailLoading, setGamePointDetailLoading] = useState(false);
+  const [gamePointDetailError, setGamePointDetailError] = useState<string | null>(null);
 
   // Player-level states
   const [coachPlayers, setCoachPlayers] = useState<{ id: string; name: string; team_id: string; team_name: string; }[]>(
@@ -567,17 +525,25 @@ export const CoachAnalyticsPage: React.FC = () =>
   useEffect(() =>
   {
     document.body.className = 'dashboard-mode';
-    fetchCoachOverview();
-    fetchTeamsAndAnalytics();
-    fetchCoachGames();
-    fetchCoachPlayers();
-    fetchCoachingPoints();
+    if (showAllAnalyticsTabs)
+    {
+      fetchCoachOverview();
+      fetchTeamsAndAnalytics();
+      fetchCoachGames();
+      fetchCoachPlayers();
+      fetchCoachingPoints();
+    }
+    else
+    {
+      // Default (non-debug) mode: only load the Games tab.
+      fetchCoachGames();
+    }
 
     return () =>
     {
       document.body.className = '';
     };
-  }, []);
+  }, [showAllAnalyticsTabs]);
 
   const fetchCoachOverview = async () =>
   {
@@ -972,6 +938,44 @@ export const CoachAnalyticsPage: React.FC = () =>
     }
   };
 
+  const fetchGamePointDetail = async (pointId: string) =>
+  {
+    try
+    {
+      setGamePointDetailLoading(true);
+      setGamePointDetailError(null);
+
+      const { supabase } = await import('../lib/supabase');
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error('No access token');
+
+      const apiUrl = getApiUrl();
+      const r = await fetch(`${apiUrl}/api/analytics/coaching-point/${pointId}`, {
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      });
+
+      if (!r.ok)
+      {
+        const t = await r.text();
+        throw new Error(t || 'Failed to load coaching point details');
+      }
+
+      const data = await r.json() as CoachingPointDetail;
+      setGamePointDetail(data);
+    }
+    catch (e)
+    {
+      console.error('Error fetching coaching point details (Games tab):', e);
+      setGamePointDetailError('Failed to load coaching point details');
+      setGamePointDetail(null);
+    }
+    finally
+    {
+      setGamePointDetailLoading(false);
+    }
+  };
+
   const fetchPointDetail = async (pointId: string) =>
   {
     try
@@ -1009,31 +1013,29 @@ export const CoachAnalyticsPage: React.FC = () =>
     }
   };
 
-  const timelineHourly = useMemo(() =>
+  const gameTimelineHourly30d = useMemo(() =>
   {
-    if (!gameAnalytics?.viewTimeline || !gameAnalytics.game?.date) return [];
-    const base = new Date(gameAnalytics.game.date).getTime();
+    if (!gameAnalytics?.viewTimeline) return [];
     const bucket = new Map<string, number>();
     gameAnalytics.viewTimeline.forEach(ev =>
     {
-      const ts = new Date(ev.created_at).getTime();
-      if (Number.isNaN(ts) || ts < base) return;
-      const hrs = Math.floor((ts - base) / 3600000);
-      if (hrs < 0) return;
-      const dow = Math.floor(hrs / 24);
-      if (dow > 6) return; // limit to first 7 days
-      const hour = hrs % 24;
-      const key = `${dow}-${hour}`;
+      const dt = new Date(ev.created_at);
+      if (Number.isNaN(dt.getTime())) return;
+      const date = dt.toISOString().slice(0, 10); // UTC day
+      const hour = dt.getUTCHours();
+      const key = `${date}-${hour}`;
       bucket.set(key, (bucket.get(key) || 0) + 1);
     });
-    return Array.from(bucket.entries()).map(([k, views]) =>
-    {
-      const [dow, hour] = k.split('-').map(Number);
-      return { dow, hour, views };
-    });
+    return Array.from(bucket.entries())
+      .map(([k, views]) =>
+      {
+        const lastDash = k.lastIndexOf('-');
+        const date = k.slice(0, lastDash);
+        const hour = Number(k.slice(lastDash + 1));
+        return { date, hour, views };
+      })
+      .sort((a, b) => a.date.localeCompare(b.date) || a.hour - b.hour);
   }, [gameAnalytics]);
-
-  // (Removed overviewHourly; using 30-day component instead)
 
   // Coaching point filter derivations
   const pointTeams = useMemo(() =>
@@ -1095,6 +1097,7 @@ export const CoachAnalyticsPage: React.FC = () =>
     });
     return Array.from(map.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
   }, [coachPlayers]);
+
   const filteredPlayers = useMemo(() =>
   {
     return coachPlayers.filter(p => selectedPlayerTeamId === 'all' || p.team_id === selectedPlayerTeamId);
@@ -1118,6 +1121,7 @@ export const CoachAnalyticsPage: React.FC = () =>
     if (value === null || value === undefined || isNaN(value)) return '—';
     return `${Math.round(value)}%`;
   };
+
   const formatHours = (value: number | null | undefined) =>
   {
     if (value === null || value === undefined || isNaN(value) || !isFinite(value)) return '—';
@@ -1129,42 +1133,44 @@ export const CoachAnalyticsPage: React.FC = () =>
     <main className='dashboard-main'>
       <div className='section-header' style={{ alignItems: 'center', gap: 'var(--space-sm)' }}>
         <h1 className='section-title' style={{ marginBottom: 0 }}>Coach Analytics</h1>
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-          <button
-            className={`btn ${selectedTab === 'overview' ? 'btn-primary' : ''}`}
-            onClick={() => setSelectedTab('overview')}
-          >
-            Overview
-          </button>
-          <button
-            className={`btn ${selectedTab === 'teams' ? 'btn-primary' : ''}`}
-            onClick={() => setSelectedTab('teams')}
-          >
-            Teams
-          </button>
-          <button
-            className={`btn ${selectedTab === 'games' ? 'btn-primary' : ''}`}
-            onClick={() => setSelectedTab('games')}
-          >
-            Games
-          </button>
-          <button
-            className={`btn ${selectedTab === 'players' ? 'btn-primary' : ''}`}
-            onClick={() => setSelectedTab('players')}
-          >
-            Players
-          </button>
-          <button
-            className={`btn ${selectedTab === 'points' ? 'btn-primary' : ''}`}
-            onClick={() => setSelectedTab('points')}
-          >
-            Coaching Points
-          </button>
-        </div>
+        {showAllAnalyticsTabs && (
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+            <button
+              className={`btn ${selectedTab === 'overview' ? 'btn-primary' : ''}`}
+              onClick={() => setSelectedTab('overview')}
+            >
+              Overview
+            </button>
+            <button
+              className={`btn ${selectedTab === 'teams' ? 'btn-primary' : ''}`}
+              onClick={() => setSelectedTab('teams')}
+            >
+              Teams
+            </button>
+            <button
+              className={`btn ${selectedTab === 'games' ? 'btn-primary' : ''}`}
+              onClick={() => setSelectedTab('games')}
+            >
+              Games
+            </button>
+            <button
+              className={`btn ${selectedTab === 'players' ? 'btn-primary' : ''}`}
+              onClick={() => setSelectedTab('players')}
+            >
+              Players
+            </button>
+            <button
+              className={`btn ${selectedTab === 'points' ? 'btn-primary' : ''}`}
+              onClick={() => setSelectedTab('points')}
+            >
+              Coaching Points
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Overview Tab */}
-      {selectedTab === 'overview' && (
+      {effectiveTab === 'overview' && (
         <>
           <div className='card intro-card'>
             <div className='stat-label'>
@@ -1279,7 +1285,7 @@ export const CoachAnalyticsPage: React.FC = () =>
       )}
 
       {/* Teams Tab */}
-      {selectedTab === 'teams' && (
+      {effectiveTab === 'teams' && (
         <>
           <div className='card' style={{ marginBottom: 'var(--space-lg)' }}>
             <div className='stat-label'>
@@ -1463,7 +1469,7 @@ export const CoachAnalyticsPage: React.FC = () =>
       )}
 
       {/* Games Tab */}
-      {selectedTab === 'games' && (
+      {effectiveTab === 'games' && (
         <>
           <div className='card intro-card'>
             <div className='stat-label'>Deep-dive into a game: point engagement, viewer behavior, and content mix.</div>
@@ -1578,65 +1584,154 @@ export const CoachAnalyticsPage: React.FC = () =>
                 )}
 
               <div className='section-grid games-sections'>
-                {/* Per point engagement (spans all 3 cols on large screens) */}
-                <div className='subcard engagement-full'>
-                  <div className='subcard-header with-help'>
-                    <span>Per-Point Engagement</span>
-                    <span className='subtle-muted'>View & ack quality</span>
-                  </div>
-                  <div className='engagement-table'>
-                    <div className='engagement-head'>
-                      <div>Point Title</div>
-                      <div className='text-right'>Tagged</div>
-                      <div className='text-right'>Views</div>
-                      <div className='text-right'>Avg Viewed</div>
-                      <div className='text-right'>Ack’d</div>
-                      <div className='text-right'>Last Viewed</div>
+                <div className={`per-point-split ${selectedGamePointId ? 'open' : ''}`}>
+                  <div className='subcard per-point-left'>
+                    <div className='subcard-header with-help'>
+                      <span>Per-Point Engagement</span>
+                      <span className='subtle-muted'>Click a point to view players</span>
                     </div>
-                    <div className='engagement-body'>
-                      {gameAnalytics.perPointEngagement.map(row => (
-                        <div key={row.pointId} className='engagement-row'>
-                          <div className='title clamp-1'>{row.title}</div>
-                          <div className='text-right'>{row.taggedPlayers}</div>
-                          <div className='text-right'>{row.views}</div>
-                          <div className='text-right'>
-                            <span className='mini-pct'>{row.avgCompletionPercent}%</span>
-                            <div className='progress-bar mini'>
-                              <div
-                                className='progress-fill'
-                                style={{ width: `${Math.min(100, Math.max(0, row.avgCompletionPercent))}%` }}
-                              />
-                            </div>
-                          </div>
-                          <div className='text-right'>
-                            <span className='mini-pct'>{row.percentAckd}%</span>
-                            <div className='progress-bar mini ack'>
-                              <div
-                                className='progress-fill'
-                                style={{ width: `${Math.min(100, Math.max(0, row.percentAckd))}%` }}
-                              />
-                            </div>
-                          </div>
-                          <div className='text-right'>
-                            {row.lastViewedAt ? new Date(row.lastViewedAt).toLocaleDateString() : '—'}
-                          </div>
+                    <div className='engagement-table'>
+                      <div className='engagement-head'>
+                        <div title='Coaching point title'>Point Title</div>
+                        <div
+                          className='text-right'
+                          title='Out of tagged players, how many have viewed this point.'
+                        >
+                          Tagged Views
                         </div>
-                      ))}
-                      {gameAnalytics.perPointEngagement.length === 0 && <div className='empty-block'>No data</div>}
+                        <div
+                          className='text-right'
+                          title='Number of team players who have viewed this point at least once.'
+                        >
+                          Viewed
+                        </div>
+                        <div
+                          className='text-right'
+                          title='Ack rate: number of team players who acknowledged this point divided by total players on the team.'
+                        >
+                          Ack'd
+                        </div>
+                      </div>
+                      <div className='engagement-body'>
+                        {gameAnalytics.perPointEngagement.map(row => (
+                          <div
+                            key={row.pointId}
+                            className={`engagement-row clickable ${selectedGamePointId === row.pointId ? 'selected' : ''}`}
+                            aria-pressed={selectedGamePointId === row.pointId}
+                            onClick={() =>
+                            {
+                              if (selectedGamePointId === row.pointId)
+                              {
+                                setSelectedGamePointId(null);
+                                setGamePointDetail(null);
+                                setGamePointDetailError(null);
+                                return;
+                              }
+
+                              setSelectedGamePointId(row.pointId);
+                              fetchGamePointDetail(row.pointId);
+                            }}
+                          >
+                            <div className='title clamp-1'>{row.title}</div>
+                            <div className='text-right'>
+                              <span className='mini-pct'>
+                                {row.taggedViews}/{row.taggedPlayers}
+                              </span>
+                              <div className='progress-bar mini'>
+                                <div
+                                  className='progress-fill'
+                                  style={{
+                                    width: `${Math.min(
+                                      100,
+                                      Math.max(
+                                        0,
+                                        row.taggedPlayers > 0 ? (row.taggedViews / row.taggedPlayers) * 100 : 0,
+                                      ),
+                                    )}%`,
+                                  }}
+                                />
+                              </div>
+                            </div>
+
+                            <div className='text-right'>
+                              <span className='mini-pct'>
+                                {row.playersViewed}/{gameAnalytics.totalPlayers}
+                              </span>
+                              <div className='progress-bar mini'>
+                                <div
+                                  className='progress-fill'
+                                  style={{
+                                    width: `${Math.min(
+                                      100,
+                                      Math.max(
+                                        0,
+                                        gameAnalytics.totalPlayers > 0 ?
+                                          (row.playersViewed / gameAnalytics.totalPlayers) * 100 :
+                                          0,
+                                      ),
+                                    )}%`,
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            <div className='text-right'>
+                              <span className='mini-pct'>
+                                {row.ackedPlayers}/{gameAnalytics.totalPlayers}
+                              </span>
+                              <div className='progress-bar mini ack'>
+                                <div
+                                  className='progress-fill'
+                                  style={{ width: `${Math.min(100, Math.max(0, row.percentAckd))}%` }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        {gameAnalytics.perPointEngagement.length === 0 && <div className='empty-block'>No data</div>}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* View Timeline Heatmap (spans 2 columns) */}
-                <div className='subcard timeline-heatmap-wide'>
-                  <div className='subcard-header with-help'>
-                    <span>View Timeline Heatmap</span>
-                    <span className='subtle-muted'>Local Time</span>
+                  <div className='subcard per-point-right'>
+                    <div className='subcard-header'>
+                      <span>Players</span>
+                    </div>
+                    {gamePointDetailLoading && <div className='loading'>Loading players...</div>}
+                    {gamePointDetailError && <div className='alert alert-error'>{gamePointDetailError}</div>}
+                    {!gamePointDetailLoading && !gamePointDetailError && !gamePointDetail && (
+                      <div className='empty-block'>Select a point to view players</div>
+                    )}
+                    {!gamePointDetailLoading && !gamePointDetailError && gamePointDetail && (
+                      <>
+                        <div className='players-table-head'>
+                          <span>Player</span>
+                          <span>Views</span>
+                          <span>Completion %</span>
+                          <span>Ack</span>
+                          <span>Note</span>
+                          <span>Tagged</span>
+                        </div>
+                        <div className='players-table-body scrollable'>
+                          {gamePointDetail.players.length === 0 && <div className='empty-block'>No players</div>}
+                          {gamePointDetail.players.map(player => (
+                            <div key={player.player_id} className='player-row'>
+                              <div className='player-name clamp-1'>{player.name}</div>
+                              <div>{player.views}</div>
+                              <div className='player-comp'>{player.completion_percent}%</div>
+                              <div className='player-ack'>{player.acknowledged ? '✓' : '—'}</div>
+                              <div className='player-note clamp-1' title={player.ack_notes || ''}>
+                                {player.ack_notes || '—'}
+                              </div>
+                              <div className='player-tagged'>{player.tagged ? '✓' : '—'}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </div>
-                  <GameTimelineHeatmap data={timelineHourly} />
                 </div>
-
-                {/* Point Type Breakdown */}
+                
+                {/* Point Type Breakdown 
                 <div className='subcard'>
                   <div className='subcard-header with-help'>
                     <span>Point Type Breakdown</span>
@@ -1657,6 +1752,15 @@ export const CoachAnalyticsPage: React.FC = () =>
                     ))}
                     {gameAnalytics.pointTypeBreakdown.length === 0 && <div className='empty-block'>No data</div>}
                   </div>
+                </div>*/}
+
+                {/* View Timeline Heatmap (spans 2 columns) */}
+                <div className='subcard timeline-heatmap-wide'>
+                  <div className='subcard-header with-help'>
+                    <span>View Timeline Heatmap</span>
+                    <span className='subtle-muted'>Past 30 days · Local Time</span>
+                  </div>
+                  <Overview30DayHourlyHeatmap data={[]} hourly={gameTimelineHourly30d} />
                 </div>
               </div>
             </div>
@@ -1665,7 +1769,7 @@ export const CoachAnalyticsPage: React.FC = () =>
       )}
 
       {/* Players Tab */}
-      {selectedTab === 'players' && (
+      {effectiveTab === 'players' && (
         <>
           <div className='analytics-overview' style={{ marginBottom: 'var(--space-xl)' }}>
             <div className='card' style={{ marginBottom: 'var(--space-lg)' }}>
@@ -1865,7 +1969,7 @@ export const CoachAnalyticsPage: React.FC = () =>
       )}
 
       {/* Coaching Points Tab */}
-      {selectedTab === 'points' && (
+      {effectiveTab === 'points' && (
         <>
           <div className='card' style={{ marginBottom: 'var(--space-lg)' }}>
             <div className='stat-label'>
