@@ -199,6 +199,15 @@ flowchart TB
 
 ## Video Analysis Flow
 
+The YouTube viewer suppresses captions on player readiness and when API modules
+load, without enabling native controls or pointer interaction. The
+`useYouTubePlayer` hook checks for a loaded captions module before calling the
+undocumented `unloadModule('captions')` API, avoiding repeated unloads when the
+unload itself triggers `onApiChange`. If suppression is unavailable or fails, it
+logs a console warning and leaves playback operational. This is a best-effort
+workaround that should be checked against a live captioned YouTube video after
+player API changes; `cc_load_policy: 0` does not reliably force captions off.
+
 ```mermaid
 sequenceDiagram
     participant User

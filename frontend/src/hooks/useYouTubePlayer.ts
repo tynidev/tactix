@@ -54,6 +54,28 @@ export const useYouTubePlayer = (videoId?: string) =>
     window.onYouTubeIframeAPIReady = initializePlayer;
   }, []);
 
+  const disableCaptions = useCallback((event: Pick<PlayerEvent, 'target'>) =>
+  {
+    try
+    {
+      // Unloading also fires onApiChange; only act while captions are loaded.
+      if (!event.target.getOptions().includes('captions')) return;
+
+      // This undocumented API may not be available in future YouTube players.
+      if (typeof event.target.unloadModule !== 'function')
+      {
+        console.warn('Unable to disable YouTube captions: unloadModule is unavailable.');
+        return;
+      }
+
+      event.target.unloadModule('captions');
+    }
+    catch (error)
+    {
+      console.warn('Unable to disable YouTube captions:', error);
+    }
+  }, []);
+
   /**
    * Initializes the YouTube player with specific configuration
    * Sets up player parameters for optimal HUD integration:
@@ -62,6 +84,7 @@ export const useYouTubePlayer = (videoId?: string) =>
    * - Keyboard controls disabled
    * - Fullscreen disabled
    * - Annotations hidden
+   * - Captions suppressed when the captions module loads
    * - Related videos minimized
    * - Audio unmuted by default
    */
@@ -89,6 +112,7 @@ export const useYouTubePlayer = (videoId?: string) =>
         events: {
           onReady: onPlayerReady,
           onStateChange: onPlayerStateChange,
+          onApiChange: disableCaptions,
         },
       });
 
@@ -99,7 +123,7 @@ export const useYouTubePlayer = (videoId?: string) =>
     {
       console.error('Error initializing YouTube player:', error);
     }
-  }, [getVideoId]);
+  }, [getVideoId, disableCaptions]);
 
   /**
    * Updates the video dimensions state based on the current iframe size
@@ -222,6 +246,7 @@ export const useYouTubePlayer = (videoId?: string) =>
    */
   const onPlayerReady = useCallback((event: PlayerEvent) =>
   {
+    disableCaptions(event);
     try
     {
       event.target.playVideo();
@@ -235,7 +260,7 @@ export const useYouTubePlayer = (videoId?: string) =>
     {
       console.error('Error initializing player:', error);
     }
-  }, [updateVideoDimensions, updateTimeState]);
+  }, [disableCaptions, updateVideoDimensions, updateTimeState]);
 
   /**
    * Handles YouTube player state change events

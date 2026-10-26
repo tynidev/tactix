@@ -31,6 +31,7 @@ export interface PlayerConfig
   events: {
     onReady: (event: PlayerEvent) => void;
     onStateChange: (event: PlayerEvent) => void;
+    onApiChange: (event: Pick<PlayerEvent, 'target'>) => void;
   };
 }
 
@@ -44,6 +45,8 @@ export interface Player
   getPlayerState(): number;
   setPlaybackRate(rate: number): void;
   getPlaybackRate(): number;
+  getOptions(): string[];
+  unloadModule?(module: 'captions'): void;
   destroy(): void;
 }
 
