@@ -13,6 +13,9 @@ import type { Player, PlayerEvent } from '../types/youtube';
 export const useYouTubePlayer = (videoId?: string) =>
 {
   const playerRef = useRef<Player | null>(null);
+  const captionRetryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastCaptionUnloadRef = useRef(-Infinity);
+  const captionWarningLoggedRef = useRef(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -54,27 +57,65 @@ export const useYouTubePlayer = (videoId?: string) =>
     window.onYouTubeIframeAPIReady = initializePlayer;
   }, []);
 
-  const disableCaptions = useCallback((event: Pick<PlayerEvent, 'target'>) =>
+  const disableCaptions = useCallback((player: Player, activeTrackOnly = false) =>
   {
+    if (playerRef.current !== player) return;
+
     try
     {
-      // Unloading also fires onApiChange; only act while captions are loaded.
-      if (!event.target.getOptions().includes('captions')) return;
+      if (!player.getOptions().includes('captions')) return;
 
-      // This undocumented API may not be available in future YouTube players.
-      if (typeof event.target.unloadModule !== 'function')
+      if (activeTrackOnly)
       {
-        console.warn('Unable to disable YouTube captions: unloadModule is unavailable.');
-        return;
+        if (typeof player.getOption !== 'function')
+        {
+          throw new Error('Caption track inspection is unavailable.');
+        }
+
+        const track = player.getOption('captions', 'track');
+        if (
+          !track || typeof track !== 'object' || !('languageCode' in track) ||
+          typeof track.languageCode !== 'string' || !track.languageCode
+        ) return;
       }
 
-      event.target.unloadModule('captions');
+      // This undocumented API may not be available in future YouTube players.
+      if (typeof player.unloadModule !== 'function')
+      {
+        throw new Error('unloadModule is unavailable.');
+      }
+
+      // Module/track information can lag; throttle repeated and reentrant events.
+      const now = performance.now();
+      if (now - lastCaptionUnloadRef.current < 250) return;
+      lastCaptionUnloadRef.current = now;
+      player.unloadModule('captions');
     }
     catch (error)
     {
-      console.warn('Unable to disable YouTube captions:', error);
+      if (!captionWarningLoggedRef.current)
+      {
+        captionWarningLoggedRef.current = true;
+        console.warn('Unable to disable YouTube captions:', error);
+      }
     }
   }, []);
+
+  const suppressCaptionsAfterTransport = useCallback(() =>
+  {
+    const player = playerRef.current;
+    if (!player) return;
+
+    disableCaptions(player);
+    if (captionRetryRef.current !== null) clearTimeout(captionRetryRef.current);
+
+    // YouTube can restore captions after a seek, including while paused.
+    captionRetryRef.current = setTimeout(() =>
+    {
+      captionRetryRef.current = null;
+      disableCaptions(player);
+    }, 300);
+  }, [disableCaptions]);
 
   /**
    * Initializes the YouTube player with specific configuration
@@ -112,12 +153,14 @@ export const useYouTubePlayer = (videoId?: string) =>
         events: {
           onReady: onPlayerReady,
           onStateChange: onPlayerStateChange,
-          onApiChange: disableCaptions,
+          onApiChange: (event) => disableCaptions(event.target),
         },
       });
 
       // Store the player reference
       playerRef.current = newPlayer;
+      lastCaptionUnloadRef.current = -Infinity;
+      captionWarningLoggedRef.current = false;
     }
     catch (error)
     {
@@ -231,12 +274,13 @@ export const useYouTubePlayer = (videoId?: string) =>
       const duration = playerRef.current.getDuration();
       const newTime = Math.max(0, Math.min(duration, time));
       playerRef.current.seekTo(newTime, true);
+      suppressCaptionsAfterTransport();
     }
     catch (error)
     {
       console.error('Error seeking to time:', error);
     }
-  }, []);
+  }, [suppressCaptionsAfterTransport]);
 
   /**
    * Handles the YouTube player ready event
@@ -246,7 +290,7 @@ export const useYouTubePlayer = (videoId?: string) =>
    */
   const onPlayerReady = useCallback((event: PlayerEvent) =>
   {
-    disableCaptions(event);
+    disableCaptions(event.target);
     try
     {
       event.target.playVideo();
@@ -271,12 +315,29 @@ export const useYouTubePlayer = (videoId?: string) =>
   const onPlayerStateChange = useCallback((event: PlayerEvent) =>
   {
     setIsPlaying(event.data === window.YT.PlayerState.PLAYING);
-  }, []);
+    const { PLAYING, PAUSED, CUED } = window.YT.PlayerState;
+    if (event.data === PLAYING || event.data === PAUSED || event.data === CUED)
+    {
+      disableCaptions(event.target);
+    }
+  }, [disableCaptions]);
 
   useEffect(() =>
   {
     loadYouTubeAPI();
   }, [loadYouTubeAPI]);
+
+  useEffect(() =>
+  {
+    if (!isReady) return;
+
+    const interval = setInterval(() =>
+    {
+      if (playerRef.current) disableCaptions(playerRef.current, true);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isReady, disableCaptions]);
 
   // Track video dimensions on resize and player state changes
   useEffect(() =>
@@ -323,12 +384,13 @@ export const useYouTubePlayer = (videoId?: string) =>
       {
         playerRef.current.playVideo();
       }
+      suppressCaptionsAfterTransport();
     }
     catch (error)
     {
       console.error('Error toggling play/pause:', error);
     }
-  }, []);
+  }, [suppressCaptionsAfterTransport]);
 
   /**
    * Seeks the video forward or backward by a specified number of seconds
@@ -346,12 +408,13 @@ export const useYouTubePlayer = (videoId?: string) =>
       const duration = playerRef.current.getDuration();
       const newTime = Math.max(0, Math.min(duration, currentTime + seconds));
       playerRef.current.seekTo(newTime, true);
+      suppressCaptionsAfterTransport();
     }
     catch (error)
     {
       console.error('Error seeking video:', error);
     }
-  }, []);
+  }, [suppressCaptionsAfterTransport]);
 
   /**
    * Sets the video playback rate (speed)
@@ -366,12 +429,13 @@ export const useYouTubePlayer = (videoId?: string) =>
     try
     {
       playerRef.current.setPlaybackRate(rate);
+      suppressCaptionsAfterTransport();
     }
     catch (error)
     {
       console.error('Error setting playback rate:', error);
     }
-  }, []);
+  }, [suppressCaptionsAfterTransport]);
 
   /**
    * Gets the current playback time in seconds
@@ -448,12 +512,13 @@ export const useYouTubePlayer = (videoId?: string) =>
     try
     {
       playerRef.current.pauseVideo();
+      suppressCaptionsAfterTransport();
     }
     catch (error)
     {
       console.error(`[YouTubePlayer] Error pausing video:`, error);
     }
-  }, []);
+  }, [suppressCaptionsAfterTransport]);
 
   /**
    * Starts or resumes video playback
@@ -466,12 +531,13 @@ export const useYouTubePlayer = (videoId?: string) =>
     try
     {
       playerRef.current.playVideo();
+      suppressCaptionsAfterTransport();
     }
     catch (error)
     {
       console.error(`[YouTubePlayer] Error playing video:`, error);
     }
-  }, []);
+  }, [suppressCaptionsAfterTransport]);
 
   /**
    * Seeks to a specific time position in the video
@@ -487,17 +553,24 @@ export const useYouTubePlayer = (videoId?: string) =>
     try
     {
       playerRef.current.seekTo(time, allowSeekAhead);
+      suppressCaptionsAfterTransport();
     }
     catch (error)
     {
       console.error(`[YouTubePlayer] Error seeking to time:`, error);
     }
-  }, []);
+  }, [suppressCaptionsAfterTransport]);
 
   useEffect(() =>
   {
     return () =>
     {
+      if (captionRetryRef.current !== null)
+      {
+        clearTimeout(captionRetryRef.current);
+        captionRetryRef.current = null;
+      }
+
       // Clean up player on unmount
       if (playerRef.current)
       {

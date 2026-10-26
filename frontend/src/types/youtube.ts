@@ -46,6 +46,7 @@ export interface Player
   setPlaybackRate(rate: number): void;
   getPlaybackRate(): number;
   getOptions(): string[];
+  getOption?(module: 'captions', option: 'track'): unknown;
   unloadModule?(module: 'captions'): void;
   destroy(): void;
 }

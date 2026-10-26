@@ -199,14 +199,29 @@ flowchart TB
 
 ## Video Analysis Flow
 
-The YouTube viewer suppresses captions on player readiness and when API modules
-load, without enabling native controls or pointer interaction. The
-`useYouTubePlayer` hook checks for a loaded captions module before calling the
-undocumented `unloadModule('captions')` API, avoiding repeated unloads when the
-unload itself triggers `onApiChange`. If suppression is unavailable or fails, it
-logs a console warning and leaves playback operational. This is a best-effort
-workaround that should be checked against a live captioned YouTube video after
-player API changes; `cc_load_policy: 0` does not reliably force captions off.
+The YouTube viewer suppresses captions on player readiness, API module changes,
+and playing, paused, or cued state changes, without enabling native controls or
+pointer interaction. All transport commands (including all seek paths and speed
+changes) also attempt suppression immediately and retry after 300 ms, since
+YouTube can restore captions after seeking even while paused. Rapid commands
+replace the pending retry rather than accumulating timers.
+
+While the player is ready, a one-second watchdog checks for an active caption
+track and only attempts suppression if a nonempty `languageCode` is reported.
+The `useYouTubePlayer` hook uses the undocumented `unloadModule('captions')` and
+caption-track inspection APIs. Unload attempts are limited to one per 250 ms to
+guard against repeated module notifications and stale API state. Failures log
+at most one caption warning per player instance without blocking playback.
+The watchdog and pending retry are cleared on unmount, and callbacks ignore
+obsolete player instances.
+
+This is a best-effort workaround: track reports can lag, and captions may briefly
+appear before suppression. Verify initial playback, repeated seeks while playing
+and paused, pause/resume, speed changes, and switching games against live YouTube
+after player API changes. `cc_load_policy: 0` does not reliably force captions off.
+
+Run the mocked lifecycle and timer regression tests from the repository root:
+`node --test frontend/tests/useYouTubePlayer.test.js`.
 
 ```mermaid
 sequenceDiagram
