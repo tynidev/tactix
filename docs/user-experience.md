@@ -25,3 +25,17 @@
 ## Guardian Workflow:
 - Similar experience to players, but with visibility into coaching feedback for both themselves and their child(ren)
 - Can confirm they've reviewed coaching points and mark them as seen on behalf of their child(ren)
+
+## Adding an Existing Child to a Team:
+1. Join the destination team as a guardian, admin, or coach.
+2. Open the team's **Players** section and select **+ Player**, or open your
+   profile and select **Add My Player** and choose the destination team.
+3. Set **Player Profile** to **Add existing child**.
+4. Choose a child already linked to your account. Children already on the
+   selected team and your own player profile are not listed.
+5. Optionally enter a jersey number for this team, then select **Add to Team**.
+
+This reuses the existing child profile and guardian relationship. It does not
+change your team role or remove the child from any other team. All three roles
+can select only their own linked children, not unrelated players. To create a
+new profile instead, leave **Player Profile** set to **Create new player**.

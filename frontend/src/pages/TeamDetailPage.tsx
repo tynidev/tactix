@@ -618,7 +618,7 @@ export const TeamDetailPage: React.FC = () =>
               <button
                 onClick={() => setIsPlayerProfileModalOpen(true)}
                 className='btn btn-primary btn-sm'
-                title='Add new player'
+                title='Add a new player or an existing child'
               >
                 <FaPlus /> Player
               </button>

@@ -1318,6 +1318,144 @@ router.get(
   },
 );
 
+// Add an existing child without changing the user's team role or player profile.
+router.post(
+  '/:teamId/players',
+  requireTeamRole([TeamRole.Coach, TeamRole.Admin, TeamRole.Guardian]),
+  async (req: AuthenticatedRequest, res: Response): Promise<void> =>
+  {
+    try
+    {
+      const { teamId } = req.params;
+      const { playerId, jerseyNumber } = req.body;
+      const userId = req.user?.id;
+
+      if (!userId)
+      {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
+      }
+
+      if (
+        typeof playerId !== 'string' ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(playerId)
+      )
+      {
+        res.status(400).json({ error: 'Player ID must be a valid UUID' });
+        return;
+      }
+
+      if (jerseyNumber !== undefined && jerseyNumber !== null && typeof jerseyNumber !== 'string')
+      {
+        res.status(400).json({ error: 'Jersey number must be a string' });
+        return;
+      }
+
+      const normalizedJerseyNumber = jerseyNumber?.trim() || null;
+      if (normalizedJerseyNumber && !/^\d{1,2}$/.test(normalizedJerseyNumber))
+      {
+        res.status(400).json({ error: 'Jersey number must be 1-2 digits only' });
+        return;
+      }
+
+      const { data: relationship, error: relationshipError } = await supabase
+        .from('guardian_player_relationships')
+        .select('id')
+        .eq('guardian_id', userId)
+        .eq('player_profile_id', playerId)
+        .maybeSingle();
+
+      if (relationshipError)
+      {
+        console.error('Check guardian relationship error:', relationshipError);
+        res.status(500).json({ error: 'Failed to verify guardian relationship' });
+        return;
+      }
+
+      if (!relationship)
+      {
+        res.status(403).json({ error: 'You can only add children already linked to your account' });
+        return;
+      }
+
+      const { data: existingPlayer, error: existingPlayerError } = await supabase
+        .from('team_players')
+        .select('player_id')
+        .eq('team_id', teamId)
+        .eq('player_id', playerId)
+        .maybeSingle();
+
+      if (existingPlayerError)
+      {
+        console.error('Check team player error:', existingPlayerError);
+        res.status(500).json({ error: 'Failed to check team roster' });
+        return;
+      }
+
+      if (existingPlayer)
+      {
+        res.status(409).json({ error: 'This child is already on this team' });
+        return;
+      }
+
+      if (normalizedJerseyNumber)
+      {
+        const { data: matchingPlayers, error: jerseyError } = await supabase
+          .from('team_players')
+          .select('player_id')
+          .eq('team_id', teamId)
+          .eq('jersey_number', normalizedJerseyNumber);
+
+        if (jerseyError)
+        {
+          console.error('Check jersey number error:', jerseyError);
+          res.status(500).json({ error: 'Failed to check jersey number availability' });
+          return;
+        }
+
+        if (matchingPlayers && matchingPlayers.length > 0)
+        {
+          res.status(409).json({ error: 'Jersey number is already taken' });
+          return;
+        }
+      }
+
+      const { data: teamPlayer, error: linkError } = await supabase
+        .from('team_players')
+        .insert({
+          team_id: teamId,
+          player_id: playerId,
+          jersey_number: normalizedJerseyNumber,
+        })
+        .select()
+        .single();
+
+      if (linkError)
+      {
+        if (linkError.code === '23505')
+        {
+          res.status(409).json({ error: 'This child is already on this team' });
+          return;
+        }
+
+        console.error('Add existing child error:', linkError);
+        res.status(500).json({ error: 'Failed to add child to team' });
+        return;
+      }
+
+      res.status(201).json({
+        message: 'Child added to team successfully',
+        team_player: teamPlayer,
+      });
+    }
+    catch (error)
+    {
+      console.error('Add existing child error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+);
+
 // Create player profile - require coach, admin, or guardian role
 router.post(
   '/:teamId/player-profiles',

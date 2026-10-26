@@ -28,12 +28,56 @@ Manages team creation, membership, join codes, player profiles, and team-related
 | GET | [`/:teamId`](#get-teamid) | Get team details | Yes | Coach, Admin, Player, Guardian |
 | GET | [`/:teamId/members`](#get-teamidmembers) | Get team members | Yes | Coach, Admin, Player, Guardian |
 | GET | [`/:teamId/players`](#get-teamidplayers) | Get team players | Yes | Coach, Admin, Player, Guardian |
+| POST | [`/:teamId/players`](#post-teamidplayers) | Add an existing linked child to the team | Yes | Coach, Admin, Guardian |
 | POST | [`/:teamId/player-profiles`](#post-teamidplayer-profiles) | Create player profile | Yes | Coach, Admin, Guardian |
 | PUT | [`/:teamId/members/:membershipId/remove`](#put-teamidmembersmembershipidremove) | Remove team member | Yes | Variable |
 | PUT | [`/:teamId/players/:playerId/remove`](#put-teamidplayersplayeridremove) | Remove team player | Yes | Variable |
 | DELETE | [`/:teamId`](#delete-teamid) | Delete team | Yes | Coach, Admin |
 
 ## Detailed Route Documentation
+
+### POST `/:teamId/players`
+Add an existing child to a team without creating another player profile.
+
+**Request Body Schema:**
+```json
+{
+  "playerId": "uuid (required)",
+  "jerseyNumber": "string (optional, 1-2 digits)"
+}
+```
+
+**Authentication/Role Requirements:**
+- User must already be a Coach, Admin, or Guardian of the destination team.
+- For all three roles, the child must already have a guardian relationship with
+  the authenticated user. Staff cannot add unrelated profiles through this route.
+
+**Response Schema (`201`):**
+```json
+{
+  "message": "Child added to team successfully",
+  "team_player": {
+    "id": "uuid",
+    "team_id": "uuid",
+    "player_id": "uuid",
+    "jersey_number": "string or null",
+    "created_at": "timestamp"
+  }
+}
+```
+
+**Error Responses:**
+- `400` - Invalid player ID or jersey number
+- `401` - User not authenticated
+- `403` - Insufficient team permissions or child not linked to the user
+- `409` - Child already on the team or jersey number already taken
+- `500` - Database operation failed
+
+**Business Logic Notes:**
+- Inserts only a `team_players` record; does not change the user's team role,
+  player profile, guardian relationships, or memberships on other teams.
+- Jersey number is specific to the destination team and may be omitted.
+- The existing `POST /:teamId/player-profiles` route still creates new profiles.
 
 ### GET `/join-codes/:code/validate`
 Validate a join code and return team information (public endpoint).
